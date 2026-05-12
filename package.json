@@ -14,7 +14,6 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@google/genai": "^1.44.0",
     "@google/generative-ai": "^0.24.1",
-    "@vercel/blob": "^0.27.0",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -27,6 +26,7 @@
     "@types/node": "^25.3.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vercel/blob": "^0.27.0",
     "autoprefixer": "^10.4.27",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -35,7 +35,6 @@
     "lucide-react": "^0.577.0",
     "next": "^14.2.5",
     "next-auth": "^4.24.7",
-
     "postcss": "^8.5.8",
     "prisma": "^5.22.0",
     "razorpay": "^2.9.6",
@@ -49,6 +48,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@types/node-cron": "^3.0.11"
+    "@types/node-cron": "^3.0.11",
+    "dotenv-cli": "^11.0.0"
   }
 }

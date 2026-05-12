@@ -55,69 +55,79 @@ export async function POST(req: NextRequest) {
   }
   // ── END DEV BYPASS ─────────────────────────────────────────────────────────
 
-  const { razorpay, getPlanId } = await import("@/lib/razorpay");
+  try {
+    const { razorpay, getPlanId } = await import("@/lib/razorpay");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: { subscription: true },
-  });
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { subscription: true },
+    });
 
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
-  }
-
-  // Create or retrieve Razorpay Customer
-  let customerId = user.subscription?.razorpayCustomerId;
-  if (!customerId) {
-    const customer = await razorpay.customers.create({
-      name: user.name ?? "User",
-      email: user.email ?? undefined,
-      notes: { userId: session.user.id },
-    } as Parameters<typeof razorpay.customers.create>[0]);
-    customerId = customer.id;
-
-    // Upsert subscription row with customer ID
-    if (user.subscription) {
-      await prisma.subscription.update({
-        where: { userId: session.user.id },
-        data: { razorpayCustomerId: customerId, currency },
-      });
-    } else {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 7);
-      await prisma.subscription.create({
-        data: {
-          userId: session.user.id,
-          razorpayCustomerId: customerId,
-          status: "trialing",
-          trialEnd,
-          currency,
-        },
-      });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    // Create or retrieve Razorpay Customer
+    let customerId = user.subscription?.razorpayCustomerId;
+    if (!customerId) {
+      const customer = await razorpay.customers.create({
+        name: user.name ?? "User",
+        email: user.email ?? undefined,
+        notes: { userId: session.user.id },
+      } as Parameters<typeof razorpay.customers.create>[0]);
+      customerId = customer.id;
+
+      // Upsert subscription row with customer ID
+      if (user.subscription) {
+        await prisma.subscription.update({
+          where: { userId: session.user.id },
+          data: { razorpayCustomerId: customerId, currency },
+        });
+      } else {
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 7);
+        await prisma.subscription.create({
+          data: {
+            userId: session.user.id,
+            razorpayCustomerId: customerId,
+            status: "trialing",
+            trialEnd,
+            currency,
+          },
+        });
+      }
+    }
+
+    // Create Razorpay Subscription
+    const planId = getPlanId(currency);
+    console.log(`[Checkout] Creating subscription with planId=${planId}, customerId=${customerId}, currency=${currency}`);
+
+    const subscription = await razorpay.subscriptions.create({
+      plan_id: planId,
+      customer_id: customerId,
+      total_count: 120, // Up to 10 years of monthly billing
+      notes: { userId: session.user.id, currency },
+    } as Parameters<typeof razorpay.subscriptions.create>[0]);
+
+    // Store the subscription + plan info
+    await prisma.subscription.update({
+      where: { userId: session.user.id },
+      data: {
+        razorpaySubscriptionId: subscription.id,
+        razorpayPlanId: planId,
+        currency,
+      },
+    });
+
+    return NextResponse.json({
+      subscriptionId: subscription.id,
+      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+    });
+  } catch (err: any) {
+    console.error("[Checkout] Razorpay error:", err?.message ?? err, JSON.stringify(err?.error ?? {}));
+    return NextResponse.json(
+      { error: err?.message ?? "Payment checkout failed", details: err?.error?.description ?? null },
+      { status: 500 }
+    );
   }
-
-  // Create Razorpay Subscription
-  const planId = getPlanId(currency);
-  const subscription = await razorpay.subscriptions.create({
-    plan_id: planId,
-    customer_id: customerId,
-    total_count: 120, // Up to 10 years of monthly billing
-    notes: { userId: session.user.id, currency },
-  } as Parameters<typeof razorpay.subscriptions.create>[0]);
-
-  // Store the subscription + plan info
-  await prisma.subscription.update({
-    where: { userId: session.user.id },
-    data: {
-      razorpaySubscriptionId: subscription.id,
-      razorpayPlanId: planId,
-      currency,
-    },
-  });
-
-  return NextResponse.json({
-    subscriptionId: subscription.id,
-    keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-  });
 }
