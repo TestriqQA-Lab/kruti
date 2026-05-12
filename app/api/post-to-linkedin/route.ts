@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     body: post.body,
     hashtags: post.hashtags,
     imageUrl: post.imageUrl,
+    customSignature: post.customSignature,
   });
 
   // Update post record

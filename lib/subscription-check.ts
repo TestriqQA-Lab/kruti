@@ -8,12 +8,26 @@ export async function checkActiveSubscription(userId: string): Promise<{
   allowed: boolean;
   reason?: string;
 }> {
-  const sub = await prisma.subscription.findUnique({
+  let sub = await prisma.subscription.findUnique({
     where: { userId },
   });
 
   if (!sub) {
-    return { allowed: false, reason: "No subscription found. Please subscribe to continue." };
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 7);
+    try {
+      sub = await prisma.subscription.create({
+        data: {
+          userId,
+          status: "trialing",
+          trialEnd,
+          currency: "INR",
+        },
+      });
+    } catch (err) {
+      console.error("Failed to auto-create trial subscription in check:", err);
+      return { allowed: false, reason: "No subscription found and failed to create one. Please try again or contact support." };
+    }
   }
 
   if (sub.status === "active" || sub.status === "cancel_pending") {

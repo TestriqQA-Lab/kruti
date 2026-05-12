@@ -20,6 +20,7 @@ import {
   Star,
   Quote,
   ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import Footer from "@/components/Footer";
 
@@ -165,9 +166,21 @@ function FAQItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-export default function LandingPage() {
+export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
+  const handleSignIn = () => {
+    signIn("linkedin", { callbackUrl: callbackUrl || "/dashboard" });
+  };
+
+  const isRedirect = callbackUrl && callbackUrl !== "/dashboard" && callbackUrl !== "/";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-950 dark:to-gray-900">
+      {isRedirect && (
+        <div className="bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 px-4 py-3 text-center text-sm font-medium flex items-center justify-center gap-2">
+          <AlertCircle className="w-4 h-4" />
+          Please sign in to access that page.
+        </div>
+      )}
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
@@ -176,7 +189,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-4">
           <a href="/blog" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-[#0A66C2] transition-colors">Blog</a>
           <button
-            onClick={() => signIn("linkedin", { callbackUrl: "/dashboard" })}
+            onClick={handleSignIn}
             className="flex items-center gap-2 bg-linkedin-blue text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-linkedin-darkblue transition-colors"
           >
             <Linkedin className="w-4 h-4" />
@@ -206,7 +219,7 @@ export default function LandingPage() {
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
-            onClick={() => signIn("linkedin", { callbackUrl: "/dashboard" })}
+            onClick={handleSignIn}
             className="inline-flex items-center gap-3 linkedin-gradient text-white px-8 py-4 rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-blue-200 dark:shadow-blue-900/30"
           >
             <Linkedin className="w-6 h-6" />
@@ -349,7 +362,7 @@ export default function LandingPage() {
           </div>
           <div className="text-center">
             <button
-              onClick={() => signIn("linkedin", { callbackUrl: "/dashboard" })}
+              onClick={handleSignIn}
               className="inline-flex items-center gap-2 linkedin-gradient text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
             >
               <Sparkles className="w-5 h-5" />
@@ -415,7 +428,7 @@ export default function LandingPage() {
             </div>
             <div className="mt-6 text-center">
               <button
-                onClick={() => signIn("linkedin", { callbackUrl: "/dashboard" })}
+                onClick={handleSignIn}
                 className="inline-flex items-center gap-2 linkedin-gradient text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
               >
                 <Sparkles className="w-5 h-5" />
@@ -452,7 +465,7 @@ export default function LandingPage() {
           that actually sounds human.
         </p>
         <button
-          onClick={() => signIn("linkedin", { callbackUrl: "/dashboard" })}
+          onClick={handleSignIn}
           className="inline-flex items-center gap-3 linkedin-gradient text-white px-8 py-4 rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-blue-200 dark:shadow-blue-900/30"
         >
           <Linkedin className="w-6 h-6" />

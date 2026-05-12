@@ -93,6 +93,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
 
   // Form state
   const [headline, setHeadline] = useState(user.headline ?? "");
@@ -295,20 +296,47 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Industry
                 </label>
-                <select
+                <input
+                  type="text"
                   value={industry}
-                  onChange={(e) => setIndustry(e.target.value)}
+                  onChange={(e) => {
+                    setIndustry(e.target.value);
+                    setShowIndustryDropdown(true);
+                  }}
+                  onFocus={() => setShowIndustryDropdown(true)}
+                  onBlur={() => setShowIndustryDropdown(false)}
+                  placeholder="Select or type your industry"
                   className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0A66C2] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                >
-                  <option value="">Select your industry</option>
-                  {INDUSTRIES.map((ind) => (
-                    <option key={ind} value={ind}>{ind}</option>
-                  ))}
-                </select>
+                />
+                {showIndustryDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    {INDUSTRIES.filter((ind) => ind.toLowerCase().includes(industry.toLowerCase())).length > 0 ? (
+                      INDUSTRIES.filter((ind) => ind.toLowerCase().includes(industry.toLowerCase())).map((ind) => (
+                        <div
+                          key={ind}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setIndustry(ind);
+                            setShowIndustryDropdown(false);
+                          }}
+                          className="px-4 py-2.5 text-sm text-gray-900 hover:bg-blue-50 cursor-pointer"
+                        >
+                          {ind}
+                        </div>
+                      ))
+                    ) : (
+                      industry.trim() ? (
+                        <div className="px-4 py-2.5 text-sm text-gray-500 italic">
+                          Using custom industry: &quot;{industry}&quot;
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>

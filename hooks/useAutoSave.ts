@@ -6,6 +6,7 @@ interface UseAutoSaveOptions {
   postId: string;
   title: string;
   body: string;
+  customSignature: string | null;
   isPublished: boolean;
   debounceMs?: number;
 }
@@ -14,6 +15,7 @@ export function useAutoSave({
   postId,
   title,
   body,
+  customSignature,
   isPublished,
   debounceMs = 3000,
 }: UseAutoSaveOptions) {
@@ -21,11 +23,13 @@ export function useAutoSave({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const savingRef = useRef(false);
   const mountedRef = useRef(false);
-  const lastSavedRef = useRef({ title, body });
+  const lastSavedRef = useRef({ title, body, customSignature });
   const isDirtyRef = useRef(false);
 
   const isDirty =
-    title !== lastSavedRef.current.title || body !== lastSavedRef.current.body;
+    title !== lastSavedRef.current.title || 
+    body !== lastSavedRef.current.body || 
+    customSignature !== lastSavedRef.current.customSignature;
 
   // Update isDirtyRef for beforeunload handler
   isDirtyRef.current = isDirty;
@@ -40,16 +44,20 @@ export function useAutoSave({
 
   // Mark content as saved (called after manual save succeeds)
   const markSaved = useCallback(() => {
-    lastSavedRef.current = { title, body };
+    lastSavedRef.current = { title, body, customSignature };
     cancelAutoSave();
     setStatus("idle");
-  }, [title, body, cancelAutoSave]);
+  }, [title, body, customSignature, cancelAutoSave]);
 
   // Perform the auto-save
   const doAutoSave = useCallback(
-    async (currentTitle: string, currentBody: string) => {
+    async (currentTitle: string, currentBody: string, currentSignature: string | null) => {
       if (savingRef.current) return;
-      if (currentTitle === lastSavedRef.current.title && currentBody === lastSavedRef.current.body) return;
+      if (
+        currentTitle === lastSavedRef.current.title && 
+        currentBody === lastSavedRef.current.body &&
+        currentSignature === lastSavedRef.current.customSignature
+      ) return;
 
       savingRef.current = true;
       setStatus("saving");
@@ -57,11 +65,15 @@ export function useAutoSave({
         const res = await fetch(`/api/content/${postId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: currentTitle, body: currentBody }),
+          body: JSON.stringify({ 
+            title: currentTitle, 
+            body: currentBody,
+            customSignature: currentSignature 
+          }),
         });
 
         if (res.ok) {
-          lastSavedRef.current = { title: currentTitle, body: currentBody };
+          lastSavedRef.current = { title: currentTitle, body: currentBody, customSignature: currentSignature };
           setStatus("saved");
           setTimeout(() => setStatus((s) => (s === "saved" ? "idle" : s)), 2000);
         } else {
@@ -88,16 +100,20 @@ export function useAutoSave({
     if (isPublished) return;
 
     // Don't auto-save if nothing changed
-    if (title === lastSavedRef.current.title && body === lastSavedRef.current.body) return;
+    if (
+      title === lastSavedRef.current.title && 
+      body === lastSavedRef.current.body &&
+      customSignature === lastSavedRef.current.customSignature
+    ) return;
 
     // Clear existing timer and set new one
     cancelAutoSave();
     timerRef.current = setTimeout(() => {
-      doAutoSave(title, body);
+      doAutoSave(title, body, customSignature);
     }, debounceMs);
 
     return () => cancelAutoSave();
-  }, [title, body, isPublished, debounceMs, cancelAutoSave, doAutoSave]);
+  }, [title, body, customSignature, isPublished, debounceMs, cancelAutoSave, doAutoSave]);
 
   // Warn on page leave with unsaved changes
   useEffect(() => {

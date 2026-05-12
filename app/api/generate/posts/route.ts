@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateText, parseJSON } from "@/lib/gemini";
-import { buildPostsPrompt } from "@/lib/prompts";
+import { buildPostsPrompt, deriveAllowedPostTypes } from "@/lib/prompts";
 import { buildProfileContext } from "@/lib/linkedin";
 import { getNextScheduledSlots } from "@/lib/timezone";
 import { checkActiveSubscription } from "@/lib/subscription-check";
@@ -86,14 +86,17 @@ export async function POST(req: NextRequest) {
   const profileContext = buildProfileContext(user);
   const humanMode = user.humanMode ?? false;
 
+  const allowedTypes = deriveAllowedPostTypes(user.contentStyles);
+
   const prompt = buildPostsPrompt(
     profileContext,
     strategy.weekTheme ?? "Professional Growth",
     strategy.weekFocus ?? "Sharing expertise",
-    strategy.postTypes ?? ["thought-leadership", "tips", "story", "question", "listicle"],
+    strategy.postTypes ?? allowedTypes,
     { pillars: strategy.pillars, tone: strategy.tone, postMix: strategy.postMix },
     humanMode,
-    postCount
+    postCount,
+    allowedTypes
   );
 
   try {

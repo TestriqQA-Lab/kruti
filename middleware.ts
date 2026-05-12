@@ -57,6 +57,14 @@ const authMiddleware = withAuth(
       if (!status || (status !== "active" && status !== "trialing" && status !== "cancel_pending")) {
         return NextResponse.redirect(new URL("/subscribe", req.url));
       }
+
+      // If trialing, check if the trial has actually expired
+      if (status === "trialing" && token.trialEnd) {
+        const trialEndDate = new Date(token.trialEnd as string);
+        if (trialEndDate < new Date()) {
+          return NextResponse.redirect(new URL("/subscribe", req.url));
+        }
+      }
     }
 
     return NextResponse.next();

@@ -54,6 +54,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }),
       ...("imageUrl" in body && { imageUrl: body.imageUrl }),
       ...("humanModeOverride" in body && { humanModeOverride: body.humanModeOverride }),
+      ...("customSignature" in body && { customSignature: body.customSignature }),
       ...("imagePrompt" in body && { imagePrompt: body.imagePrompt }),
     },
   });

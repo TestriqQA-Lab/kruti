@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateText, parseJSON } from "@/lib/gemini";
-import { buildStrategyPrompt, PreviousWeekSummary } from "@/lib/prompts";
+import { buildStrategyPrompt, PreviousWeekSummary, deriveAllowedPostTypes } from "@/lib/prompts";
 import { buildProfileContext } from "@/lib/linkedin";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -99,7 +99,8 @@ export async function POST(req: NextRequest) {
   });
 
   const profileContext = buildProfileContext(user);
-  const prompt = buildStrategyPrompt(profileContext, weekStart, previousWeeks);
+  const allowedTypes = deriveAllowedPostTypes(user.contentStyles);
+  const prompt = buildStrategyPrompt(profileContext, weekStart, previousWeeks, allowedTypes);
 
   try {
     const raw = await generateText(prompt);

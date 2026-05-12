@@ -37,27 +37,6 @@ export const authOptions: NextAuthOptions = {
             console.error("LinkedIn profile sync failed:", err);
           }
         }
-        // Auto-create 7-day trial subscription on first login
-        try {
-          const existing = await prisma.subscription.findUnique({
-            where: { userId: user.id },
-          });
-          if (!existing) {
-            const trialEnd = new Date();
-            trialEnd.setDate(trialEnd.getDate() + 7);
-            await prisma.subscription.create({
-              data: {
-                userId: user.id,
-                status: "trialing",
-                trialEnd,
-                currency: "INR",
-              },
-            });
-            console.log(`Created 7-day trial for user ${user.id}`);
-          }
-        } catch (err) {
-          console.error("Failed to create trial subscription:", err);
-        }
       }
       return true;
     },
@@ -74,12 +53,33 @@ export const authOptions: NextAuthOptions = {
             where: { id: uid },
             include: { subscription: true },
           });
+
+          // Auto-create 7-day trial subscription if missing
+          if (dbUser && !dbUser.subscription) {
+            const trialEnd = new Date();
+            trialEnd.setDate(trialEnd.getDate() + 7);
+            try {
+              dbUser.subscription = await prisma.subscription.upsert({
+                where: { userId: uid },
+                create: {
+                  userId: uid,
+                  status: "trialing",
+                  trialEnd,
+                  currency: "INR",
+                },
+                update: {},
+              });
+              console.log(`Created 7-day trial for user ${uid} in JWT callback`);
+            } catch (err) {
+              console.error("Failed to upsert trial in JWT:", err);
+            }
+          }
+
           token.uid = uid;
           token.role = dbUser?.role ?? "user";
           token.onboardingCompleted = dbUser?.onboardingCompleted ?? false;
           token.subscriptionStatus = dbUser?.subscription?.status ?? "none";
-          token.trialEnd =
-            dbUser?.subscription?.trialEnd?.toISOString() ?? null;
+          token.trialEnd = dbUser?.subscription?.trialEnd?.toISOString() ?? null;
         } catch (err) {
           console.error("JWT callback DB fetch error:", err);
         }

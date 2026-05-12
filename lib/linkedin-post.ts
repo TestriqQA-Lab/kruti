@@ -15,6 +15,7 @@ export async function postToLinkedIn(
     body: string;
     hashtags: string | null;
     imageUrl: string | null;
+    customSignature?: string | null;
   }
 ): Promise<LinkedInPostResult> {
   // Get a valid (auto-refreshed if needed) LinkedIn access token
@@ -64,8 +65,11 @@ export async function postToLinkedIn(
     parts.push(hashtags.map((h) => `#${h}`).join(" "));
   }
 
-  // User's post signature (appended to every post)
-  const signature = user?.postSignature?.trim();
+  // User's post signature (appended to every post, overridden by customSignature if present)
+  let signature = user?.postSignature?.trim();
+  if (post.customSignature !== undefined && post.customSignature !== null) {
+    signature = post.customSignature.trim();
+  }
   if (signature) {
     parts.push("");
     parts.push(signature);

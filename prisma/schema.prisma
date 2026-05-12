@@ -120,6 +120,7 @@ model Post {
   status            String      @default("draft") // draft | ready | published
   weekNumber        Int         @default(1)
   humanModeOverride Boolean?    // null = use user default, true = on, false = off
+  customSignature   String?     @db.Text // Overrides user.postSignature if not null. If empty string, means removed.
   postedToLinkedIn  Boolean     @default(false)
   linkedinPostId    String?     // UGC post ID from LinkedIn API
   postError         String?     @db.Text // last error if auto-post failed

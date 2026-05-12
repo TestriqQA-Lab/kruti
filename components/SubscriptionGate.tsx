@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import {
   CheckCircle,
   Zap,
@@ -39,6 +39,24 @@ const PRICE: Record<Currency, { symbol: string; amount: number }> = {
 
 const PLANS = [
   {
+    id: "free-trial",
+    name: "7-Day Free Trial",
+    description: "Experience the full power of Content Pro",
+    active: false,
+    comingSoon: false,
+    highlight: false,
+    badge: "Free",
+    icon: Gift,
+    features: [
+      { icon: Zap, text: "Test all Content Pro features" },
+      { icon: Calendar, text: "Auto-scheduling & posting" },
+      { icon: Image, text: "AI image generation" },
+      { icon: BarChart2, text: "Personalized strategy" },
+      { icon: Shield, text: "No credit card required" },
+    ],
+    cta: "Included",
+  },
+  {
     id: "content-pro",
     name: "Content Pro",
     description: "Everything you need to create great LinkedIn content",
@@ -56,46 +74,10 @@ const PLANS = [
     ],
     cta: "Subscribe Now",
   },
-  {
-    id: "everything-automatic",
-    name: "Everything Automatic",
-    description: "Fully hands-off \u2014 your LinkedIn runs on autopilot",
-    active: false,
-    comingSoon: true,
-    highlight: false,
-    badge: "Coming Soon",
-    icon: Rocket,
-    features: [
-      { icon: CheckCircle, text: "Everything in Content Pro" },
-      { icon: Rocket, text: "Fully automated content pipeline" },
-      { icon: RefreshCw, text: "Smart re-posting & recycling" },
-      { icon: TrendingUp, text: "Engagement analytics dashboard" },
-      { icon: Settings2, text: "Auto-optimization based on performance" },
-    ],
-    cta: "Coming Soon",
-  },
-  {
-    id: "brand-identity",
-    name: "Brand Identity+",
-    description: "Your brand, everywhere \u2014 graphics, voice, and content",
-    active: false,
-    comingSoon: true,
-    highlight: false,
-    badge: "Coming Soon",
-    icon: Crown,
-    features: [
-      { icon: CheckCircle, text: "Everything in Plan 1 & 2" },
-      { icon: Palette, text: "Branded graphics with your colors & logo" },
-      { icon: Mic, text: "Consistent brand voice across all posts" },
-      { icon: LayoutTemplate, text: "Custom post & image templates" },
-      { icon: BookOpen, text: "Brand guidelines AI enforcement" },
-    ],
-    cta: "Coming Soon",
-  },
 ];
 
-// Multiplier for coming soon plan prices relative to Content Pro
 const PLAN_MULTIPLIER: Record<string, number> = {
+  "free-trial": 0,
   "content-pro": 1,
   "everything-automatic": 2,
   "brand-identity": 3,
@@ -199,7 +181,16 @@ export default function SubscriptionGate({ daysLeft, trialExpired }: Subscriptio
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-950 dark:to-gray-900 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-950 dark:to-gray-900 flex flex-col items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 px-4 py-2 rounded-lg backdrop-blur-sm border border-gray-200 dark:border-gray-700 transition-colors shadow-sm"
+        >
+          Logout
+        </button>
+      </div>
+
       {/* Header */}
       <div className="text-center mb-8">
         <div className="w-14 h-14 bg-[#0A66C2] rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -248,39 +239,10 @@ export default function SubscriptionGate({ daysLeft, trialExpired }: Subscriptio
         </button>
       </div>
 
-      {/* Trial progress bar */}
-      {!trialExpired && (
-        <div className="w-full max-w-sm mb-8">
-          <div className="px-4 py-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur rounded-xl border border-amber-200 dark:border-amber-800">
-            <div className="flex justify-between text-xs text-amber-700 dark:text-amber-400 mb-1">
-              <span>Free trial</span>
-              <span>{daysLeft} days remaining</span>
-            </div>
-            <div className="w-full bg-amber-100 dark:bg-amber-900/40 rounded-full h-2">
-              <div
-                className="bg-amber-500 rounded-full h-2 transition-all"
-                style={{ width: `${(daysLeft / 7) * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Trial included callout */}
-      {!trialExpired && (
-        <div className="w-full max-w-md mb-4">
-          <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3">
-            <Gift className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-green-800 dark:text-green-300">7-day free trial included</p>
-              <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">Full access to all features. No charge until trial ends.</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Pricing Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+      <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 w-full max-w-5xl">
         {PLANS.map((plan) => {
           const PlanIcon = plan.icon;
           const price = getPlanPrice(plan.id);
@@ -288,7 +250,7 @@ export default function SubscriptionGate({ daysLeft, trialExpired }: Subscriptio
             <div
               key={plan.id}
               className={cn(
-                "relative bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden flex flex-col",
+                "relative bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden flex flex-col w-full md:w-[420px]",
                 plan.highlight
                   ? "ring-2 ring-[#0A66C2] shadow-xl md:scale-105 z-10"
                   : "ring-1 ring-gray-200 dark:ring-gray-700",
@@ -332,9 +294,9 @@ export default function SubscriptionGate({ daysLeft, trialExpired }: Subscriptio
               <div className="px-6 pb-4">
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                    {PRICE[currency].symbol}{price}
+                    {price === 0 ? "Free" : `${PRICE[currency].symbol}${price}`}
                   </span>
-                  <span className="text-gray-500 dark:text-gray-400">/month</span>
+                  {price > 0 && <span className="text-gray-500 dark:text-gray-400">/month</span>}
                 </div>
               </div>
 
@@ -370,8 +332,24 @@ export default function SubscriptionGate({ daysLeft, trialExpired }: Subscriptio
               </div>
 
               {/* CTA */}
-              <div className="px-6 pb-6">
-                {plan.active ? (
+              <div className="px-6 pb-6 mt-auto">
+                {plan.id === "free-trial" ? (
+                  trialExpired ? (
+                    <button
+                      disabled
+                      className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-semibold rounded-xl cursor-not-allowed border border-gray-200 dark:border-gray-700"
+                    >
+                      Trial Ended
+                    </button>
+                  ) : (
+                    <a
+                      href="/dashboard"
+                      className="w-full py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-sm font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+                    >
+                      Go to Dashboard ({daysLeft} days left)
+                    </a>
+                  )
+                ) : plan.active ? (
                   <button
                     onClick={handleSubscribe}
                     disabled={loading}
@@ -389,7 +367,7 @@ export default function SubscriptionGate({ daysLeft, trialExpired }: Subscriptio
                 ) : (
                   <button
                     disabled
-                    className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-semibold rounded-xl cursor-not-allowed"
+                    className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-semibold rounded-xl cursor-not-allowed border border-gray-200 dark:border-gray-700"
                   >
                     {plan.cta}
                   </button>

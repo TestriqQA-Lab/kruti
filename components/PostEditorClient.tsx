@@ -45,6 +45,7 @@ interface Post {
   imageGenCount: number;
   weekNumber: number;
   humanModeOverride: boolean | null;
+  customSignature: string | null;
   postedToLinkedIn: boolean;
   linkedinPostId: string | null;
   postError: string | null;
@@ -77,8 +78,13 @@ export default function PostEditorClient({
   const [body, setBody] = useState(post.body);
   const [status, setStatus] = useState(post.status);
   const [imageUrl, setImageUrl] = useState(post.imageUrl);
+  const [imageHistory, setImageHistory] = useState<string[]>(post.imageUrl ? [post.imageUrl] : []);
+  const [historyIndex, setHistoryIndex] = useState<number>(post.imageUrl ? 0 : -1);
   // null = use user default, true = on, false = off
   const [humanMode, setHumanMode] = useState<boolean | null>(post.humanModeOverride ?? null);
+  const [signature, setSignature] = useState(
+    post.customSignature !== null ? (post.customSignature || "") : (postSignature || "")
+  );
 
   // Schedule date/time state — display in user's configured timezone
   const initDate = post.scheduledAt ? new Date(post.scheduledAt) : null;
@@ -145,7 +151,15 @@ export default function PostEditorClient({
       await fetch(`/api/content/${post.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body, hashtags, status, humanModeOverride: humanMode, scheduledAt }),
+        body: JSON.stringify({ 
+          title, 
+          body, 
+          hashtags, 
+          status, 
+          humanModeOverride: humanMode, 
+          scheduledAt,
+          customSignature: signature === (postSignature || "") ? null : signature,
+        }),
       });
       markSaved(); // Update auto-save's last-saved baseline
       setSaved(true);
@@ -195,13 +209,15 @@ export default function PostEditorClient({
         body: JSON.stringify({ postId: post.id }),
       });
       const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || data.error) {
         toast(data.error || "Failed to generate image", "error");
         if (data.remaining !== undefined) setImageGenRemaining(data.remaining);
         return;
       }
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
+        setImageHistory(prev => [...prev, data.imageUrl]);
+        setHistoryIndex(imageHistory.length);
         const remaining = data.remaining ?? 0;
         setImageGenRemaining(remaining);
         toast(
@@ -218,8 +234,8 @@ export default function PostEditorClient({
 
   function handleCopy() {
     let fullText = `${body}\n\n${hashtags.map((h) => `#${h}`).join(" ")}`;
-    if (postSignature) {
-      fullText += `\n\n${postSignature}`;
+    if (signature.trim()) {
+      fullText += `\n\n${signature.trim()}`;
     }
     navigator.clipboard.writeText(fullText);
     setCopied(true);
@@ -292,6 +308,8 @@ export default function PostEditorClient({
       const data = await res.json();
       if (res.ok && data.imageUrl) {
         setImageUrl(data.imageUrl);
+        setImageHistory(prev => [...prev, data.imageUrl]);
+        setHistoryIndex(imageHistory.length);
         toast("Image uploaded", "success");
         router.refresh();
       } else {
@@ -420,6 +438,7 @@ export default function PostEditorClient({
     postId: post.id,
     title,
     body,
+    customSignature: signature === (postSignature || "") ? null : signature,
     isPublished,
   });
 
@@ -695,17 +714,23 @@ export default function PostEditorClient({
             )}
           </div>
 
-          {/* Post Signature Preview */}
-          {postSignature && (
-            <div>
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
-                Signature (auto-appended)
-              </label>
-              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3">
-                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{postSignature}</p>
-              </div>
-            </div>
-          )}
+          {/* Post Signature Editor */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+              Post Signature
+            </label>
+            <textarea
+              value={signature}
+              onChange={(e) => setSignature(e.target.value)}
+              disabled={isPublished}
+              rows={3}
+              placeholder="Signature..."
+              className={cn(
+                "w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 focus:border-linkedin-blue resize-none bg-white dark:bg-gray-900 dark:text-gray-100",
+                isPublished && "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+              )}
+            />
+          </div>
 
           {/* Actions — hidden for published posts */}
           {!isPublished && (
@@ -804,15 +829,44 @@ export default function PostEditorClient({
             </div>
             <div className="p-4">
               {imageUrl ? (
-                <div
-                  className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
-                  onClick={() => setLightboxOpen(true)}
-                >
-                  <Image src={imageUrl} alt="Post image" fill className="object-cover" />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                    <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                <>
+                  <div
+                    className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
+                    onClick={() => setLightboxOpen(true)}
+                  >
+                    <Image src={imageUrl} alt="Post image" fill className="object-cover" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                    </div>
                   </div>
-                </div>
+                  {imageHistory.length > 1 && (
+                    <div className="flex items-center justify-between mt-3 px-1">
+                      <button
+                        onClick={() => {
+                          const newIndex = historyIndex > 0 ? historyIndex - 1 : imageHistory.length - 1;
+                          setHistoryIndex(newIndex);
+                          setImageUrl(imageHistory[newIndex]);
+                        }}
+                        className="text-xs px-2.5 py-1.5 font-medium bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <ArrowLeft className="w-3 h-3" /> Prev
+                      </button>
+                      <span className="text-[10px] text-gray-500 font-medium">
+                        {historyIndex + 1} of {imageHistory.length}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const newIndex = historyIndex < imageHistory.length - 1 ? historyIndex + 1 : 0;
+                          setHistoryIndex(newIndex);
+                          setImageUrl(imageHistory[newIndex]);
+                        }}
+                        className="text-xs px-2.5 py-1.5 font-medium bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        Next <ArrowLeft className="w-3 h-3 rotate-180" />
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div
                   className={cn(
@@ -1006,7 +1060,7 @@ export default function PostEditorClient({
         title={title}
         body={body}
         hashtags={hashtags}
-        postSignature={postSignature}
+        postSignature={signature}
         imageUrl={imageUrl}
       />
 

@@ -30,6 +30,43 @@ function getRules(humanMode: boolean): string {
     : NO_EMOJI_RULES;
 }
 
+export function deriveAllowedPostTypes(contentStylesStr: string | null | undefined): string[] {
+  const defaultTypes = ["thought-leadership", "tips", "story", "question", "listicle"];
+  if (!contentStylesStr) return defaultTypes;
+  try {
+    const styles = JSON.parse(contentStylesStr);
+    if (!Array.isArray(styles) || styles.length === 0) return defaultTypes;
+
+    const allowed = new Set<string>();
+    
+    // Core safe defaults
+    allowed.add("thought-leadership");
+    
+    const stylesJoined = styles.join(" ").toLowerCase();
+    
+    if (stylesJoined.includes("story") || stylesJoined.includes("behind the scenes") || stylesJoined.includes("lessons learned")) {
+      allowed.add("story");
+    }
+    if (stylesJoined.includes("tips") || stylesJoined.includes("how-to") || stylesJoined.includes("problem agitation solution")) {
+      allowed.add("tips");
+    }
+    if (stylesJoined.includes("list") || stylesJoined.includes("data") || stylesJoined.includes("case study")) {
+      allowed.add("listicle");
+    }
+    if (stylesJoined.includes("q&a") || stylesJoined.includes("question") || stylesJoined.includes("predict")) {
+      allowed.add("question");
+    }
+
+    if (allowed.size === 1) { 
+       // Give them a mix but omit story to be safe if they didn't ask for it
+       return ["thought-leadership", "tips", "question"];
+    }
+    return Array.from(allowed);
+  } catch {
+    return defaultTypes;
+  }
+}
+
 // ─── Strategy Prompt ─────────────────────────────────────────────────────────
 
 export interface PreviousWeekSummary {
@@ -43,7 +80,8 @@ export interface PreviousWeekSummary {
 export function buildStrategyPrompt(
   profileContext: string,
   weekStart: Date,
-  previousWeeks: PreviousWeekSummary[] = []
+  previousWeeks: PreviousWeekSummary[] = [],
+  allowedTypes: string[] = ["thought-leadership", "tips", "story", "question", "listicle"]
 ): string {
   const weekLabel = weekStart.toLocaleDateString("en-US", {
     month: "long",
@@ -104,13 +142,10 @@ Generate a content strategy as a JSON object with this EXACT structure:
     "style": "string",
     "avoid": ["string"]
   },
-  "postTypes": ["thought-leadership", "tips", "story", "question", "listicle"],
+  "postTypes": ${JSON.stringify(allowedTypes)},
   "postMix": {
-    "thoughtLeadership": number,
-    "tips": number,
-    "story": number,
-    "question": number,
-    "listicle": number
+    // Specify the percentage or count for each post type used from the postTypes array above. Use the exact string keys.
+    ${allowedTypes.map(t => `"${t}": number`).join(",\n    ")}
   },
   "weeklyGoal": "string (what success looks like this week)",
   "callToAction": "string (the primary CTA to use this week)"
@@ -128,7 +163,8 @@ export function buildPostsPrompt(
   postTypes: string[],
   strategy: object,
   humanMode: boolean = false,
-  postCount: number = 5
+  postCount: number = 5,
+  allowedTypes: string[] = ["thought-leadership", "tips", "story", "question", "listicle"]
 ): string {
   const rules = getRules(humanMode);
 
@@ -150,7 +186,7 @@ Generate exactly ${postCount} posts as a JSON array. Each post must follow this 
     "title": "string (compelling hook - the opening line of the post, max 150 chars)",
     "body": "string (full post body, max 1300 characters, use line breaks for readability)",
     "hashtags": ["string", "string", "string", "string", "string"],
-    "postType": "thought-leadership|tips|story|question|listicle",
+    "postType": "${allowedTypes.join("|")}",
     "imagePrompt": "string (a short 1-2 sentence visual concept — describe the SCENE or METAPHOR, not text to display. Example: 'A lighthouse beam cutting through fog at dawn, symbolizing guidance' NOT 'An image showing the words Leadership Matters')",
     "bestTimeToPost": "string (e.g. Tuesday 9am)",
     "callToAction": "string (the specific CTA embedded in this post)"
