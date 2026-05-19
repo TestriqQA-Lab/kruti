@@ -28,7 +28,7 @@ function isPublicRoute(pathname: string): boolean {
     pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/site-gate") ||
     pathname.startsWith("/api/onboarding") ||
-  pathname.startsWith("/api/mobile")
+    pathname.startsWith("/api/mobile")
   ) {
     return true;
   }
