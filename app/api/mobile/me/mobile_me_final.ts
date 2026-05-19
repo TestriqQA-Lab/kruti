@@ -1,7 +1,8 @@
 /**
- * Mobile /api/auth/me endpoint
+ * Mobile /api/mobile/me endpoint
+ * Moved from /api/auth/me to avoid NextAuth catch-all conflict on Vercel.
+ *
  * Validates Bearer JWT (signed by NextAuth-compatible encode) and returns user info.
- * Called by mobile app after sign-in to fetch fresh user data.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -44,7 +45,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Mobile-friendly user shape (matches mobile app's User type)
     return NextResponse.json({
       id: user.id,
       email: user.email,
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
       trialEnd: user.subscription?.trialEnd?.toISOString() ?? null,
     });
   } catch (err: any) {
-    console.error("[auth/me] error:", err);
+    console.error("[mobile/me] error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
