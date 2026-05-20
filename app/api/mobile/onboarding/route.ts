@@ -1,9 +1,10 @@
 /**
- * Mobile Onboarding Endpoint
+ * Mobile Onboarding Endpoint (v2 — matches web exactly)
  * POST /api/mobile/onboarding
- * 
- * Bearer JWT auth (vs web's session auth).
- * Same fields + DB update as web's /api/onboarding.
+ *
+ * Accepts same 8 fields as web's /api/onboarding:
+ *   headline, industry, summary, positioning, contentGoals,
+ *   contentStyles, targetAudience, timezone
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -14,10 +15,7 @@ export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Missing or invalid Authorization header" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const token = authHeader.substring(7);
@@ -33,32 +31,35 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const {
+      headline,
+      industry,
+      summary,
       positioning,
       contentGoals,
       contentStyles,
       targetAudience,
-      headline,
-      summary,
-      industry,
       timezone,
     } = body;
 
     const updated = await prisma.user.update({
       where: { id: decoded.uid as string },
       data: {
+        headline: headline || undefined,
+        industry: industry || undefined,
+        summary: summary || undefined,
         positioning: positioning || null,
         contentGoals: contentGoals ? JSON.stringify(contentGoals) : null,
         contentStyles: contentStyles ? JSON.stringify(contentStyles) : null,
         targetAudience: targetAudience || null,
-        headline: headline || undefined,
-        summary: summary || undefined,
-        industry: industry || undefined,
         timezone: timezone || undefined,
         onboardingCompleted: true,
       },
     });
 
-    return NextResponse.json({ success: true, user: { id: updated.id, email: updated.email, onboardingCompleted: true } });
+    return NextResponse.json({
+      success: true,
+      user: { id: updated.id, email: updated.email, onboardingCompleted: true },
+    });
   } catch (err: any) {
     console.error("[mobile/onboarding] error:", err);
     return NextResponse.json({ error: err?.message || "Server error" }, { status: 500 });
