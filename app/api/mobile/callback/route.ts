@@ -1,16 +1,13 @@
 /**
- * Mobile OAuth Callback (moved from /api/auth/mobile-callback)
- * Moved here to avoid NextAuth catch-all route conflict on Vercel.
+ * Mobile OAuth Callback — FIXED v2
  *
- * Flow:
- *  1. LinkedIn redirects here with ?code=XYZ
- *  2. Exchange code for LinkedIn access token
- *  3. Fetch LinkedIn profile
- *  4. Find/create user in DB (Prisma)
- *  5. Sync LinkedIn profile data
- *  6. Ensure trial subscription
- *  7. Generate NextAuth-compatible JWT
- *  8. Return HTML page that redirects to krutimobile://oauth-callback?token=<JWT>
+ * TWO fixes:
+ *   1. redirect_uri is now FIXED (not reconstructed from headers).
+ *      Vercel host headers vary between deployment URLs -> caused mismatch.
+ *   2. The REAL LinkedIn error is now passed back to the app, so it shows
+ *      in Metro logs. No need to dig through Vercel dashboard.
+ *
+ * Path: app/api/mobile/callback/route.ts
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -20,8 +17,24 @@ import { syncLinkedInProfile } from "@/lib/linkedin";
 
 const APP_REDIRECT_URI = "krutimobile://oauth-callback";
 
+/**
+ * CRITICAL - OAuth redirect URI.
+ *
+ * Must be byte-for-byte identical in 3 places:
+ *   1. Mobile app constants/config.ts -> LINKEDIN_OAUTH.REDIRECT_URI
+ *   2. Here (the token exchange below)
+ *   3. LinkedIn Developer Portal -> Auth -> Authorized redirect URLs
+ *
+ * If your Vercel URL differs, change this ONE value (+ the other 2 places).
+ */
+const MOBILE_REDIRECT_URI =
+  process.env.MOBILE_OAUTH_REDIRECT_URI ||
+  "https://kruti-git-mobile-auth-integration-testriqqa-labs-projects.vercel.app/api/mobile/callback";
+
 function buildErrorRedirect(error: string) {
-  return buildHtmlRedirect(`${APP_REDIRECT_URI}?error=${encodeURIComponent(error)}`);
+  return buildHtmlRedirect(
+    `${APP_REDIRECT_URI}?error=${encodeURIComponent(error)}`,
+  );
 }
 
 function buildHtmlRedirect(targetUrl: string) {
@@ -29,7 +42,7 @@ function buildHtmlRedirect(targetUrl: string) {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Signing you in…</title>
+  <title>Signing you in...</title>
   <meta http-equiv="refresh" content="0;url=${targetUrl}">
   <style>
     body { font-family: system-ui, sans-serif; text-align: center; padding: 40px; color: #1F2937; background: #F9FAFB; }
@@ -40,7 +53,7 @@ function buildHtmlRedirect(targetUrl: string) {
 </head>
 <body>
   <div class="spinner"></div>
-  <h2>Returning to Kruti…</h2>
+  <h2>Returning to Kruti...</h2>
   <p>If nothing happens, <a href="${targetUrl}">tap here</a>.</p>
   <script>window.location.href = ${JSON.stringify(targetUrl)};</script>
 </body>
@@ -58,6 +71,7 @@ export async function GET(req: NextRequest) {
     const oauthError = searchParams.get("error");
 
     if (oauthError) {
+      console.warn("[mobile/callback] LinkedIn returned error:", oauthError);
       return buildErrorRedirect(oauthError);
     }
     if (!code) {
@@ -68,19 +82,26 @@ export async function GET(req: NextRequest) {
     const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
     const authSecret = process.env.NEXTAUTH_SECRET;
     if (!clientId || !clientSecret || !authSecret) {
-      console.error("[mobile/callback] Missing env vars");
-      return buildErrorRedirect("server_misconfigured");
+      console.error("[mobile/callback] Missing env vars:", {
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+        hasAuthSecret: !!authSecret,
+      });
+      const missing = [
+        !clientId && "CLIENT_ID",
+        !clientSecret && "CLIENT_SECRET",
+        !authSecret && "NEXTAUTH_SECRET",
+      ]
+        .filter(Boolean)
+        .join(",");
+      return buildErrorRedirect(`server_misconfigured:${missing}`);
     }
 
-    const forwardedHost = req.headers.get("x-forwarded-host");
-    const host = forwardedHost || req.headers.get("host") || "";
-    const proto =
-      req.headers.get("x-forwarded-proto") ||
-      (host.includes("localhost") || host.startsWith("10.")
-        ? "http"
-        : "https");
-    const redirectUri = `${proto}://${host}/api/mobile/callback`;
+    // -- FIXED redirect_uri (no header reconstruction) --
+    const redirectUri = MOBILE_REDIRECT_URI;
+    console.log("[mobile/callback] redirect_uri:", redirectUri);
 
+    // -- Exchange code for access token --
     const tokenRes = await fetch(
       "https://www.linkedin.com/oauth/v2/accessToken",
       {
@@ -93,25 +114,37 @@ export async function GET(req: NextRequest) {
           client_id: clientId,
           client_secret: clientSecret,
         }),
-      }
+      },
     );
 
     if (!tokenRes.ok) {
-      console.error(
-        "[mobile/callback] Token exchange failed:",
-        await tokenRes.text()
-      );
-      return buildErrorRedirect("token_exchange_failed");
+      const errText = await tokenRes.text();
+      console.error("[mobile/callback] Token exchange failed");
+      console.error("[mobile/callback]   status:", tokenRes.status);
+      console.error("[mobile/callback]   redirect_uri:", redirectUri);
+      console.error("[mobile/callback]   LinkedIn says:", errText);
+
+      // Extract the real LinkedIn error + pass it to the app
+      let detail = `${tokenRes.status}`;
+      try {
+        const parsed = JSON.parse(errText);
+        detail = parsed.error || parsed.error_description || detail;
+      } catch {
+        detail = errText.slice(0, 60) || detail;
+      }
+      return buildErrorRedirect(`token_exchange_failed:${detail}`);
     }
 
     const { access_token: accessToken } = await tokenRes.json();
 
+    // -- Fetch LinkedIn profile --
     const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     if (!profileRes.ok) {
-      console.error("[mobile/callback] Profile fetch failed");
+      const errText = await profileRes.text();
+      console.error("[mobile/callback] Profile fetch failed:", errText);
       return buildErrorRedirect("profile_fetch_failed");
     }
 
@@ -121,6 +154,7 @@ export async function GET(req: NextRequest) {
       return buildErrorRedirect("email_missing");
     }
 
+    // -- Find or create user --
     let user = await prisma.user.findUnique({
       where: { email: profile.email },
     });
@@ -142,12 +176,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // -- Sync LinkedIn profile (best-effort) --
     try {
       await syncLinkedInProfile(user.id, accessToken);
     } catch (err) {
       console.error("[mobile/callback] syncLinkedInProfile failed:", err);
     }
 
+    // -- Ensure trial subscription --
     const existingSub = await prisma.subscription.findUnique({
       where: { userId: user.id },
     });
@@ -168,6 +204,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // -- Generate JWT --
     const fullUser = await prisma.user.findUnique({
       where: { id: user.id },
       include: { subscription: true },
@@ -177,8 +214,7 @@ export async function GET(req: NextRequest) {
       token: {
         uid: user.id,
         role: (fullUser as any)?.role ?? "user",
-        onboardingCompleted:
-          (fullUser as any)?.onboardingCompleted ?? false,
+        onboardingCompleted: (fullUser as any)?.onboardingCompleted ?? false,
         subscriptionStatus: fullUser?.subscription?.status ?? "none",
         trialEnd: fullUser?.subscription?.trialEnd?.toISOString() ?? null,
         email: profile.email,
@@ -189,7 +225,10 @@ export async function GET(req: NextRequest) {
       maxAge: 24 * 60 * 60,
     });
 
-    return buildHtmlRedirect(`${APP_REDIRECT_URI}?token=${encodeURIComponent(token)}`);
+    console.log("[mobile/callback] Success");
+    return buildHtmlRedirect(
+      `${APP_REDIRECT_URI}?token=${encodeURIComponent(token)}`,
+    );
   } catch (err: any) {
     console.error("[mobile/callback] Unexpected error:", err);
     return buildErrorRedirect("unexpected_error");
