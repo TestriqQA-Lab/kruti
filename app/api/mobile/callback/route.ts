@@ -1,23 +1,23 @@
 /**
- * Mobile OAuth Callback — FIXED v3
+ * Mobile OAuth Callback — FIXED v3.1
+ *
+ * v3.1 fix (sign-in "unexpected_error"):
+ *   v3 wrote token_type + scope into the Account table. Those columns are
+ *   not guaranteed to exist in this project's Account model, so Prisma threw
+ *   "Unknown argument" -> caught by the outer catch -> "unexpected_error".
+ *   Now:
+ *     - token_type / scope are NOT written (not needed for publishing).
+ *     - The token-storage block is best-effort: wrapped in its own try/catch
+ *       so a DB issue can never block sign-in. The real error is logged.
  *
  * v3 fix (THE publish bug):
- *   The mobile callback fetched a fresh LinkedIn access_token but NEVER
- *   saved it to the database. postToLinkedIn() reads the token from the
- *   `Account` table via getValidAccessToken() — so publishing always used
- *   a stale token (or none), which LinkedIn rejected with 401 "revoked".
- *   Re-login never fixed it because every login discarded the fresh token.
- *
- *   Now: after token exchange we persist access_token + expires_at + scope
- *   to the Account table, and store the LinkedIn member id (profile.sub)
- *   on both user.linkedinId and account.providerAccountId.
- *
- *   NO Prisma migration needed — these fields already exist on the
- *   standard NextAuth `Account` model used by the web app.
+ *   The callback fetched a fresh access_token but never saved it. Now it
+ *   persists access_token + expires_at to the Account table and stores the
+ *   LinkedIn member id (profile.sub) on user.linkedinId + providerAccountId.
  *
  * v2 fixes (kept):
  *   1. redirect_uri is FIXED (not reconstructed from headers).
- *   2. The real LinkedIn error is passed back to the app.
+ *   2. The real LinkedIn token-exchange error is passed back to the app.
  *
  * Path: app/api/mobile/callback/route.ts
  */
@@ -29,13 +29,6 @@ import { syncLinkedInProfile } from "@/lib/linkedin";
 
 const APP_REDIRECT_URI = "krutimobile://oauth-callback";
 
-/**
- * CRITICAL - OAuth redirect URI.
- * Must be byte-for-byte identical in 3 places:
- *   1. Mobile app constants/config.ts -> LINKEDIN_OAUTH.REDIRECT_URI
- *   2. Here (the token exchange below)
- *   3. LinkedIn Developer Portal -> Auth -> Authorized redirect URLs
- */
 const MOBILE_REDIRECT_URI =
   process.env.MOBILE_OAUTH_REDIRECT_URI ||
   "https://kruti-git-mobile-auth-integration-testriqqa-labs-projects.vercel.app/api/mobile/callback";
@@ -133,7 +126,6 @@ export async function GET(req: NextRequest) {
       console.error("[mobile/callback]   redirect_uri:", redirectUri);
       console.error("[mobile/callback]   LinkedIn says:", errText);
 
-      // Extract the real LinkedIn error + pass it to the app
       let detail = `${tokenRes.status}`;
       try {
         const parsed = JSON.parse(errText);
@@ -144,26 +136,23 @@ export async function GET(req: NextRequest) {
       return buildErrorRedirect(`token_exchange_failed:${detail}`);
     }
 
-    // -- Read the FULL token response (not just access_token) --
+    // -- Read the FULL token response --
     const tokenData = await tokenRes.json();
     const accessToken: string | undefined = tokenData.access_token;
     const expiresIn: number | undefined = tokenData.expires_in;
     const grantedScope: string = tokenData.scope ?? "";
-    const tokenType: string = tokenData.token_type ?? "Bearer";
 
     if (!accessToken) {
       console.error("[mobile/callback] No access_token in token response");
       return buildErrorRedirect("no_access_token");
     }
 
-    // DEBUG: confirm w_member_social was actually granted.
-    // If this log does NOT contain "w_member_social", publishing WILL fail
-    // and the fix is in the mobile app's authorization-URL builder.
+    // DEBUG: confirm w_member_social was actually granted (log only, no DB).
     console.log("[mobile/callback] granted scope:", grantedScope);
     if (!grantedScope.includes("w_member_social")) {
       console.warn(
         "[mobile/callback] WARNING: w_member_social NOT granted — " +
-          "publishing to LinkedIn will fail. Check the auth-URL scope param.",
+        "publishing to LinkedIn will fail. Check the auth-URL scope param.",
       );
     }
 
@@ -184,13 +173,8 @@ export async function GET(req: NextRequest) {
       return buildErrorRedirect("email_missing");
     }
 
-    // LinkedIn member id — required to post on the user's behalf.
-    // With OpenID Connect this is the `sub` claim from /v2/userinfo.
+    // LinkedIn member id — needed later to post on the user's behalf.
     const linkedinMemberId: string | undefined = profile.sub;
-    if (!linkedinMemberId) {
-      console.error("[mobile/callback] profile.sub missing — cannot post later");
-      return buildErrorRedirect("linkedin_id_missing");
-    }
 
     // -- Find or create user --
     let user = await prisma.user.findUnique({
@@ -214,50 +198,60 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // -- Store the LinkedIn member id on the user --
-    // postToLinkedIn() prefers user.linkedinId for the urn:li:person URN.
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { linkedinId: linkedinMemberId },
-    });
-
-    // -- THE FIX: persist the fresh LinkedIn access token to the Account table --
-    // getValidAccessToken() / postToLinkedIn() read the token from here.
-    // Without this, publishing always uses a stale token -> 401 "revoked".
-    const expiresAt = expiresIn
-      ? Math.floor(Date.now() / 1000) + expiresIn
-      : null;
-
-    const existingAccount = await prisma.account.findFirst({
-      where: { userId: user.id, provider: "linkedin" },
-    });
-
-    if (existingAccount) {
-      await prisma.account.update({
-        where: { id: existingAccount.id },
-        data: {
-          providerAccountId: linkedinMemberId,
-          access_token: accessToken,
-          expires_at: expiresAt,
-          token_type: tokenType,
-          scope: grantedScope,
-        },
-      });
-      console.log("[mobile/callback] Account token updated for user", user.id);
+    // -- Best-effort: store the LinkedIn member id on the user --
+    // Wrapped so a DB issue can never block sign-in.
+    if (linkedinMemberId) {
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { linkedinId: linkedinMemberId },
+        });
+      } catch (e) {
+        console.error("[mobile/callback] linkedinId update failed:", e);
+      }
     } else {
-      await prisma.account.create({
-        data: {
-          userId: user.id,
-          type: "oauth",
-          provider: "linkedin",
-          providerAccountId: linkedinMemberId,
-          access_token: accessToken,
-          expires_at: expiresAt,
-          token_type: tokenType,
-          scope: grantedScope,
-        },
+      console.warn("[mobile/callback] profile.sub missing — publishing may fail");
+    }
+
+    // -- Best-effort: persist the fresh access token to the Account table --
+    // This is what enables publishing. If it fails, sign-in still succeeds
+    // and the real Prisma error is logged here for diagnosis.
+    try {
+      const expiresAt = expiresIn
+        ? Math.floor(Date.now() / 1000) + expiresIn
+        : null;
+
+      const existingAccount = await prisma.account.findFirst({
+        where: { userId: user.id, provider: "linkedin" },
       });
-      console.log("[mobile/callback] Account token created for user", user.id);
+
+      if (existingAccount) {
+        await prisma.account.update({
+          where: { id: existingAccount.id },
+          data: {
+            ...(linkedinMemberId
+              ? { providerAccountId: linkedinMemberId }
+              : {}),
+            access_token: accessToken,
+            expires_at: expiresAt,
+          },
+        });
+        console.log("[mobile/callback] Account token updated for", user.id);
+      } else {
+        await prisma.account.create({
+          data: {
+            userId: user.id,
+            type: "oauth",
+            provider: "linkedin",
+            providerAccountId: linkedinMemberId ?? user.id,
+            access_token: accessToken,
+            expires_at: expiresAt,
+          },
+        });
+        console.log("[mobile/callback] Account token created for", user.id);
+      }
+    } catch (e) {
+      console.error("[mobile/callback] LinkedIn token store failed:", e);
     }
 
     // -- Sync LinkedIn profile (best-effort) --
@@ -309,10 +303,7 @@ export async function GET(req: NextRequest) {
       maxAge: 24 * 60 * 60,
     });
 
-    console.log(
-      "[mobile/callback] Success — token stored, scope:",
-      grantedScope,
-    );
+    console.log("[mobile/callback] Success — scope:", grantedScope);
     return buildHtmlRedirect(
       `${APP_REDIRECT_URI}?token=${encodeURIComponent(token)}`,
     );
