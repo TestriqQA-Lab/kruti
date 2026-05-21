@@ -1,11 +1,23 @@
 /**
- * Mobile OAuth Callback — FIXED v2
+ * Mobile OAuth Callback — FIXED v3
  *
- * TWO fixes:
- *   1. redirect_uri is now FIXED (not reconstructed from headers).
- *      Vercel host headers vary between deployment URLs -> caused mismatch.
- *   2. The REAL LinkedIn error is now passed back to the app, so it shows
- *      in Metro logs. No need to dig through Vercel dashboard.
+ * v3 fix (THE publish bug):
+ *   The mobile callback fetched a fresh LinkedIn access_token but NEVER
+ *   saved it to the database. postToLinkedIn() reads the token from the
+ *   `Account` table via getValidAccessToken() — so publishing always used
+ *   a stale token (or none), which LinkedIn rejected with 401 "revoked".
+ *   Re-login never fixed it because every login discarded the fresh token.
+ *
+ *   Now: after token exchange we persist access_token + expires_at + scope
+ *   to the Account table, and store the LinkedIn member id (profile.sub)
+ *   on both user.linkedinId and account.providerAccountId.
+ *
+ *   NO Prisma migration needed — these fields already exist on the
+ *   standard NextAuth `Account` model used by the web app.
+ *
+ * v2 fixes (kept):
+ *   1. redirect_uri is FIXED (not reconstructed from headers).
+ *   2. The real LinkedIn error is passed back to the app.
  *
  * Path: app/api/mobile/callback/route.ts
  */
@@ -19,13 +31,10 @@ const APP_REDIRECT_URI = "krutimobile://oauth-callback";
 
 /**
  * CRITICAL - OAuth redirect URI.
- *
  * Must be byte-for-byte identical in 3 places:
  *   1. Mobile app constants/config.ts -> LINKEDIN_OAUTH.REDIRECT_URI
  *   2. Here (the token exchange below)
  *   3. LinkedIn Developer Portal -> Auth -> Authorized redirect URLs
- *
- * If your Vercel URL differs, change this ONE value (+ the other 2 places).
  */
 const MOBILE_REDIRECT_URI =
   process.env.MOBILE_OAUTH_REDIRECT_URI ||
@@ -135,9 +144,30 @@ export async function GET(req: NextRequest) {
       return buildErrorRedirect(`token_exchange_failed:${detail}`);
     }
 
-    const { access_token: accessToken } = await tokenRes.json();
+    // -- Read the FULL token response (not just access_token) --
+    const tokenData = await tokenRes.json();
+    const accessToken: string | undefined = tokenData.access_token;
+    const expiresIn: number | undefined = tokenData.expires_in;
+    const grantedScope: string = tokenData.scope ?? "";
+    const tokenType: string = tokenData.token_type ?? "Bearer";
 
-    // -- Fetch LinkedIn profile --
+    if (!accessToken) {
+      console.error("[mobile/callback] No access_token in token response");
+      return buildErrorRedirect("no_access_token");
+    }
+
+    // DEBUG: confirm w_member_social was actually granted.
+    // If this log does NOT contain "w_member_social", publishing WILL fail
+    // and the fix is in the mobile app's authorization-URL builder.
+    console.log("[mobile/callback] granted scope:", grantedScope);
+    if (!grantedScope.includes("w_member_social")) {
+      console.warn(
+        "[mobile/callback] WARNING: w_member_social NOT granted — " +
+          "publishing to LinkedIn will fail. Check the auth-URL scope param.",
+      );
+    }
+
+    // -- Fetch LinkedIn profile (OpenID Connect userinfo) --
     const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -152,6 +182,14 @@ export async function GET(req: NextRequest) {
 
     if (!profile.email) {
       return buildErrorRedirect("email_missing");
+    }
+
+    // LinkedIn member id — required to post on the user's behalf.
+    // With OpenID Connect this is the `sub` claim from /v2/userinfo.
+    const linkedinMemberId: string | undefined = profile.sub;
+    if (!linkedinMemberId) {
+      console.error("[mobile/callback] profile.sub missing — cannot post later");
+      return buildErrorRedirect("linkedin_id_missing");
     }
 
     // -- Find or create user --
@@ -174,6 +212,52 @@ export async function GET(req: NextRequest) {
         where: { id: user.id },
         data: { name: userData.name, image: userData.image },
       });
+    }
+
+    // -- Store the LinkedIn member id on the user --
+    // postToLinkedIn() prefers user.linkedinId for the urn:li:person URN.
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { linkedinId: linkedinMemberId },
+    });
+
+    // -- THE FIX: persist the fresh LinkedIn access token to the Account table --
+    // getValidAccessToken() / postToLinkedIn() read the token from here.
+    // Without this, publishing always uses a stale token -> 401 "revoked".
+    const expiresAt = expiresIn
+      ? Math.floor(Date.now() / 1000) + expiresIn
+      : null;
+
+    const existingAccount = await prisma.account.findFirst({
+      where: { userId: user.id, provider: "linkedin" },
+    });
+
+    if (existingAccount) {
+      await prisma.account.update({
+        where: { id: existingAccount.id },
+        data: {
+          providerAccountId: linkedinMemberId,
+          access_token: accessToken,
+          expires_at: expiresAt,
+          token_type: tokenType,
+          scope: grantedScope,
+        },
+      });
+      console.log("[mobile/callback] Account token updated for user", user.id);
+    } else {
+      await prisma.account.create({
+        data: {
+          userId: user.id,
+          type: "oauth",
+          provider: "linkedin",
+          providerAccountId: linkedinMemberId,
+          access_token: accessToken,
+          expires_at: expiresAt,
+          token_type: tokenType,
+          scope: grantedScope,
+        },
+      });
+      console.log("[mobile/callback] Account token created for user", user.id);
     }
 
     // -- Sync LinkedIn profile (best-effort) --
@@ -225,7 +309,10 @@ export async function GET(req: NextRequest) {
       maxAge: 24 * 60 * 60,
     });
 
-    console.log("[mobile/callback] Success");
+    console.log(
+      "[mobile/callback] Success — token stored, scope:",
+      grantedScope,
+    );
     return buildHtmlRedirect(
       `${APP_REDIRECT_URI}?token=${encodeURIComponent(token)}`,
     );
