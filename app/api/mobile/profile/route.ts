@@ -31,6 +31,9 @@ export async function GET(req: NextRequest) {
       tonePrefs: true,
       positioning: true,
       contentGoals: true,
+      contentStyles: true,
+      humanMode: true,
+      postSignature: true,
       targetAudience: true,
       postingSchedule: true,
       timezone: true,
@@ -84,6 +87,13 @@ export async function GET(req: NextRequest) {
       targetAudience: user.targetAudience || "",
       goals: parseArr(user.contentGoals),
       contentPillars: user.positioning || "",
+      positioningRoles: (user.positioning || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      contentStyles: parseArr(user.contentStyles),
+      humanMode: user.humanMode === true,
+      postSignature: user.postSignature || "",
       postingDays,
       postingTime,
       timezone: user.timezone || "Asia/Kolkata",
@@ -107,8 +117,30 @@ export async function PATCH(req: NextRequest) {
   if ("industry" in body) data.industry = body.industry ?? null;
   if ("targetAudience" in body)
     data.targetAudience = body.targetAudience ?? null;
-  if ("contentPillars" in body)
+
+  // contentPillars + positioningRoles both map to the `positioning` column.
+  // Roles (multi-select) take priority; free-text pillars used as fallback.
+  if ("positioningRoles" in body) {
+    data.positioning = Array.isArray(body.positioningRoles)
+      ? body.positioningRoles.join(", ")
+      : (body.positioningRoles ?? null);
+  } else if ("contentPillars" in body) {
     data.positioning = body.contentPillars ?? null;
+  }
+
+  if ("contentStyles" in body) {
+    data.contentStyles = body.contentStyles
+      ? JSON.stringify(body.contentStyles)
+      : null;
+  }
+
+  if ("humanMode" in body) {
+    data.humanMode = body.humanMode === true;
+  }
+
+  if ("postSignature" in body) {
+    data.postSignature = body.postSignature ?? null;
+  }
 
   if ("skills" in body) {
     data.skills = body.skills ? JSON.stringify(body.skills) : null;
