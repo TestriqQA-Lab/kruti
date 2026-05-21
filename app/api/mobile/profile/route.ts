@@ -1,59 +1,21 @@
 /**
- * Mobile Profile API — Bearer JWT auth (self-contained)
+ * GET   /api/mobile/profile  — load the user's profile/settings
+ * PATCH /api/mobile/profile  — save settings from the mobile Settings screen
  *
- * GET  /api/mobile/profile  → return full profile + subscription
- * PATCH /api/mobile/profile → update profile fields
+ * The mobile Settings screen sends friendly field names; this route maps
+ * them onto the DB columns used by the web app.
  *
- * Path in web app:
- *   app/api/mobile/profile/route.ts
- *
- * Auth pattern matches mobile-callback's encode():
- *   - mobile-callback ENCODES JWT with next-auth/jwt and ships it to mobile
- *   - this route DECODES that same JWT from Authorization: Bearer header
- *   - No external @/lib/mobile-auth helper needed (self-contained)
- *
- * Push to mobile-auth-integration branch → Vercel auto-deploys.
+ * Place at: app/api/mobile/profile/route.ts
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { decode } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
+import { getMobileUserId } from "@/lib/mobileAuth";
 
-// ─────────────────────────────────────────────
-//  JWT Auth Helper (inline — self-contained)
-// ─────────────────────────────────────────────
-async function getMobileUserId(req: NextRequest): Promise<string | null> {
-  try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return null;
-    }
-    const token = authHeader.slice(7).trim();
-    if (!token) return null;
-
-    const secret = process.env.NEXTAUTH_SECRET;
-    if (!secret) {
-      console.error("[mobile-profile] NEXTAUTH_SECRET not set");
-      return null;
-    }
-
-    const payload = await decode({ token, secret });
-    if (!payload?.sub) return null;
-    return payload.sub as string;
-  } catch (err) {
-    console.warn("[mobile-profile] JWT decode failed:", err);
-    return null;
-  }
-}
-
-// ─────────────────────────────────────────────
-//  GET /api/mobile/profile
-// ─────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const userId = await getMobileUserId(req);
-  if (!userId) {
+  if (!userId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -69,119 +31,121 @@ export async function GET(req: NextRequest) {
       tonePrefs: true,
       positioning: true,
       contentGoals: true,
-      contentStyles: true,
       targetAudience: true,
-      humanMode: true,
       postingSchedule: true,
-      postSignature: true,
       timezone: true,
-      createdAt: true,
       subscription: {
-        select: {
-          status: true,
-          trialEnd: true,
-          currentPeriodEnd: true,
-          currency: true,
-        },
+        select: { status: true, trialEnd: true, currentPeriodEnd: true },
       },
     },
   });
-
-  if (!user) {
+  if (!user)
     return NextResponse.json({ error: "User not found" }, { status: 404 });
-  }
-  return NextResponse.json(user);
-}
 
-// ─────────────────────────────────────────────
-//  PATCH /api/mobile/profile
-// ─────────────────────────────────────────────
-export async function PATCH(req: NextRequest) {
-  const userId = await getMobileUserId(req);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
-  // Build update object — only set keys that are present in body.
-  // Mirrors web /api/profile exactly.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateData: Record<string, any> = {};
-
-  if ("headline" in body) updateData.headline = body.headline ?? null;
-  if ("summary" in body) updateData.summary = body.summary ?? null;
-  if ("industry" in body) updateData.industry = body.industry ?? null;
-  if ("skills" in body) {
-    updateData.skills = body.skills ? JSON.stringify(body.skills) : null;
-  }
-  if ("tonePrefs" in body) {
-    updateData.tonePrefs = body.tonePrefs ? JSON.stringify(body.tonePrefs) : null;
-  }
-  if ("positioning" in body) updateData.positioning = body.positioning ?? null;
-  if ("contentGoals" in body) {
-    updateData.contentGoals = body.contentGoals
-      ? JSON.stringify(body.contentGoals)
-      : null;
-  }
-  if ("contentStyles" in body) {
-    updateData.contentStyles = body.contentStyles
-      ? JSON.stringify(body.contentStyles)
-      : null;
-  }
-  if ("targetAudience" in body) {
-    updateData.targetAudience = body.targetAudience ?? null;
-  }
-  if ("humanMode" in body) updateData.humanMode = Boolean(body.humanMode);
-  if ("postingSchedule" in body) {
-    updateData.postingSchedule = body.postingSchedule
-      ? JSON.stringify(body.postingSchedule)
-      : null;
-  }
-  if ("postSignature" in body) {
-    updateData.postSignature = body.postSignature ?? null;
-  }
-  if ("timezone" in body) {
+  const parseArr = (v: string | null): string[] => {
+    if (!v) return [];
     try {
-      Intl.DateTimeFormat(undefined, { timeZone: body.timezone });
-      updateData.timezone = body.timezone;
+      const p = JSON.parse(v);
+      return Array.isArray(p) ? p : [];
     } catch {
-      updateData.timezone = "Asia/Kolkata";
+      return v.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+  };
+
+  let postingDays: string[] = [];
+  let postingTime = "09:00";
+  if (user.postingSchedule) {
+    try {
+      const s = JSON.parse(user.postingSchedule);
+      postingDays = Array.isArray(s.days) ? s.days : [];
+      postingTime = s.time || "09:00";
+    } catch {
+      /* ignore */
     }
   }
 
-  try {
-    const updated = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        id: true,
-        headline: true,
-        summary: true,
-        industry: true,
-        skills: true,
-        tonePrefs: true,
-        positioning: true,
-        contentGoals: true,
-        contentStyles: true,
-        targetAudience: true,
-        humanMode: true,
-        postingSchedule: true,
-        postSignature: true,
-        timezone: true,
-      },
-    });
-    return NextResponse.json({ success: true, user: updated });
-  } catch (err: any) {
-    console.error("[/api/mobile/profile PATCH] error:", err);
-    return NextResponse.json(
-      { error: "Failed to update profile" },
-      { status: 500 },
-    );
+  // Map DB -> mobile-friendly shape
+  const tone = (() => {
+    const t = parseArr(user.tonePrefs);
+    return t[0] || "Professional";
+  })();
+
+  return NextResponse.json({
+    profile: {
+      name: user.name,
+      email: user.email,
+      image: user.image,
+      headline: user.headline || "",
+      bio: user.summary || "",
+      tone,
+      voiceDescription: parseArr(user.tonePrefs).slice(1).join(", "),
+      industry: user.industry || "",
+      skills: parseArr(user.skills),
+      targetAudience: user.targetAudience || "",
+      goals: parseArr(user.contentGoals),
+      contentPillars: user.positioning || "",
+      postingDays,
+      postingTime,
+      timezone: user.timezone || "Asia/Kolkata",
+    },
+    subscription: user.subscription,
+  });
+}
+
+export async function PATCH(req: NextRequest) {
+  const userId = await getMobileUserId(req);
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: Record<string, any> = {};
+
+  if ("name" in body) data.name = body.name ?? null;
+  if ("headline" in body) data.headline = body.headline ?? null;
+  if ("bio" in body) data.summary = body.bio ?? null;
+  if ("industry" in body) data.industry = body.industry ?? null;
+  if ("targetAudience" in body)
+    data.targetAudience = body.targetAudience ?? null;
+  if ("contentPillars" in body)
+    data.positioning = body.contentPillars ?? null;
+
+  if ("skills" in body) {
+    data.skills = body.skills ? JSON.stringify(body.skills) : null;
   }
+  if ("goals" in body) {
+    data.contentGoals = body.goals ? JSON.stringify(body.goals) : null;
+  }
+
+  // tone + voiceDescription -> tonePrefs JSON array
+  if ("tone" in body || "voiceDescription" in body) {
+    const arr: string[] = [];
+    if (body.tone) arr.push(body.tone);
+    if (body.voiceDescription) arr.push(body.voiceDescription);
+    data.tonePrefs = arr.length ? JSON.stringify(arr) : null;
+  }
+
+  // postingDays + postingTime -> postingSchedule JSON
+  if ("postingDays" in body || "postingTime" in body) {
+    data.postingSchedule = JSON.stringify({
+      days: body.postingDays || [],
+      time: body.postingTime || "09:00",
+    });
+  }
+
+  if ("timezone" in body) {
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: body.timezone });
+      data.timezone = body.timezone;
+    } catch {
+      data.timezone = "Asia/Kolkata";
+    }
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data,
+  });
+
+  return NextResponse.json({ success: true, profile: updated });
 }
