@@ -6,7 +6,7 @@ import SubscriptionGate from "@/components/SubscriptionGate";
 
 export default async function SubscribePage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) redirect("/login?callbackUrl=/subscribe");
 
   let sub = await prisma.subscription.findUnique({
     where: { userId: session.user.id },

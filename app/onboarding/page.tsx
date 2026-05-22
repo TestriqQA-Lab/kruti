@@ -6,7 +6,7 @@ import OnboardingWizard from "@/components/OnboardingWizard";
 
 export default async function OnboardingPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) redirect("/login?callbackUrl=/onboarding");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
