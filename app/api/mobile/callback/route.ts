@@ -1,23 +1,20 @@
 /**
- * Mobile OAuth Callback — FIXED v3.1
+ * Mobile OAuth Callback — FIXED v3.2
  *
- * v3.1 fix (sign-in "unexpected_error"):
- *   v3 wrote token_type + scope into the Account table. Those columns are
- *   not guaranteed to exist in this project's Account model, so Prisma threw
- *   "Unknown argument" -> caught by the outer catch -> "unexpected_error".
+ * v3.2 fix (sign-in "invalid_request" / "unexpected_error"):
+ *   Prisma threw: "Unique constraint failed on the fields: (linkedinId)".
+ *   User.linkedinId is a UNIQUE column. An old row already held this
+ *   linkedinId, so writing it onto another row blew up the request.
  *   Now:
- *     - token_type / scope are NOT written (not needed for publishing).
- *     - The token-storage block is best-effort: wrapped in its own try/catch
- *       so a DB issue can never block sign-in. The real error is logged.
+ *     - Before writing linkedinId, we look up any user that already owns
+ *       it. If it's a DIFFERENT user, we clear it off the old row first
+ *       (the LinkedIn account has effectively moved), then set it on the
+ *       current user. If it's the same user, nothing to do.
+ *     - Each DB step is still wrapped so sign-in can never hard-fail.
  *
- * v3 fix (THE publish bug):
- *   The callback fetched a fresh access_token but never saved it. Now it
- *   persists access_token + expires_at to the Account table and stores the
- *   LinkedIn member id (profile.sub) on user.linkedinId + providerAccountId.
- *
- * v2 fixes (kept):
- *   1. redirect_uri is FIXED (not reconstructed from headers).
- *   2. The real LinkedIn token-exchange error is passed back to the app.
+ * v3.1 fix: token_type/scope not written; token storage is best-effort.
+ * v3   fix: persists access_token + expires_at so publishing works.
+ * v2   fix: fixed redirect_uri; real LinkedIn error passed back to app.
  *
  * Path: app/api/mobile/callback/route.ts
  */
@@ -64,6 +61,41 @@ function buildHtmlRedirect(targetUrl: string) {
     status: 200,
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });
+}
+
+/**
+ * Safely set user.linkedinId, handling the UNIQUE constraint.
+ * If another user already owns this linkedinId, clear it off them first.
+ */
+async function setLinkedInId(userId: string, linkedinId: string) {
+  try {
+    const owner = await prisma.user.findUnique({
+      where: { linkedinId },
+    });
+
+    if (owner && owner.id !== userId) {
+      // Another row owns this LinkedIn id — release it first.
+      await prisma.user.update({
+        where: { id: owner.id },
+        data: { linkedinId: null },
+      });
+      console.log(
+        "[mobile/callback] linkedinId moved from",
+        owner.id,
+        "to",
+        userId,
+      );
+    }
+
+    if (!owner || owner.id !== userId) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { linkedinId },
+      });
+    }
+  } catch (e) {
+    console.error("[mobile/callback] setLinkedInId failed:", e);
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -147,12 +179,11 @@ export async function GET(req: NextRequest) {
       return buildErrorRedirect("no_access_token");
     }
 
-    // DEBUG: confirm w_member_social was actually granted (log only, no DB).
     console.log("[mobile/callback] granted scope:", grantedScope);
     if (!grantedScope.includes("w_member_social")) {
       console.warn(
         "[mobile/callback] WARNING: w_member_social NOT granted — " +
-        "publishing to LinkedIn will fail. Check the auth-URL scope param.",
+          "publishing to LinkedIn will fail.",
       );
     }
 
@@ -198,24 +229,16 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // -- Best-effort: store the LinkedIn member id on the user --
-    // Wrapped so a DB issue can never block sign-in.
+    // -- Store the LinkedIn member id (UNIQUE-constraint safe) --
     if (linkedinMemberId) {
-      try {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { linkedinId: linkedinMemberId },
-        });
-      } catch (e) {
-        console.error("[mobile/callback] linkedinId update failed:", e);
-      }
+      await setLinkedInId(user.id, linkedinMemberId);
     } else {
-      console.warn("[mobile/callback] profile.sub missing — publishing may fail");
+      console.warn(
+        "[mobile/callback] profile.sub missing — publishing may fail",
+      );
     }
 
     // -- Best-effort: persist the fresh access token to the Account table --
-    // This is what enables publishing. If it fails, sign-in still succeeds
-    // and the real Prisma error is logged here for diagnosis.
     try {
       const expiresAt = expiresIn
         ? Math.floor(Date.now() / 1000) + expiresIn
