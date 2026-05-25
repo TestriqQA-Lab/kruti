@@ -1,8 +1,11 @@
 /**
- * Mobile Posts List (v2 — matches web)
+ * Mobile Posts List (v3 — adds per-post customSignature)
  * GET /api/mobile/posts?status=draft|ready|published
  *
- * Returns posts via ContentPlan (matches web data model).
+ * v3 change: each post now includes `customSignature` so the mobile
+ * post-detail screen can show + edit a per-post signature.
+ *
+ * Place at: app/api/mobile/posts/route.ts
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -19,7 +22,10 @@ export async function GET(req: NextRequest) {
     const token = authHeader.substring(7);
     const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) {
-      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Server misconfigured" },
+        { status: 500 },
+      );
     }
 
     const decoded = await decode({ token, secret });
@@ -55,8 +61,10 @@ export async function GET(req: NextRequest) {
         hashtags: post.hashtags,
         postedToLinkedIn: post.postedToLinkedIn,
         linkedinPostId: post.linkedinPostId,
+        // Per-post signature — lets the mobile editor show/edit it.
+        customSignature: (post as any).customSignature ?? null,
         weekStart: plan.weekStart,
-      }))
+      })),
     );
 
     return NextResponse.json({
@@ -65,6 +73,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error("[mobile/posts] error:", err);
-    return NextResponse.json({ error: err?.message || "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err?.message || "Server error" },
+      { status: 500 },
+    );
   }
 }
