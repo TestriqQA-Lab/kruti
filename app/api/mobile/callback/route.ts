@@ -1,20 +1,21 @@
 /**
- * Mobile OAuth Callback — FIXED v3.2
+ * Mobile OAuth Callback — FIXED v3.3
  *
- * v3.2 fix (sign-in "invalid_request" / "unexpected_error"):
- *   Prisma threw: "Unique constraint failed on the fields: (linkedinId)".
- *   User.linkedinId is a UNIQUE column. An old row already held this
- *   linkedinId, so writing it onto another row blew up the request.
- *   Now:
- *     - Before writing linkedinId, we look up any user that already owns
- *       it. If it's a DIFFERENT user, we clear it off the old row first
- *       (the LinkedIn account has effectively moved), then set it on the
- *       current user. If it's the same user, nothing to do.
- *     - Each DB step is still wrapped so sign-in can never hard-fail.
+ * v3.3 change (transit page redesign):
+ *   The HTML "Returning to Kruti..." page is now Kruti-branded, light
+ *   themed, and tries harder to open the app automatically so the user
+ *   never needs to refresh:
+ *     - Fires the krutimobile:// deep link immediately AND retries it a
+ *       few times (Android sometimes ignores the very first attempt).
+ *     - Big, clear "Open Kruti App" button as a manual fallback.
+ *     - An explicit "Do not refresh this page" warning — refreshing
+ *       re-uses the one-time OAuth code and causes
+ *       token_exchange_failed:invalid_request.
+ *   The token-exchange logic is UNCHANGED from v3.2 (it works).
  *
- * v3.1 fix: token_type/scope not written; token storage is best-effort.
+ * v3.2 fix: linkedinId UNIQUE-constraint safe (setLinkedInId).
+ * v3.1 fix: token storage best-effort.
  * v3   fix: persists access_token + expires_at so publishing works.
- * v2   fix: fixed redirect_uri; real LinkedIn error passed back to app.
  *
  * Path: app/api/mobile/callback/route.ts
  */
@@ -36,36 +37,141 @@ function buildErrorRedirect(error: string) {
   );
 }
 
+/**
+ * Kruti-branded transit page. Auto-opens the app, retries the deep link,
+ * and warns the user not to refresh (refresh re-uses the OAuth code).
+ */
 function buildHtmlRedirect(targetUrl: string) {
+  const safeTarget = JSON.stringify(targetUrl);
   const html = `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Signing you in...</title>
-  <meta http-equiv="refresh" content="0;url=${targetUrl}">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Returning to Kruti</title>
   <style>
-    body { font-family: system-ui, sans-serif; text-align: center; padding: 40px; color: #1F2937; background: #F9FAFB; }
-    .spinner { width: 40px; height: 40px; border: 4px solid #DBEAFE; border-top-color: #1D4ED8; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #EFF6FF;
+      color: #0F172A;
+      padding: 24px;
+    }
+    .card {
+      background: #FFFFFF;
+      border-radius: 24px;
+      padding: 36px 28px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 18px 48px rgba(10,102,194,0.16);
+    }
+    .logo {
+      width: 76px;
+      height: 76px;
+      border-radius: 20px;
+      background: #0A66C2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 22px;
+      box-shadow: 0 10px 26px rgba(10,102,194,0.34);
+    }
+    .logo span {
+      color: #FFFFFF;
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -2px;
+    }
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border: 3px solid #DBEAFE;
+      border-top-color: #0A66C2;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 18px;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
-    a { color: #1D4ED8; }
+    h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      margin-bottom: 8px;
+    }
+    p {
+      font-size: 13.5px;
+      color: #64748B;
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+    .btn {
+      display: block;
+      background: #0A66C2;
+      color: #FFFFFF;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 15px 20px;
+      border-radius: 14px;
+      box-shadow: 0 10px 22px rgba(10,102,194,0.32);
+    }
+    .btn:active { opacity: 0.9; }
+    .warn {
+      margin-top: 18px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #B45309;
+      background: #FEF3C7;
+      border-radius: 10px;
+      padding: 10px 12px;
+      line-height: 1.45;
+    }
   </style>
 </head>
 <body>
-  <div class="spinner"></div>
-  <h2>Returning to Kruti...</h2>
-  <p>If nothing happens, <a href="${targetUrl}">tap here</a>.</p>
-  <script>window.location.href = ${JSON.stringify(targetUrl)};</script>
+  <div class="card">
+    <div class="logo"><span>K</span></div>
+    <div class="spinner"></div>
+    <h1>Returning to Kruti</h1>
+    <p>Taking you back to the app. This only takes a moment.</p>
+    <a class="btn" id="openBtn" href="${targetUrl}">Open Kruti App</a>
+    <div class="warn">Please don't refresh this page — it will interrupt sign-in.</div>
+  </div>
+  <script>
+    (function () {
+      var target = ${safeTarget};
+      function go() { window.location.href = target; }
+      // Fire immediately, then retry — Android sometimes ignores the
+      // first deep-link attempt right after the browser regains focus.
+      go();
+      setTimeout(go, 600);
+      setTimeout(go, 1500);
+      setTimeout(go, 3000);
+      document.getElementById("openBtn").addEventListener("click", function (e) {
+        e.preventDefault();
+        go();
+      });
+    })();
+  </script>
 </body>
 </html>`;
   return new NextResponse(html, {
     status: 200,
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      // Prevent the browser from caching this one-time page.
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+    },
   });
 }
 
 /**
  * Safely set user.linkedinId, handling the UNIQUE constraint.
- * If another user already owns this linkedinId, clear it off them first.
  */
 async function setLinkedInId(userId: string, linkedinId: string) {
   try {
@@ -74,7 +180,6 @@ async function setLinkedInId(userId: string, linkedinId: string) {
     });
 
     if (owner && owner.id !== userId) {
-      // Another row owns this LinkedIn id — release it first.
       await prisma.user.update({
         where: { id: owner.id },
         data: { linkedinId: null },
@@ -131,7 +236,6 @@ export async function GET(req: NextRequest) {
       return buildErrorRedirect(`server_misconfigured:${missing}`);
     }
 
-    // -- FIXED redirect_uri (no header reconstruction) --
     const redirectUri = MOBILE_REDIRECT_URI;
     console.log("[mobile/callback] redirect_uri:", redirectUri);
 
@@ -168,7 +272,6 @@ export async function GET(req: NextRequest) {
       return buildErrorRedirect(`token_exchange_failed:${detail}`);
     }
 
-    // -- Read the FULL token response --
     const tokenData = await tokenRes.json();
     const accessToken: string | undefined = tokenData.access_token;
     const expiresIn: number | undefined = tokenData.expires_in;
@@ -187,7 +290,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // -- Fetch LinkedIn profile (OpenID Connect userinfo) --
     const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -204,10 +306,8 @@ export async function GET(req: NextRequest) {
       return buildErrorRedirect("email_missing");
     }
 
-    // LinkedIn member id — needed later to post on the user's behalf.
     const linkedinMemberId: string | undefined = profile.sub;
 
-    // -- Find or create user --
     let user = await prisma.user.findUnique({
       where: { email: profile.email },
     });
@@ -229,7 +329,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // -- Store the LinkedIn member id (UNIQUE-constraint safe) --
     if (linkedinMemberId) {
       await setLinkedInId(user.id, linkedinMemberId);
     } else {
@@ -238,7 +337,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // -- Best-effort: persist the fresh access token to the Account table --
     try {
       const expiresAt = expiresIn
         ? Math.floor(Date.now() / 1000) + expiresIn
@@ -277,14 +375,12 @@ export async function GET(req: NextRequest) {
       console.error("[mobile/callback] LinkedIn token store failed:", e);
     }
 
-    // -- Sync LinkedIn profile (best-effort) --
     try {
       await syncLinkedInProfile(user.id, accessToken);
     } catch (err) {
       console.error("[mobile/callback] syncLinkedInProfile failed:", err);
     }
 
-    // -- Ensure trial subscription --
     const existingSub = await prisma.subscription.findUnique({
       where: { userId: user.id },
     });
@@ -305,7 +401,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // -- Generate JWT --
     const fullUser = await prisma.user.findUnique({
       where: { id: user.id },
       include: { subscription: true },
