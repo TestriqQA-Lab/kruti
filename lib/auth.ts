@@ -13,8 +13,8 @@ export const authOptions: NextAuthOptions = {
       client: { token_endpoint_auth_method: "client_secret_post" },
       wellKnown:
         "https://www.linkedin.com/oauth/.well-known/openid-configuration",
-      // Added w_member_social for auto-posting capability
-      authorization: { params: { scope: "openid profile email w_member_social" } },
+      // Added w_member_social for auto-posting and offline_access for refresh tokens
+      authorization: { params: { scope: "openid profile email w_member_social offline_access" } },
       profile(profile) {
         return {
           id: profile.sub,
