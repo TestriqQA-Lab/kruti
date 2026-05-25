@@ -8,8 +8,11 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="Kruti.io" className="h-8 w-auto" />
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/logo.png" alt="Kruti.io" className="h-20 w-auto" />
+            <span className="hidden sm:block text-2xl font-bold tracking-tighter text-gray-900 dark:text-white">
+              Kruti<span className="text-[#0A66C2]">.io</span>
+            </span>
           </Link>
           <Link
             href="/"

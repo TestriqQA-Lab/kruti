@@ -46,8 +46,11 @@ export default function Sidebar({ user }: SidebarProps) {
     <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Kruti.io" className="h-8 w-auto" />
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Kruti.io" className="h-20 w-auto" />
+          <span className="hidden sm:block text-2xl font-bold tracking-tighter text-gray-900 dark:text-white">
+            Kruti<span className="text-[#0A66C2]">.io</span>
+          </span>
         </div>
       </div>
 

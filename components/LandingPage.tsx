@@ -183,8 +183,11 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       )}
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Kruti.io — AI LinkedIn Content Platform" className="h-9 w-auto" />
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Kruti.io — AI LinkedIn Content Platform" className="h-20 w-auto" />
+          <span className="hidden sm:block text-2xl font-bold tracking-tighter text-gray-900 dark:text-white">
+            Kruti<span className="text-[#0A66C2]">.io</span>
+          </span>
         </div>
         <div className="flex items-center gap-4">
           <a href="/blog" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-[#0A66C2] transition-colors">Blog</a>
