@@ -1,5 +1,13 @@
 /**
- * Mobile OAuth Callback — FIXED v3.3
+ * Mobile OAuth Callback — FIXED v3.4
+ *
+ * v3.4 change (mandatory plan-selection):
+ *   Removed the automatic 7-day trial creation block. Previously every
+ *   first-time sign-in created a trialing Subscription row, which made
+ *   the SubscriptionGate think the user had access — so it skipped the
+ *   plan-selection screen. Now NO Subscription row is created here;
+ *   the user must explicitly choose "Activate Trial" or "Subscribe"
+ *   on the plan-selection screen, which then creates the row.
  *
  * v3.3 change (transit page redesign):
  *   The HTML "Returning to Kruti..." page is now Kruti-branded, light
