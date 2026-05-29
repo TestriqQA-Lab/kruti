@@ -35,9 +35,10 @@ export async function GET(req: NextRequest) {
       currentPeriodEnd: null,
       currency: "INR",
       razorpayKeyId: keyId,
-      // Convenience flags for the mobile gate.
       trialActive: false,
       hasAccess: false,
+      // Trial never started yet — user CAN activate it (one-time).
+      canActivateTrial: true,
     });
   }
 
@@ -52,20 +53,20 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Has the trial actually run out? (web doesn't expose this directly,
-  // but mobile needs a clear yes/no for the access gate.)
   const trialActive =
     sub.status === "trialing" &&
     !!sub.trialEnd &&
     sub.trialEnd.getTime() > now.getTime();
 
-  // Active paid subscription? "cancel_pending" still has access until
-  // currentPeriodEnd, matching the web cancel flow.
   const paidActive =
     (sub.status === "active" || sub.status === "cancel_pending") &&
     (!sub.currentPeriodEnd || sub.currentPeriodEnd.getTime() > now.getTime());
 
   const hasAccess = trialActive || paidActive;
+
+  // Trial is a one-time grant. Once trialEnd is set (active OR expired),
+  // it can never be activated again — user must pay.
+  const canActivateTrial = sub.trialEnd === null;
 
   return NextResponse.json({
     status: sub.status,
@@ -78,5 +79,6 @@ export async function GET(req: NextRequest) {
     razorpayKeyId: keyId,
     trialActive,
     hasAccess,
+    canActivateTrial,
   });
 }

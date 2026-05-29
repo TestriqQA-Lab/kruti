@@ -94,16 +94,16 @@ export async function POST(req: NextRequest) {
           data: { razorpayCustomerId: customerId, currency },
         });
       } else {
-        // No subscription row yet — create one with a 7-day trial so the
-        // user has the same trial window the web sign-up creates.
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 7);
+        // No subscription row yet — user is paying directly without
+        // having activated a trial first. Create the row with status
+        // "none" (NOT "trialing") so we don't grant a free trial they
+        // didn't choose. verify-route will flip status to "active" once
+        // the Razorpay payment is confirmed.
         await prisma.subscription.create({
           data: {
             userId,
             razorpayCustomerId: customerId,
-            status: "trialing",
-            trialEnd,
+            status: "none",
             currency,
           },
         });

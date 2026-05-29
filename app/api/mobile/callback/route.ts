@@ -381,25 +381,10 @@ export async function GET(req: NextRequest) {
       console.error("[mobile/callback] syncLinkedInProfile failed:", err);
     }
 
-    const existingSub = await prisma.subscription.findUnique({
-      where: { userId: user.id },
-    });
-    if (!existingSub) {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 7);
-      try {
-        await prisma.subscription.create({
-          data: {
-            userId: user.id,
-            status: "trialing",
-            trialEnd,
-            currency: "INR",
-          },
-        });
-      } catch (err) {
-        console.error("[mobile/callback] Trial creation failed:", err);
-      }
-    }
+    // -- NO automatic trial creation --
+    // The user must explicitly choose "Activate Trial" or "Subscribe"
+    // on the plan-selection screen. The subscription row is created
+    // there (by /activate-trial or /create-order), not here.
 
     const fullUser = await prisma.user.findUnique({
       where: { id: user.id },
