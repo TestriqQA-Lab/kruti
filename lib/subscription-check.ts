@@ -8,6 +8,15 @@ export async function checkActiveSubscription(userId: string): Promise<{
   allowed: boolean;
   reason?: string;
 }> {
+  // Super admins get lifetime access — bypass all subscription checks
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  if (user?.role === "admin") {
+    return { allowed: true };
+  }
+
   let sub = await prisma.subscription.findUnique({
     where: { userId },
   });
