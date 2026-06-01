@@ -1,45 +1,38 @@
 /**
  * GET /api/mobile/subscription/checkout-page
  *
- * Serves a Razorpay-hosted-style HTML page that loads the standard
- * Razorpay JS Checkout (the SAME SDK web uses, not the buggy native
- * react-native-razorpay one). The mobile app opens this page in an
- * in-app browser. After the user pays, the page redirects to a
- * krutimobile:// deep link with the payment IDs, the in-app browser
- * detects the scheme + closes, and the app verifies the payment.
- *
- * This entire approach exists because react-native-razorpay v3.0.0
- * does not work reliably with India's RBI eMandate / 3DS-on-cards
- * for subscriptions. The web checkout handles all of that correctly.
+ * Hosted page that loads Razorpay JS Checkout in ORDER mode (one-time
+ * payment, not subscription). The mobile app opens this in an in-app
+ * browser; after the user pays, the page redirects to a
+ * krutimobile:// deep link with the order/payment IDs; the browser
+ * detects the scheme + closes; the app calls /verify.
  *
  * Query params (built by the mobile app from /create-order response):
- *   sub   = razorpay subscription id (sub_xxx)
- *   key   = razorpay key id (rzp_test_xxx / rzp_live_xxx)
- *   name  = user name (prefill, optional)
- *   email = user email (prefill, optional)
+ *   order    = razorpay order id (order_xxx)
+ *   key      = razorpay key id   (rzp_test_xxx / rzp_live_xxx)
+ *   amount   = paise / cents (integer string)
+ *   currency = INR | USD
+ *   name     = user name  (prefill)
+ *   email    = user email (prefill)
  *
  * Place at: app/api/mobile/subscription/checkout-page/route.ts
  */
 
 import { NextRequest } from "next/server";
 
-// Escape any string we drop into JS so a malicious value can't break out
-// of the JSON.stringify literal. JSON.stringify is sufficient on the
-// string side; this is just an extra belt-and-suspenders for any HTML
-// rendering paths.
-function safe(s: string): string {
-  return s.replace(/[<>&]/g, (c) => `\\u00${c.charCodeAt(0).toString(16)}`);
-}
-
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const sub = url.searchParams.get("sub") || "";
-  const key = url.searchParams.get("key") || "";
-  const name = url.searchParams.get("name") || "";
-  const email = url.searchParams.get("email") || "";
+  const order    = url.searchParams.get("order")    || "";
+  const key      = url.searchParams.get("key")      || "";
+  const amount   = url.searchParams.get("amount")   || "";
+  const currency = url.searchParams.get("currency") || "INR";
+  const name     = url.searchParams.get("name")     || "";
+  const email    = url.searchParams.get("email")    || "";
 
-  if (!sub || !key) {
-    return new Response("Missing required params (sub, key)", { status: 400 });
+  if (!order || !key || !amount) {
+    return new Response("Missing required params (order, key, amount)", {
+      status: 400,
+    });
   }
 
   const html = `<!DOCTYPE html>
@@ -55,69 +48,34 @@ export async function GET(req: NextRequest) {
     html, body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: linear-gradient(135deg, #EEF1FE 0%, #F8FAFC 100%);
-      min-height: 100vh;
-      color: #221F3D;
+      min-height: 100vh; color: #221F3D;
     }
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    .container { text-align: center; max-width: 360px; width: 100%; }
+    body { display:flex; align-items:center; justify-content:center; padding:24px; }
+    .container { text-align:center; max-width:360px; width:100%; }
     .logo {
-      width: 78px;
-      height: 78px;
-      border-radius: 18px;
-      background: #5B52C9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 22px;
-      color: #FFFFFF;
-      font-size: 38px;
-      font-weight: 800;
-      letter-spacing: -2.5px;
-      box-shadow: 0 14px 30px rgba(91, 82, 201, 0.34);
+      width:78px; height:78px; border-radius:18px; background:#5B52C9;
+      display:flex; align-items:center; justify-content:center;
+      margin:0 auto 22px; color:#FFF; font-size:38px; font-weight:800;
+      letter-spacing:-2.5px; box-shadow:0 14px 30px rgba(91,82,201,.34);
     }
-    h1 {
-      font-size: 21px;
-      font-weight: 800;
-      margin-bottom: 8px;
-      letter-spacing: -0.4px;
-    }
-    p { font-size: 13.5px; color: #807D99; line-height: 1.55; }
+    h1 { font-size:21px; font-weight:800; margin-bottom:8px; letter-spacing:-.4px; }
+    p { font-size:13.5px; color:#807D99; line-height:1.55; }
     .spinner {
-      width: 26px;
-      height: 26px;
-      border: 3px solid #DEDCFB;
-      border-top-color: #5B52C9;
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
-      margin: 22px auto 0;
+      width:26px; height:26px; border:3px solid #DEDCFB;
+      border-top-color:#5B52C9; border-radius:50%;
+      animation:spin .9s linear infinite; margin:22px auto 0;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .btn {
-      margin-top: 18px;
-      background: #5B52C9;
-      color: #FFFFFF;
-      padding: 13px 28px;
-      border-radius: 12px;
-      border: none;
-      font-size: 14.5px;
-      font-weight: 700;
-      cursor: pointer;
-      display: none;
-      box-shadow: 0 8px 20px rgba(91, 82, 201, 0.3);
+      margin-top:18px; background:#5B52C9; color:#FFF;
+      padding:13px 28px; border-radius:12px; border:none;
+      font-size:14.5px; font-weight:700; cursor:pointer; display:none;
+      box-shadow:0 8px 20px rgba(91,82,201,.3);
     }
-    .btn:active { transform: scale(0.97); }
+    .btn:active { transform: scale(.97); }
     .btn-secondary {
-      background: transparent;
-      color: #807D99;
-      font-size: 13px;
-      font-weight: 600;
-      box-shadow: none;
-      margin-top: 6px;
+      background:transparent; color:#807D99; font-size:13px;
+      font-weight:600; box-shadow:none; margin-top:6px;
     }
   </style>
 </head>
@@ -125,16 +83,18 @@ export async function GET(req: NextRequest) {
   <div class="container">
     <div class="logo">K</div>
     <h1 id="title">Opening secure checkout…</h1>
-    <p id="sub">Razorpay payment is loading. This is the same secure flow used on kruti.io.</p>
+    <p id="sub">Razorpay payment is loading. This is a one-time payment for one month of Content Pro.</p>
     <div class="spinner" id="spinner"></div>
     <button id="retry" class="btn" onclick="openCheckout()">Open Payment Again</button>
-    <button id="back" class="btn btn-secondary" onclick="cancelToApp()">Cancel & go back</button>
+    <button id="back" class="btn btn-secondary" onclick="cancelToApp()">Cancel &amp; go back</button>
   </div>
   <script>
-    var SUB_ID = ${JSON.stringify(sub)};
-    var KEY    = ${JSON.stringify(key)};
-    var UNAME  = ${JSON.stringify(name)};
-    var UEMAIL = ${JSON.stringify(email)};
+    var ORDER    = ${JSON.stringify(order)};
+    var KEY      = ${JSON.stringify(key)};
+    var AMOUNT   = ${JSON.stringify(amount)};
+    var CURRENCY = ${JSON.stringify(currency)};
+    var UNAME    = ${JSON.stringify(name)};
+    var UEMAIL   = ${JSON.stringify(email)};
     var APP_SCHEME = "krutimobile://payment-callback";
 
     function setStatus(title, subtitle, showRetry) {
@@ -159,9 +119,11 @@ export async function GET(req: NextRequest) {
 
       var opts = {
         key: KEY,
-        subscription_id: SUB_ID,
+        order_id: ORDER,            // ← ORDER mode (one-time), not subscription
+        amount: parseInt(AMOUNT, 10),
+        currency: CURRENCY,
         name: "Kruti",
-        description: "Content Pro — Monthly",
+        description: "Content Pro — 1 month access",
         prefill: { name: UNAME, email: UEMAIL },
         theme: { color: "#5B52C9" },
         modal: {
@@ -174,12 +136,12 @@ export async function GET(req: NextRequest) {
           }
         },
         handler: function (response) {
-          // On Razorpay success — return to the app via deep link.
+          // Razorpay returns: razorpay_order_id, razorpay_payment_id, razorpay_signature
           returnToApp({
             status: "success",
+            razorpay_order_id:   response.razorpay_order_id   || ORDER,
             razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_subscription_id: response.razorpay_subscription_id || SUB_ID,
-            razorpay_signature: response.razorpay_signature
+            razorpay_signature:  response.razorpay_signature
           });
         }
       };
@@ -187,16 +149,12 @@ export async function GET(req: NextRequest) {
       var rzp = new Razorpay(opts);
       rzp.on("payment.failed", function (resp) {
         var msg = (resp && resp.error && resp.error.description) || "Payment failed";
-        setStatus(
-          "Payment failed",
-          msg + ". Tap below to try again.",
-          true
-        );
+        setStatus("Payment failed", msg + ". Tap below to try again.", true);
       });
       rzp.open();
     }
 
-    // Auto-open the checkout shortly after the page loads.
+    // Auto-open shortly after page load.
     window.addEventListener("load", function () {
       setTimeout(openCheckout, 400);
     });
@@ -209,7 +167,6 @@ export async function GET(req: NextRequest) {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "no-store",
-      // Prevent embedding — only opened directly from the mobile browser.
       "X-Frame-Options": "DENY",
     },
   });

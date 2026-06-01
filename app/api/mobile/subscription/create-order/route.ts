@@ -1,12 +1,20 @@
 /**
  * POST /api/mobile/subscription/create-order
  *
- * Mobile equivalent of /api/subscription/create-order. Creates a
- * Razorpay subscription for the current user and returns the
- * subscription id + Razorpay public key so the react-native-razorpay
- * SDK can open the checkout sheet.
+ * Creates a Razorpay ONE-TIME ORDER (not a recurring Subscription) for
+ * ₹999 / $19. The user pays once. The verify route then activates the
+ * DB subscription for 1 month. After that month, the user must come
+ * back and pay again manually — there is NO auto-charge. This matches
+ * the product decision: "user khudse renew karega, auto cut nahi hai".
  *
- * Auth: Bearer JWT (mobile), not next-auth cookies.
+ * Why orders, not subscriptions:
+ *   - Razorpay Subscriptions require eMandate / recurring-card setup,
+ *     which our test-mode account isn't enabled for and (per product
+ *     decision) we don't actually want.
+ *   - Razorpay Orders work out of the box on every account, with every
+ *     test card, in both test and live mode. No activation needed.
+ *
+ * Auth: Bearer JWT (mobile).
  *
  * Place at: app/api/mobile/subscription/create-order/route.ts
  */
@@ -15,9 +23,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMobileUserId } from "@/lib/mobileAuth";
 
-// Same DEV_MODE check as the web route — bypass payment when keys are
-// placeholders so the mobile flow can be tested end-to-end without real
-// money. In your case keys are real, so this branch will NOT run.
+// Amounts in paise — Razorpay's smallest currency unit.
+const AMOUNT_INR_PAISE = 99900; //  ₹999.00
+const AMOUNT_USD_CENTS = 1900; //  $19.00
+
 const DEV_MODE =
   !process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
   !process.env.RAZORPAY_KEY_SECRET ||
@@ -60,149 +69,64 @@ export async function POST(req: NextRequest) {
     });
 
     console.log(`[mobile/create-order DEV] activated for user ${userId}`);
-    return NextResponse.json({
-      dev: true,
-      success: true,
-    });
+    return NextResponse.json({ dev: true, success: true });
   }
 
   try {
-    const { razorpay, getPlanId } = await import("@/lib/razorpay");
+    const { razorpay } = await import("@/lib/razorpay");
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { subscription: true },
+      select: { id: true, name: true, email: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Create or reuse Razorpay Customer.
-    // Two-step approach handles BOTH:
-    //   (a) DB has no customerId yet → create one (with fail_existing fallback)
-    //   (b) DB has a customerId from a DIFFERENT mode/account → Razorpay
-    //       will reject it as "does not exist". We catch that and create
-    //       a fresh customer for the current mode.
-    let customerId = user.subscription?.razorpayCustomerId;
+    const amount = currency === "USD" ? AMOUNT_USD_CENTS : AMOUNT_INR_PAISE;
 
-    // (b) Sanity-check the stored customer id by trying to fetch it.
-    // If Razorpay says it doesn't exist (e.g. switched test ↔ live, or
-    // the test DB has live IDs from a prior session), clear it so we
-    // create a fresh one in the current mode.
-    if (customerId) {
-      try {
-        await razorpay.customers.fetch(customerId);
-      } catch (fetchErr: any) {
-        const desc =
-          fetchErr?.error?.description || fetchErr?.message || "";
-        if (
-          /does not exist|not.*found|invalid/i.test(desc) ||
-          fetchErr?.statusCode === 400 ||
-          fetchErr?.statusCode === 404
-        ) {
-          console.warn(
-            "[mobile/create-order] stored customerId not in this mode — recreating:",
-            customerId,
-          );
-          customerId = undefined as any;
-        } else {
-          throw fetchErr;
-        }
-      }
-    }
+    // ── Create a one-time Razorpay Order ──
+    // Orders API doesn't need a customer record, doesn't need a plan,
+    // doesn't need eMandate. Razorpay just takes a one-shot payment for
+    // the amount + currency. This is what makes it work everywhere.
+    const order = await razorpay.orders.create({
+      amount,
+      currency,
+      receipt: `kruti_${userId}_${Date.now()}`.slice(0, 40),
+      notes: { userId, source: "mobile", purpose: "content_pro_monthly" },
+    } as Parameters<typeof razorpay.orders.create>[0]);
 
-    if (!customerId) {
-      // The Razorpay customer might already exist (e.g. from an earlier
-      // failed attempt or because the DB Subscription was wiped while the
-      // Razorpay customer wasn't). Without this guard, customers.create()
-      // throws "Customer already exists for the merchant" and the whole
-      // checkout fails — that's the bug we just hit on Priya's account.
-      //
-      // Two-step fix:
-      //   1. Pass fail_existing: 0 so Razorpay RETURNS the existing
-      //      customer instead of erroring (newer SDK behavior).
-      //   2. If the SDK still errors, fall back to looking up by email
-      //      via customers.all() — works on older SDKs too.
-      let customer: any = null;
-      try {
-        customer = await razorpay.customers.create({
-          name: user.name ?? "User",
-          email: user.email ?? undefined,
-          fail_existing: 0,
-          notes: { userId, source: "mobile" },
-        } as Parameters<typeof razorpay.customers.create>[0]);
-      } catch (createErr: any) {
-        const desc =
-          createErr?.error?.description || createErr?.message || "";
-        const isDuplicate = /already exists/i.test(desc);
-        if (!isDuplicate || !user.email) throw createErr;
-
-        // Look it up by email.
-        console.warn(
-          "[mobile/create-order] customer exists, fetching by email:",
-          user.email,
-        );
-        const list: any = await razorpay.customers.all({
-          email: user.email,
-          count: 1,
-        } as any);
-        if (list?.items?.length) {
-          customer = list.items[0];
-        } else {
-          throw createErr;
-        }
-      }
-      customerId = customer.id;
-
-      // Persist the (possibly new) customer id for this mode.
-      if (user.subscription) {
-        await prisma.subscription.update({
-          where: { userId },
-          data: { razorpayCustomerId: customerId, currency },
-        });
-      } else {
-        await prisma.subscription.create({
-          data: {
-            userId,
-            razorpayCustomerId: customerId,
-            status: "none",
-            currency,
-          },
-        });
-      }
-    }
-
-    // Create the Razorpay Subscription.
-    const planId = getPlanId(currency);
     console.log(
-      `[mobile/create-order] planId=${planId} customerId=${customerId} currency=${currency}`,
+      `[mobile/create-order] order=${order.id} amount=${amount} ${currency} user=${userId}`,
     );
 
-    const subscription = await razorpay.subscriptions.create({
-      plan_id: planId,
-      customer_id: customerId,
-      total_count: 120, // up to 10 years of monthly billing
-      notes: { userId, currency, source: "mobile" },
-    } as Parameters<typeof razorpay.subscriptions.create>[0]);
-
-    // Persist the subscription + plan id.
-    await prisma.subscription.update({
+    // Persist the order id so the verify route can sanity-check it.
+    // We store it in razorpaySubscriptionId because the existing schema
+    // doesn't have a dedicated razorpayOrderId column — the field is
+    // just an opaque Razorpay reference either way.
+    await prisma.subscription.upsert({
       where: { userId },
-      data: {
-        razorpaySubscriptionId: subscription.id,
-        razorpayPlanId: planId,
+      update: {
+        razorpaySubscriptionId: order.id,
         currency,
+        status: "none", // verify-route flips to "active" on payment.
+      },
+      create: {
+        userId,
+        razorpaySubscriptionId: order.id,
+        currency,
+        status: "none",
       },
     });
 
     return NextResponse.json({
-      subscriptionId: subscription.id,
+      orderId: order.id,
       keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      // Echo back basics the mobile SDK needs for the checkout sheet.
+      amount,
+      currency,
       name: user.name ?? "User",
       email: user.email ?? "",
-      currency,
     });
   } catch (err: any) {
     console.error(
