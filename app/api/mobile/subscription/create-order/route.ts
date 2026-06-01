@@ -81,11 +81,46 @@ export async function POST(req: NextRequest) {
     // Create or reuse Razorpay Customer.
     let customerId = user.subscription?.razorpayCustomerId;
     if (!customerId) {
-      const customer = await razorpay.customers.create({
-        name: user.name ?? "User",
-        email: user.email ?? undefined,
-        notes: { userId, source: "mobile" },
-      } as Parameters<typeof razorpay.customers.create>[0]);
+      // The Razorpay customer might already exist (e.g. from an earlier
+      // failed attempt or because the DB Subscription was wiped while the
+      // Razorpay customer wasn't). Without this guard, customers.create()
+      // throws "Customer already exists for the merchant" and the whole
+      // checkout fails — that's the bug we just hit on Priya's account.
+      //
+      // Two-step fix:
+      //   1. Pass fail_existing: 0 so Razorpay RETURNS the existing
+      //      customer instead of erroring (newer SDK behavior).
+      //   2. If the SDK still errors, fall back to looking up by email
+      //      via customers.all() — works on older SDKs too.
+      let customer: any = null;
+      try {
+        customer = await razorpay.customers.create({
+          name: user.name ?? "User",
+          email: user.email ?? undefined,
+          fail_existing: 0,
+          notes: { userId, source: "mobile" },
+        } as Parameters<typeof razorpay.customers.create>[0]);
+      } catch (createErr: any) {
+        const desc =
+          createErr?.error?.description || createErr?.message || "";
+        const isDuplicate = /already exists/i.test(desc);
+        if (!isDuplicate || !user.email) throw createErr;
+
+        // Look it up by email.
+        console.warn(
+          "[mobile/create-order] customer exists, fetching by email:",
+          user.email,
+        );
+        const list: any = await razorpay.customers.all({
+          email: user.email,
+          count: 1,
+        } as any);
+        if (list?.items?.length) {
+          customer = list.items[0];
+        } else {
+          throw createErr;
+        }
+      }
       customerId = customer.id;
 
       if (user.subscription) {
