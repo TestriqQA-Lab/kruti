@@ -79,7 +79,39 @@ export async function POST(req: NextRequest) {
     }
 
     // Create or reuse Razorpay Customer.
+    // Two-step approach handles BOTH:
+    //   (a) DB has no customerId yet → create one (with fail_existing fallback)
+    //   (b) DB has a customerId from a DIFFERENT mode/account → Razorpay
+    //       will reject it as "does not exist". We catch that and create
+    //       a fresh customer for the current mode.
     let customerId = user.subscription?.razorpayCustomerId;
+
+    // (b) Sanity-check the stored customer id by trying to fetch it.
+    // If Razorpay says it doesn't exist (e.g. switched test ↔ live, or
+    // the test DB has live IDs from a prior session), clear it so we
+    // create a fresh one in the current mode.
+    if (customerId) {
+      try {
+        await razorpay.customers.fetch(customerId);
+      } catch (fetchErr: any) {
+        const desc =
+          fetchErr?.error?.description || fetchErr?.message || "";
+        if (
+          /does not exist|not.*found|invalid/i.test(desc) ||
+          fetchErr?.statusCode === 400 ||
+          fetchErr?.statusCode === 404
+        ) {
+          console.warn(
+            "[mobile/create-order] stored customerId not in this mode — recreating:",
+            customerId,
+          );
+          customerId = undefined as any;
+        } else {
+          throw fetchErr;
+        }
+      }
+    }
+
     if (!customerId) {
       // The Razorpay customer might already exist (e.g. from an earlier
       // failed attempt or because the DB Subscription was wiped while the
@@ -123,17 +155,13 @@ export async function POST(req: NextRequest) {
       }
       customerId = customer.id;
 
+      // Persist the (possibly new) customer id for this mode.
       if (user.subscription) {
         await prisma.subscription.update({
           where: { userId },
           data: { razorpayCustomerId: customerId, currency },
         });
       } else {
-        // No subscription row yet — user is paying directly without
-        // having activated a trial first. Create the row with status
-        // "none" (NOT "trialing") so we don't grant a free trial they
-        // didn't choose. verify-route will flip status to "active" once
-        // the Razorpay payment is confirmed.
         await prisma.subscription.create({
           data: {
             userId,
