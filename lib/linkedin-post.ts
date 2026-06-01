@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getValidAccessToken } from "@/lib/linkedin-token";
+import { shouldShowWatermark, WATERMARK_TEXT } from "@/lib/subscription-check";
 
 export interface LinkedInPostResult {
   success: boolean;
@@ -32,7 +33,10 @@ export async function postToLinkedIn(
   const account = await prisma.account.findFirst({
     where: { userId, provider: "linkedin" },
   });
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { subscription: true },
+  });
   const linkedinId = user?.linkedinId || account?.providerAccountId;
   if (!linkedinId) {
     return { success: false, error: "No LinkedIn ID found. Please sign out and sign in again." };
@@ -73,6 +77,16 @@ export async function postToLinkedIn(
   if (signature) {
     parts.push("");
     parts.push(signature);
+  }
+
+  // Kruti.io watermark for trial and lifetime-free-domain users
+  if (shouldShowWatermark({
+    subscriptionStatus: user?.subscription?.status,
+    email: user?.email,
+    role: user?.role,
+  })) {
+    parts.push("");
+    parts.push(WATERMARK_TEXT);
   }
 
   const fullText = parts.join("\n");

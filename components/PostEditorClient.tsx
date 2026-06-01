@@ -31,6 +31,7 @@ import { useAutoSave } from "@/hooks/useAutoSave";
 import { useSession } from "next-auth/react";
 import { formatInTimeZone } from "date-fns-tz";
 import { fromZonedTime } from "date-fns-tz";
+import { WATERMARK_TEXT } from "@/lib/subscription-check";
 
 interface Post {
   id: string;
@@ -63,11 +64,13 @@ export default function PostEditorClient({
   postSignature,
   userProfile,
   userTimezone = "Asia/Kolkata",
+  showWatermark = false,
 }: {
   post: Post;
   postSignature: string | null;
   userProfile: UserProfile;
   userTimezone?: string;
+  showWatermark?: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -236,6 +239,9 @@ export default function PostEditorClient({
     let fullText = `${body}\n\n${hashtags.map((h) => `#${h}`).join(" ")}`;
     if (signature.trim()) {
       fullText += `\n\n${signature.trim()}`;
+    }
+    if (showWatermark) {
+      fullText += `\n\n${WATERMARK_TEXT}`;
     }
     navigator.clipboard.writeText(fullText);
     setCopied(true);
@@ -1062,6 +1068,7 @@ export default function PostEditorClient({
         hashtags={hashtags}
         postSignature={signature}
         imageUrl={imageUrl}
+        watermark={showWatermark ? WATERMARK_TEXT : null}
       />
 
       {/* Lightbox Modal */}

@@ -22,6 +22,7 @@ interface LinkedInPostPreviewProps {
   hashtags: string[];
   postSignature: string | null;
   imageUrl: string | null;
+  watermark?: string | null;
 }
 
 const TRUNCATE_LENGTH = 210;
@@ -42,6 +43,7 @@ export default function LinkedInPostPreview({
   hashtags,
   postSignature,
   imageUrl,
+  watermark,
 }: LinkedInPostPreviewProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -143,6 +145,15 @@ export default function LinkedInPostPreview({
           <div className="px-4 pb-2">
             <p className="text-[14px] text-gray-600 dark:text-gray-400 whitespace-pre-line leading-[1.4]">
               {postSignature}
+            </p>
+          </div>
+        )}
+
+        {/* Watermark */}
+        {watermark && (
+          <div className="px-4 pb-2">
+            <p className="text-[14px] text-gray-600 dark:text-gray-400 whitespace-pre-line leading-[1.4]">
+              {watermark}
             </p>
           </div>
         )}

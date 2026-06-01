@@ -3,6 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import LinkedInProvider from "next-auth/providers/linkedin";
 import { prisma } from "@/lib/prisma";
 import { syncLinkedInProfile } from "@/lib/linkedin";
+import { isLifetimeFreeEmail, ensureLifetimeSubscription } from "@/lib/subscription-check";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
@@ -54,7 +55,21 @@ export const authOptions: NextAuthOptions = {
             include: { subscription: true },
           });
 
-          // Auto-create 7-day trial subscription if missing
+          // ── Lifetime free subscription for qualifying email domains ──
+          // @testriq.com and @cinutedigital.com users get permanent free access.
+          // This runs on every JWT refresh, so even existing users are auto-upgraded.
+          if (dbUser && isLifetimeFreeEmail(dbUser.email)) {
+            const wasUpgraded = await ensureLifetimeSubscription(uid);
+            if (wasUpgraded) {
+              // Re-fetch subscription after upgrade
+              dbUser.subscription = await prisma.subscription.findUnique({
+                where: { userId: uid },
+              });
+            }
+          }
+          // ── End lifetime free check ──
+
+          // Auto-create 7-day trial subscription if missing (normal users only)
           if (dbUser && !dbUser.subscription) {
             const trialEnd = new Date();
             trialEnd.setDate(trialEnd.getDate() + 7);
