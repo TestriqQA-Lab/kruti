@@ -55,10 +55,16 @@ export const authOptions: NextAuthOptions = {
             include: { subscription: true },
           });
 
+          // If user doesn't exist in DB anymore (deleted), invalidate token
+          if (!dbUser) {
+            // This will cause getServerSession to return null or invalid session
+            return { ...token, uid: undefined, exp: 0, error: "UserNotFound" };
+          }
+
           // ── Lifetime free subscription for qualifying email domains ──
           // @testriq.com and @cinutedigital.com users get permanent free access.
           // This runs on every JWT refresh, so even existing users are auto-upgraded.
-          if (dbUser && isLifetimeFreeEmail(dbUser.email)) {
+          if (isLifetimeFreeEmail(dbUser.email)) {
             const wasUpgraded = await ensureLifetimeSubscription(uid);
             if (wasUpgraded) {
               // Re-fetch subscription after upgrade

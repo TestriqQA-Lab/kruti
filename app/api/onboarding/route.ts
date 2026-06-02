@@ -53,6 +53,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, user: updated });
   } catch (error: any) {
     console.error("Onboarding API Error:", error);
+    
+    // Handle Prisma "Record to update not found" specifically
+    if (error.code === 'P2025') {
+      return NextResponse.json(
+        { error: "User not found in database. Please log out and sign in again." },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
       { status: 500 }
