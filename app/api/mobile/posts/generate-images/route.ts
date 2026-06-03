@@ -1,8 +1,14 @@
 /**
  * POST /api/mobile/posts/generate-images
- * Body: { postIds: string[] }
- * Generates AI images for posts that don't have one yet.
- * Adapted from app/api/generate/image/bulk/route.ts — mobile Bearer auth.
+ * Body: { postIds: string[], regenerate?: boolean }
+ *
+ * v2 change (mobile editor support):
+ *   • `regenerate: true` lets the editor generate even when a post already
+ *     has an image (still capped at imageGenCount < limit). Without the
+ *     flag, behaviour is unchanged — only posts with imageUrl=null are
+ *     eligible (used by the Dashboard bulk "generate images").
+ *   • Returns `remaining` and `imageGenCount` for the first post so the
+ *     editor can show "X of 2 remaining" / "Limit Reached".
  *
  * Place at: app/api/mobile/posts/generate-images/route.ts
  */
@@ -28,7 +34,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { postIds } = (await req.json()) as { postIds: string[] };
+  const { postIds, regenerate } = (await req.json()) as {
+    postIds: string[];
+    regenerate?: boolean;
+  };
   if (!Array.isArray(postIds) || postIds.length === 0 || postIds.length > 10) {
     return NextResponse.json(
       { error: "Provide 1-10 post IDs" },
@@ -40,7 +49,10 @@ export async function POST(req: NextRequest) {
     where: {
       id: { in: postIds },
       plan: { userId },
-      imageUrl: null,
+      // When regenerate is requested (single post from the editor) we allow
+      // posts that already have an image. Otherwise keep the old behaviour
+      // (only empty posts) for the Dashboard bulk action.
+      ...(regenerate ? {} : { imageUrl: null }),
       imageGenCount: { lt: IMAGE_GEN_LIMIT_PER_POST },
     },
     include: {
@@ -49,15 +61,19 @@ export async function POST(req: NextRequest) {
   });
 
   if (posts.length === 0) {
+    // Either already at the limit, or (non-regenerate) all already have
+    // images. Tell the client the limit is exhausted so the UI can update.
     return NextResponse.json({
       error: "No eligible posts (already have images or limit reached)",
       generated: 0,
+      remaining: 0,
     });
   }
 
   let generated = 0;
   const errors: string[] = [];
   let firstImageUrl: string | null = null;
+  let firstNewCount: number | null = null;
 
   for (const post of posts) {
     try {
@@ -74,15 +90,19 @@ export async function POST(req: NextRequest) {
         post.plan.user.industry || "business",
       );
       if (imageUrl) {
+        const newCount = post.imageGenCount + 1;
         await prisma.post.update({
           where: { id: post.id },
           data: {
             imageUrl,
             imagePrompt,
-            imageGenCount: post.imageGenCount + 1,
+            imageGenCount: newCount,
           },
         });
-        if (!firstImageUrl) firstImageUrl = imageUrl;
+        if (!firstImageUrl) {
+          firstImageUrl = imageUrl;
+          firstNewCount = newCount;
+        }
         generated++;
       }
     } catch {
@@ -90,10 +110,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const remaining =
+    firstNewCount != null
+      ? Math.max(0, IMAGE_GEN_LIMIT_PER_POST - firstNewCount)
+      : undefined;
+
   return NextResponse.json({
     generated,
     total: posts.length,
     imageUrl: firstImageUrl,
+    imageGenCount: firstNewCount ?? undefined,
+    remaining,
     results: posts
       .filter((p) => p.imageUrl || firstImageUrl)
       .map((p) => ({ id: p.id, imageUrl: p.imageUrl || firstImageUrl })),
