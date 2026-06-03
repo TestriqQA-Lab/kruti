@@ -7,16 +7,16 @@ import {
   ArrowRight,
   ArrowUpRight,
   Check,
-  Minus,
-  Sparkles,
-  Star,
+  X,
   ChevronDown,
+  Star,
   Target,
   FileText,
   Image as ImageIcon,
   Calendar,
   Newspaper,
   Zap,
+  Sparkles,
   AlertCircle,
 } from "lucide-react";
 import Footer from "@/components/Footer";
@@ -25,21 +25,29 @@ import Footer from "@/components/Footer";
 // Content
 // ──────────────────────────────────────────────────────────────────────────
 
+const navLinks = [
+  { href: "#overview", n: "01", label: "Overview" },
+  { href: "#how", n: "02", label: "How it works" },
+  { href: "#features", n: "03", label: "Features" },
+  { href: "#pricing", n: "04", label: "Pricing" },
+  { href: "#faq", n: "05", label: "FAQ" },
+];
+
 const steps = [
   {
     n: "01",
     title: "Connect your LinkedIn",
-    desc: "Sign in securely with LinkedIn. We read your profile, headline, and experience to learn your authentic voice.",
+    desc: "Sign in securely. We read your profile, headline, and experience to learn your authentic voice.",
   },
   {
     n: "02",
     title: "Generate your strategy",
-    desc: "AI builds a personalized content plan — themes, pillars, and post types tailored to your goals. No prompts to write.",
+    desc: "AI builds a personalized content plan — themes, pillars, and post types. No prompts to write.",
   },
   {
     n: "03",
     title: "Publish & grow",
-    desc: "Review the drafts, add an image in one click, and publish straight to LinkedIn. Watch your engagement compound.",
+    desc: "Review the drafts, add an image in one click, and publish straight to LinkedIn.",
   },
 ];
 
@@ -62,12 +70,12 @@ const features = [
   {
     icon: Calendar,
     title: "Visual content calendar",
-    desc: "Plan, schedule, and track a full month of LinkedIn content in one clean calendar view.",
+    desc: "Plan, schedule, and track a full month of LinkedIn content in one clean view.",
   },
   {
     icon: Newspaper,
     title: "Newsletter drafts",
-    desc: "Full LinkedIn newsletter editions — hooks, sections, key insights, and clear CTAs — ready to send.",
+    desc: "Full LinkedIn newsletter editions — hooks, sections, insights, and CTAs — ready to send.",
   },
   {
     icon: Zap,
@@ -93,21 +101,21 @@ const withKruti = [
 const testimonials = [
   {
     name: "Priya Sharma",
-    role: "Marketing Director, SaaS Startup",
+    role: "Marketing Director, SaaS",
     initials: "PS",
-    text: "I went from posting once a month to 5x a week. Kruti.io generates content that actually sounds like me — my network noticed the difference immediately.",
+    text: "I went from posting once a month to 5x a week. Kruti.io generates content that actually sounds like me.",
   },
   {
     name: "Rahul Menon",
     role: "Founder & CEO, FinTech",
     initials: "RM",
-    text: "We used to spend 3 hours per LinkedIn post. Now our entire month of content is ready in minutes. The strategy is spot-on for our industry.",
+    text: "We used to spend 3 hours per post. Now our entire month of content is ready in minutes.",
   },
   {
     name: "Aisha Patel",
     role: "HR Consultant",
     initials: "AP",
-    text: "The content calendar and auto-publishing changed my game. I focus on my clients while Kruti.io keeps my LinkedIn active and growing.",
+    text: "The calendar and auto-publishing changed my game. Kruti.io keeps my LinkedIn active and growing.",
   },
 ];
 
@@ -127,131 +135,133 @@ const faqs = [
   },
   {
     q: "Will the AI-generated posts sound like me?",
-    a: "Yes. Kruti.io reads your LinkedIn profile — your headline, about section, experience, and activity — to understand your tone, expertise, and audience. Every post is written to match your authentic professional voice, not generic AI-speak.",
+    a: "Yes. Kruti.io reads your LinkedIn profile — your headline, about section, experience, and activity — to understand your tone, expertise, and audience. Every post matches your authentic professional voice, not generic AI-speak.",
   },
   {
     q: "Can I edit posts before publishing?",
-    a: "Always. Every post is created as a draft first. You can review, edit, rewrite, or discard any post before marking it ready. You stay in full control of what goes live on your profile.",
+    a: "Always. Every post is created as a draft first. You can review, edit, rewrite, or discard any post before marking it ready. You stay in full control of what goes live.",
   },
   {
     q: "Do I need to write prompts or instructions?",
-    a: "No. Unlike other AI tools, Kruti.io doesn't need prompts. It builds your content strategy automatically from your LinkedIn profile and industry. Just click generate and your posts are ready.",
+    a: "No. Unlike other AI tools, Kruti.io doesn't need prompts. It builds your content strategy automatically from your LinkedIn profile and industry. Just click generate.",
   },
 ];
 
-const trust = ["Free to start", "No credit card required", "Cancel anytime", "Official LinkedIn API"];
+const trust = ["Free to start", "No credit card", "Cancel anytime", "Official LinkedIn API"];
+
+const mockPosts = [
+  { title: "3 lessons from scaling our team 5 → 50", type: "Story", status: "Ready", dot: "bg-blue-500" },
+  { title: "The hiring mistake most founders make", type: "Tips", status: "Scheduled", dot: "bg-violet-500" },
+  { title: "Why we stopped chasing vanity metrics", type: "Thought", status: "Draft", dot: "bg-amber-500" },
+  { title: "A simple framework for better 1:1s", type: "How-to", status: "Published", dot: "bg-emerald-500" },
+];
 
 // ──────────────────────────────────────────────────────────────────────────
 // Building blocks
 // ──────────────────────────────────────────────────────────────────────────
 
-function Logo() {
+function Brand() {
   return (
-    <a href="/" className="flex items-center gap-2.5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-orange-400 font-display text-lg font-semibold text-white shadow-sm shadow-rose-500/30">
+    <a href="#overview" className="flex items-center gap-2.5">
+      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 font-display text-lg font-bold text-white">
         K
       </span>
-      <span className="font-display text-xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
-        Kruti<span className="text-rose-500">.io</span>
+      <span className="font-display text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+        Kruti<span className="text-blue-600 dark:text-blue-400">.io</span>
       </span>
     </a>
   );
 }
 
+function CTAButton({ onClick, children, full }: { onClick: () => void; children: React.ReactNode; full?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 ${
+        full ? "w-full" : ""
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-sm font-semibold uppercase tracking-[0.2em] text-rose-500 dark:text-rose-300">
+    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
       {children}
     </span>
   );
 }
 
+function StatusPill({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    Ready: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
+    Scheduled: "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300",
+    Draft: "bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400",
+    Published: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
+  };
+  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${map[status]}`}>{status}</span>;
+}
+
 function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-stone-200 dark:border-white/10">
+    <div className="border-b border-slate-200 dark:border-white/10">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-6 py-6 text-left"
+        className="flex w-full items-center justify-between gap-6 py-5 text-left"
         aria-expanded={open}
       >
-        <span className="text-lg font-medium text-stone-900 dark:text-stone-100">{q}</span>
-        <span
-          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
-            open
-              ? "rotate-180 border-transparent bg-gradient-to-br from-rose-500 to-orange-400 text-white"
-              : "border-stone-300 text-stone-400 dark:border-white/15"
+        <span className="text-base font-medium text-slate-900 dark:text-slate-100">{q}</span>
+        <ChevronDown
+          className={`h-5 w-5 flex-shrink-0 text-slate-400 transition-transform duration-300 ${
+            open ? "rotate-180 text-blue-600 dark:text-blue-400" : ""
           }`}
-        >
-          <ChevronDown className="h-4 w-4" />
-        </span>
+        />
       </button>
       <div
         className={`grid transition-all duration-300 ease-out ${
-          open ? "grid-rows-[1fr] pb-6 opacity-100" : "grid-rows-[0fr] opacity-0"
+          open ? "grid-rows-[1fr] pb-5 opacity-100" : "grid-rows-[0fr] opacity-0"
         }`}
       >
         <div className="overflow-hidden">
-          <p className="max-w-2xl text-base leading-relaxed text-stone-600 dark:text-stone-400">{a}</p>
+          <p className="text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">{a}</p>
         </div>
       </div>
     </div>
   );
 }
 
-// Warm post preview shown in the hero.
-function PostPreview() {
+// The product UI shown in the hero — a clean "Posts" workspace.
+function ProductPanel() {
   return (
-    <div className="relative animate-fade-up [animation-delay:240ms]">
-      <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-tr from-rose-400/30 via-orange-300/20 to-amber-300/20 blur-3xl" />
-      <div className="rounded-3xl border border-stone-200/80 bg-white/90 p-5 shadow-[0_30px_70px_-25px_rgba(190,90,60,0.35)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-600 dark:bg-rose-500/10 dark:text-rose-300">
-            <Sparkles className="h-3 w-3" /> AI draft
-          </span>
-          <span className="text-xs text-stone-400">Scheduled · Mon 9:00 AM</span>
+    <div className="animate-fade-up [animation-delay:160ms] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_-28px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/[0.03]">
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 dark:border-white/10">
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+          <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Content workspace
         </div>
-        <div className="flex items-center gap-3">
-          <span className="h-10 w-10 rounded-full bg-gradient-to-br from-stone-200 to-stone-300 dark:from-stone-700 dark:to-stone-600" />
-          <div className="space-y-1.5">
-            <div className="h-2.5 w-28 rounded-full bg-stone-200 dark:bg-white/10" />
-            <div className="h-2 w-20 rounded-full bg-stone-100 dark:bg-white/5" />
-          </div>
-        </div>
-        <p className="mt-4 font-display text-[15px] font-medium text-stone-800 dark:text-stone-100">
-          3 lessons I learned scaling our team from 5 to 50 →
-        </p>
-        <div className="mt-2.5 space-y-2">
-          <div className="h-2.5 w-full rounded-full bg-stone-100 dark:bg-white/5" />
-          <div className="h-2.5 w-[90%] rounded-full bg-stone-100 dark:bg-white/5" />
-          <div className="h-2.5 w-[72%] rounded-full bg-stone-100 dark:bg-white/5" />
-        </div>
-        <div className="relative mt-4 h-28 overflow-hidden rounded-2xl bg-gradient-to-br from-rose-400 via-rose-300 to-orange-300">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_22%,white,transparent_45%)] opacity-40" />
-          <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/15 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">
-            <ImageIcon className="h-3 w-3" /> AI image
-          </span>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {["#Leadership", "#Growth", "#Startups"].map((t) => (
-            <span
-              key={t}
-              className="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-500 dark:bg-rose-500/10 dark:text-rose-300"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-        <div className="mt-4 flex items-center gap-1.5 border-t border-stone-100 pt-3 text-xs text-stone-400 dark:border-white/10">
-          <Check className="h-3.5 w-3.5 text-rose-500" /> Published to LinkedIn · Just now
-        </div>
-      </div>
-
-      <div className="absolute -right-3 -top-4 flex items-center gap-2 rounded-2xl border border-stone-200/80 bg-white/90 px-3 py-2 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-stone-900/80 sm:-right-6">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-orange-400 text-white">
-          <Sparkles className="h-3.5 w-3.5" />
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+          <Sparkles className="h-3 w-3" /> 5 posts ready
         </span>
-        <span className="text-xs font-semibold text-stone-900 dark:text-stone-100">30 posts / month</span>
+      </div>
+      <div className="divide-y divide-slate-100 dark:divide-white/[0.06]">
+        {mockPosts.map((p, i) => (
+          <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+            <span className={`h-2 w-2 flex-shrink-0 rounded-full ${p.dot}`} />
+            <span className="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-200">{p.title}</span>
+            <span className="hidden rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-white/5 dark:text-slate-400 sm:inline">
+              {p.type}
+            </span>
+            <StatusPill status={p.status} />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-400 dark:border-white/10">
+        <span>This week · Mon–Fri · 9:00 AM</span>
+        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+          <Check className="h-3.5 w-3.5" /> Auto-publishing on
+        </span>
       </div>
     </div>
   );
@@ -269,7 +279,7 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
   const isRedirect = callbackUrl && callbackUrl !== "/dashboard" && callbackUrl !== "/";
 
   return (
-    <div className="min-h-screen bg-[#FDF7F3] text-stone-900 antialiased dark:bg-[#16110F] dark:text-stone-100">
+    <div className="min-h-screen bg-[#F6F8FB] text-slate-900 antialiased dark:bg-[#0A0E14] dark:text-slate-100">
       {isRedirect && (
         <div className="flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300">
           <AlertCircle className="h-4 w-4" />
@@ -277,62 +287,73 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
         </div>
       )}
 
-      {/* ── Nav ──────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-stone-200/60 bg-[#FDF7F3]/80 backdrop-blur-md dark:border-white/10 dark:bg-[#16110F]/80">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 sm:px-8">
-          <Logo />
-          <div className="hidden items-center gap-8 md:flex">
-            {[
-              { href: "#how", label: "How it works" },
-              { href: "#features", label: "Features" },
-              { href: "#pricing", label: "Pricing" },
-              { href: "/blog", label: "Blog" },
-            ].map((l) => (
-              <a
-                key={l.label}
-                href={l.href}
-                className="text-[15px] font-medium text-stone-600 transition-colors hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
-              >
-                {l.label}
-              </a>
-            ))}
-          </div>
-          <button
-            onClick={handleSignIn}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 to-orange-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition-all hover:shadow-rose-500/40 hover:-translate-y-0.5"
-          >
-            <Linkedin className="h-4 w-4" />
-            Start free
-          </button>
-        </nav>
+      {/* Mobile top bar */}
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-[#F6F8FB]/85 px-5 py-3 backdrop-blur dark:border-white/10 dark:bg-[#0A0E14]/85 lg:hidden">
+        <div className="flex items-center justify-between">
+          <Brand />
+          <CTAButton onClick={handleSignIn}>
+            <Linkedin className="h-4 w-4" /> Start free
+          </CTAButton>
+        </div>
       </header>
 
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 -top-20 -z-10 h-[560px] bg-[radial-gradient(45%_60%_at_25%_25%,rgba(244,63,94,0.18),transparent_70%),radial-gradient(40%_55%_at_80%_10%,rgba(251,146,60,0.18),transparent_70%)]" />
-        <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-12">
-          {/* left */}
-          <div className="lg:col-span-7">
+      <div className="mx-auto grid max-w-7xl gap-10 px-5 py-8 sm:px-8 lg:grid-cols-[260px_1fr] lg:items-start lg:gap-12 lg:py-10">
+        {/* ── Left rail (desktop) ──────────────────────────────────────── */}
+        <aside className="hidden lg:sticky lg:top-8 lg:block">
+          <div className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white/70 p-5 dark:border-white/10 dark:bg-white/[0.03]">
+            <Brand />
+            <nav className="flex flex-col gap-1">
+              {navLinks.map((l) => (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
+                >
+                  <span className="font-display text-xs tabular-nums text-slate-400 group-hover:text-blue-500">
+                    {l.n}
+                  </span>
+                  {l.label}
+                </a>
+              ))}
+              <a
+                href="/blog"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
+              >
+                <span className="font-display text-xs tabular-nums text-slate-400">06</span>
+                Blog
+              </a>
+            </nav>
+            <div className="border-t border-slate-200 pt-5 dark:border-white/10">
+              <CTAButton onClick={handleSignIn} full>
+                <Linkedin className="h-4 w-4" /> Start free
+              </CTAButton>
+              <p className="mt-3 text-center text-xs text-slate-400">7-day free trial · No card</p>
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Main content ─────────────────────────────────────────────── */}
+        <main className="min-w-0">
+          {/* Hero */}
+          <section id="overview" className="scroll-mt-24">
             <div className="animate-fade-up">
-              <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/70 px-3.5 py-1.5 text-sm font-medium text-stone-600 dark:border-white/10 dark:bg-white/5 dark:text-stone-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-br from-rose-500 to-orange-400" />
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 Powered by AI, crafted with love in Mumbai
               </span>
             </div>
-            <h1 className="animate-fade-up [animation-delay:80ms] mt-6 font-display text-[2.9rem] font-semibold leading-[1.04] tracking-[-0.02em] sm:text-6xl lg:text-[4.1rem]">
+            <h1 className="animate-fade-up [animation-delay:80ms] mt-6 font-display text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.5rem]">
               Stop writing LinkedIn posts.{" "}
-              <span className="bg-gradient-to-r from-rose-500 to-orange-400 bg-clip-text text-transparent">
-                Start growing your brand.
-              </span>
+              <span className="text-blue-600 dark:text-blue-400">Start growing your brand.</span>
             </h1>
-            <p className="animate-fade-up [animation-delay:140ms] mt-6 max-w-xl text-lg leading-relaxed text-stone-600 dark:text-stone-400 sm:text-xl">
+            <p className="animate-fade-up [animation-delay:140ms] mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 dark:text-slate-400">
               Kruti.io turns your LinkedIn profile into a content engine — generating 30 strategic
               posts, professional images, and newsletters every month, all in your authentic voice.
             </p>
-            <div className="animate-fade-up [animation-delay:200ms] mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+            <div className="animate-fade-up [animation-delay:200ms] mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
               <button
                 onClick={handleSignIn}
-                className="group inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-rose-500 to-orange-400 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-rose-500/30 transition-all hover:-translate-y-0.5 hover:shadow-rose-500/50"
+                className="group inline-flex items-center gap-2.5 rounded-lg bg-blue-600 px-6 py-3.5 text-base font-semibold text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
               >
                 <Linkedin className="h-5 w-5" />
                 Start creating for free
@@ -340,250 +361,209 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
               </button>
               <a
                 href="#how"
-                className="inline-flex items-center gap-1 text-base font-medium text-stone-700 transition-colors hover:text-rose-500 dark:text-stone-300"
+                className="inline-flex items-center gap-1 text-base font-medium text-slate-700 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400"
               >
                 See how it works <ArrowUpRight className="h-4 w-4" />
               </a>
             </div>
-            <div className="animate-fade-up [animation-delay:260ms] mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-stone-500 dark:text-stone-500">
+            <div className="animate-fade-up [animation-delay:260ms] mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500 dark:text-slate-500">
               {trust.map((t) => (
                 <span key={t} className="inline-flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-rose-500" />
+                  <Check className="h-4 w-4 text-blue-500" />
                   {t}
                 </span>
               ))}
             </div>
-          </div>
-          {/* right */}
-          <div className="animate-fade-up [animation-delay:180ms] lg:col-span-5">
-            <PostPreview />
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ─────────────────────────────────────────────────── */}
-      <section id="how" className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-32">
-        <div className="max-w-2xl">
-          <Eyebrow>How it works</Eyebrow>
-          <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-            From zero to 30 posts in three steps
-          </h2>
-          <p className="mt-4 text-lg text-stone-600 dark:text-stone-400">
-            No prompts to write. No templates to fill. Just connect and go.
-          </p>
-        </div>
-        <div className="mt-16 grid gap-10 sm:grid-cols-3 sm:gap-8">
-          {steps.map((s) => (
-            <div key={s.n} className="border-t border-stone-200 pt-6 dark:border-white/10">
-              <span className="bg-gradient-to-br from-rose-500 to-orange-400 bg-clip-text font-display text-5xl font-semibold text-transparent">
-                {s.n}
-              </span>
-              <h3 className="mt-4 font-display text-xl font-medium">{s.title}</h3>
-              <p className="mt-2.5 text-base leading-relaxed text-stone-600 dark:text-stone-400">{s.desc}</p>
+            <div className="mt-12">
+              <ProductPanel />
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
 
-      {/* ── Features ─────────────────────────────────────────────────────── */}
-      <section
-        id="features"
-        className="border-y border-stone-200 bg-white py-24 dark:border-white/10 dark:bg-white/[0.02] sm:py-32"
-      >
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
-          <div className="max-w-2xl">
+          {/* How it works */}
+          <section id="how" className="scroll-mt-24 border-t border-slate-200 pt-16 dark:border-white/10 mt-20 sm:mt-24">
+            <Eyebrow>How it works</Eyebrow>
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              From zero to 30 posts in three steps
+            </h2>
+            <div className="mt-12 grid gap-8 sm:grid-cols-3">
+              {steps.map((s) => (
+                <div key={s.n}>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 font-display text-sm font-bold text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                    {s.n}
+                  </span>
+                  <h3 className="mt-4 font-display text-lg font-semibold">{s.title}</h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Features */}
+          <section id="features" className="scroll-mt-24 border-t border-slate-200 pt-16 dark:border-white/10 mt-20 sm:mt-24">
             <Eyebrow>Everything you need</Eyebrow>
-            <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
               A whole content team, quietly working
             </h2>
-            <p className="mt-4 text-lg text-stone-600 dark:text-stone-400">
-              Strategy, content, images, scheduling, and publishing — built for busy professionals.
-            </p>
-          </div>
-          <div className="mt-16 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((f) => (
-              <div key={f.title} className="group">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500/10 to-orange-400/10 text-rose-500 ring-1 ring-inset ring-rose-500/20 transition-all group-hover:from-rose-500 group-hover:to-orange-400 group-hover:text-white">
-                  <f.icon className="h-5 w-5" />
+            <div className="mt-12 grid gap-5 sm:grid-cols-2">
+              {features.map((f) => (
+                <div
+                  key={f.title}
+                  className="group rounded-2xl border border-slate-200 bg-white p-6 transition-colors hover:border-blue-300 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-blue-500/40"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                    <f.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-5 font-display text-lg font-semibold">{f.title}</h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">{f.desc}</p>
                 </div>
-                <h3 className="mt-5 font-display text-xl font-medium">{f.title}</h3>
-                <p className="mt-2 text-base leading-relaxed text-stone-600 dark:text-stone-400">{f.desc}</p>
+              ))}
+            </div>
+          </section>
+
+          {/* Comparison */}
+          <section className="scroll-mt-24 border-t border-slate-200 pt-16 dark:border-white/10 mt-20 sm:mt-24">
+            <Eyebrow>Sound familiar?</Eyebrow>
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              The old way, and a calmer way
+            </h2>
+            <div className="mt-10 grid gap-5 md:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-white/[0.03]">
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Without Kruti.io</p>
+                <ul className="mt-5 space-y-3.5">
+                  {withoutKruti.map((t) => (
+                    <li key={t} className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-white/5">
+                        <X className="h-3 w-3" />
+                      </span>
+                      <span className="text-[15px] text-slate-500 dark:text-slate-400">{t}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-6 dark:border-blue-500/20 dark:bg-blue-500/[0.06]">
+                <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">With Kruti.io</p>
+                <ul className="mt-5 space-y-3.5">
+                  {withKruti.map((t) => (
+                    <li key={t} className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
+                        <Check className="h-3 w-3" />
+                      </span>
+                      <span className="text-[15px] font-medium text-slate-800 dark:text-slate-100">{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
 
-      {/* ── Comparison ───────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-5xl px-5 py-24 sm:px-8 sm:py-32">
-        <div className="max-w-2xl">
-          <Eyebrow>Sound familiar?</Eyebrow>
-          <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-            The old way, and a calmer way
-          </h2>
-        </div>
-        <div className="mt-12 grid overflow-hidden rounded-3xl border border-stone-200 dark:border-white/10 md:grid-cols-2">
-          <div className="border-b border-stone-200 p-8 dark:border-white/10 md:border-b-0 md:border-r">
-            <p className="text-sm font-semibold uppercase tracking-widest text-stone-400">Without Kruti.io</p>
-            <ul className="mt-6 space-y-4">
-              {withoutKruti.map((t) => (
-                <li key={t} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-400 dark:bg-white/10">
-                    <Minus className="h-3 w-3" />
-                  </span>
-                  <span className="text-base text-stone-500 dark:text-stone-400">{t}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="bg-gradient-to-br from-rose-50 to-orange-50 p-8 dark:from-rose-500/[0.08] dark:to-orange-400/[0.05]">
-            <p className="text-sm font-semibold uppercase tracking-widest text-rose-500 dark:text-rose-300">
-              With Kruti.io
-            </p>
-            <ul className="mt-6 space-y-4">
-              {withKruti.map((t) => (
-                <li key={t} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-orange-400 text-white">
-                    <Check className="h-3 w-3" />
-                  </span>
-                  <span className="text-base font-medium text-stone-800 dark:text-stone-100">{t}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Testimonials ─────────────────────────────────────────────────── */}
-      <section className="border-y border-stone-200 bg-white py-24 dark:border-white/10 dark:bg-white/[0.02] sm:py-32">
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
-          <div className="max-w-2xl">
+          {/* Testimonials */}
+          <section className="scroll-mt-24 border-t border-slate-200 pt-16 dark:border-white/10 mt-20 sm:mt-24">
             <Eyebrow>Loved by professionals</Eyebrow>
-            <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
               Trusted by founders &amp; marketers
             </h2>
-          </div>
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
-            {testimonials.map((t) => (
-              <figure
-                key={t.name}
-                className="flex flex-col rounded-3xl border border-stone-200 bg-[#FDF7F3] p-7 dark:border-white/10 dark:bg-white/[0.03]"
-              >
-                <div className="flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <blockquote className="mt-4 flex-1 text-base leading-relaxed text-stone-700 dark:text-stone-300">
-                  “{t.text}”
-                </blockquote>
-                <figcaption className="mt-6 flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-orange-400 text-sm font-semibold text-white">
-                    {t.initials}
-                  </span>
-                  <span>
-                    <span className="block text-sm font-medium text-stone-900 dark:text-stone-100">{t.name}</span>
-                    <span className="block text-sm text-stone-500 dark:text-stone-500">{t.role}</span>
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ──────────────────────────────────────────────────────── */}
-      <section id="pricing" className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-32">
-        <div className="mx-auto max-w-2xl text-center">
-          <Eyebrow>Simple pricing</Eyebrow>
-          <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-            One plan. Everything included.
-          </h2>
-          <p className="mt-4 text-lg text-stone-600 dark:text-stone-400">
-            No tiers, no add-ons, no surprises. Start with a 7-day free trial.
-          </p>
-        </div>
-
-        <div className="relative mx-auto mt-12 max-w-lg">
-          <div className="absolute -inset-5 -z-10 rounded-[2.5rem] bg-gradient-to-tr from-rose-400/25 to-orange-300/20 blur-3xl" />
-          <div className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-[0_30px_70px_-30px_rgba(190,90,60,0.4)] dark:border-white/10 dark:bg-white/[0.04]">
-            <div className="border-b border-stone-100 px-8 py-9 text-center dark:border-white/10">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-rose-500 to-orange-400 px-3 py-1 text-xs font-semibold text-white">
-                7-day free trial
-              </span>
-              <div className="mt-5 flex items-end justify-center gap-1.5">
-                <span className="font-display text-6xl font-semibold tracking-tight">₹999</span>
-                <span className="mb-2 text-stone-500 dark:text-stone-400">/month</span>
-              </div>
-              <p className="mt-1.5 text-sm text-stone-500 dark:text-stone-400">or $19/month for international users</p>
-            </div>
-            <div className="px-8 py-8">
-              <ul className="space-y-3.5">
-                {pricingIncludes.map((item) => (
-                  <li key={item} className="flex items-center gap-3">
-                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-orange-400 text-white">
-                      <Check className="h-3 w-3" />
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {testimonials.map((t) => (
+                <figure
+                  key={t.name}
+                  className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-white/[0.03]"
+                >
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <blockquote className="mt-3 flex-1 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
+                    “{t.text}”
+                  </blockquote>
+                  <figcaption className="mt-5 flex items-center gap-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                      {t.initials}
                     </span>
-                    <span className="text-base text-stone-700 dark:text-stone-300">{item}</span>
-                  </li>
-                ))}
-              </ul>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">{t.name}</span>
+                      <span className="block text-xs text-slate-500 dark:text-slate-500">{t.role}</span>
+                    </span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </section>
+
+          {/* Pricing */}
+          <section id="pricing" className="scroll-mt-24 border-t border-slate-200 pt-16 dark:border-white/10 mt-20 sm:mt-24">
+            <Eyebrow>Simple pricing</Eyebrow>
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              One plan. Everything included.
+            </h2>
+            <div className="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.03] sm:grid sm:grid-cols-2">
+              <div className="border-b border-slate-100 p-8 dark:border-white/10 sm:border-b-0 sm:border-r">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                  7-day free trial
+                </span>
+                <div className="mt-5 flex items-end gap-1.5">
+                  <span className="font-display text-5xl font-bold tracking-tight">₹999</span>
+                  <span className="mb-1.5 text-slate-500 dark:text-slate-400">/month</span>
+                </div>
+                <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">or $19/month for international users</p>
+                <div className="mt-7">
+                  <CTAButton onClick={handleSignIn} full>
+                    <Linkedin className="h-4 w-4" /> Start your free trial
+                  </CTAButton>
+                  <p className="mt-3 text-center text-xs text-slate-400">No credit card required. Cancel anytime.</p>
+                </div>
+              </div>
+              <div className="p-8">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">Everything included</p>
+                <ul className="mt-4 space-y-3">
+                  {pricingIncludes.map((item) => (
+                    <li key={item} className="flex items-center gap-3">
+                      <Check className="h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                      <span className="text-[15px] text-slate-700 dark:text-slate-300">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          {/* FAQ */}
+          <section id="faq" className="scroll-mt-24 border-t border-slate-200 pt-16 dark:border-white/10 mt-20 sm:mt-24">
+            <Eyebrow>FAQ</Eyebrow>
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">Questions, answered</h2>
+            <div className="mt-8 border-t border-slate-200 dark:border-white/10">
+              {faqs.map((f) => (
+                <FAQItem key={f.q} q={f.q} a={f.a} />
+              ))}
+            </div>
+          </section>
+
+          {/* Final CTA */}
+          <section className="mt-20 sm:mt-24">
+            <div className="relative overflow-hidden rounded-2xl bg-slate-900 px-6 py-14 text-center dark:bg-blue-600 sm:px-12">
+              <div className="pointer-events-none absolute inset-0 opacity-20 [background:radial-gradient(circle_at_50%_0%,#60a5fa,transparent_60%)]" />
+              <h2 className="relative font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                Ready to build your brand on LinkedIn?
+              </h2>
+              <p className="relative mx-auto mt-3 max-w-lg text-base text-slate-300 dark:text-blue-50">
+                Join the founders and marketers growing their presence with content that actually
+                sounds human.
+              </p>
               <button
                 onClick={handleSignIn}
-                className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-rose-500 to-orange-400 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-rose-500/30 transition-all hover:-translate-y-0.5 hover:shadow-rose-500/50"
+                className="relative mt-8 inline-flex items-center gap-2.5 rounded-lg bg-white px-6 py-3.5 text-base font-semibold text-slate-900 transition-transform hover:-translate-y-0.5"
               >
                 <Linkedin className="h-5 w-5" />
-                Start your free trial
+                Get started free
+                <ArrowRight className="h-4 w-4" />
               </button>
-              <p className="mt-3.5 text-center text-sm text-stone-400 dark:text-stone-500">
-                No credit card required. Cancel anytime.
+              <p className="relative mt-5 text-xs text-slate-400 dark:text-blue-100/80">
+                Built by Cinute Digital Pvt. Ltd., Mumbai, India.
               </p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
-      <section className="border-t border-stone-200 dark:border-white/10">
-        <div className="mx-auto max-w-3xl px-5 py-24 sm:px-8 sm:py-32">
-          <div className="text-center">
-            <Eyebrow>FAQ</Eyebrow>
-            <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-              Questions, answered
-            </h2>
-          </div>
-          <div className="mt-12 border-t border-stone-200 dark:border-white/10">
-            {faqs.map((f) => (
-              <FAQItem key={f.q} q={f.q} a={f.a} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Final CTA ────────────────────────────────────────────────────── */}
-      <section className="px-5 pb-24 sm:px-8">
-        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-rose-500 to-orange-400 px-6 py-16 text-center shadow-2xl shadow-rose-500/30 sm:px-12 sm:py-20">
-          <div className="pointer-events-none absolute inset-0 opacity-25 [background:radial-gradient(circle_at_50%_0%,white,transparent_55%)]" />
-          <h2 className="relative font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Ready to build your brand on LinkedIn?
-          </h2>
-          <p className="relative mx-auto mt-4 max-w-xl text-lg text-rose-50">
-            Join the founders and marketers growing their presence with AI-powered content that
-            actually sounds human.
-          </p>
-          <button
-            onClick={handleSignIn}
-            className="relative mt-9 inline-flex items-center gap-2.5 rounded-full bg-white px-7 py-3.5 text-base font-semibold text-rose-600 shadow-xl transition-all hover:-translate-y-0.5"
-          >
-            <Linkedin className="h-5 w-5" />
-            Get started free
-            <ArrowRight className="h-4 w-4" />
-          </button>
-          <p className="relative mt-6 text-sm text-rose-50/80">
-            Kruti.io is proudly built by Cinute Digital Pvt. Ltd., Mumbai, India.
-          </p>
-        </div>
-      </section>
+          </section>
+        </main>
+      </div>
 
       <Footer />
     </div>
