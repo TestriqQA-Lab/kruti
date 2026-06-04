@@ -40,3 +40,12 @@
 .prose-linkedin {
   @apply text-sm leading-relaxed whitespace-pre-wrap;
 }
+
+/* Hide horizontal scrollbar (used by the blog category filter) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

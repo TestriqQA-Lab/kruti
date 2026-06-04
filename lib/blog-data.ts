@@ -8,6 +8,9 @@ export interface BlogPost {
   readTime: string;
   keywords: string[];
   content: string;
+  /** Optional cover image URL. When omitted, the UI renders a designed
+   *  category-themed gradient cover instead. */
+  image?: string;
 }
 
 export const blogPosts: BlogPost[] = [
