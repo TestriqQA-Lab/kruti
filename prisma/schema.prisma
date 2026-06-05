@@ -62,7 +62,7 @@ model User {
   positioning         String?       // "Thought Leader" | "Industry Expert" | etc.
   contentStyles       String?       @db.Text // JSON: ["Narrative", "How-to", ...]
   targetAudience      String?       @db.Text // free text description
-  humanMode           Boolean       @default(false)
+  humanMode           Boolean       @default(true)
   postingSchedule     String?       @db.Text // JSON: { days: ["Monday","Wednesday"], time: "09:00" }
   postSignature       String?       @db.Text // Text always appended to every LinkedIn post
   timezone            String        @default("Asia/Kolkata") // IANA timezone string

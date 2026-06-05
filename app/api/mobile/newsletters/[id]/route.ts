@@ -1,8 +1,10 @@
 /**
- * PATCH  /api/mobile/newsletters/[id]  — schedule / update status / edit
+ * PATCH  /api/mobile/newsletters/[id]  — schedule / status / edit content
  * DELETE /api/mobile/newsletters/[id]  — delete a newsletter
  *
- * Adapted from app/api/newsletter/[id]/route.ts — mobile Bearer auth.
+ * Mobile (Bearer-auth) version of app/api/newsletter/[id]/route.ts.
+ * Content is stored in Newsletter.body as a JSON string — identical to web,
+ * so edits made on mobile show up on web (and email send) in real time.
  *
  * Place at: app/api/mobile/newsletters/[id]/route.ts
  */
@@ -48,13 +50,14 @@ export async function PATCH(
     updateData.title = body.title;
   }
 
+  // Newsletter content JSON (same column the web edit + email send use).
   if ("body" in body && typeof body.body === "string") {
     try {
       JSON.parse(body.body);
       updateData.body = body.body;
     } catch {
       return NextResponse.json(
-        { error: "Invalid newsletter content JSON" },
+        { error: "body must be valid JSON" },
         { status: 400 },
       );
     }

@@ -1,7 +1,7 @@
 /**
  * POST /api/mobile/newsletters/[id]/send — send newsletter to email now
  *
- * Adapted from app/api/newsletter/[id]/send/route.ts — mobile Bearer auth.
+ * Mobile (Bearer-auth) version of app/api/newsletter/[id]/send/route.ts.
  *
  * Place at: app/api/mobile/newsletters/[id]/send/route.ts
  */
