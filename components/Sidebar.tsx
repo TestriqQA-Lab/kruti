@@ -11,7 +11,6 @@ import {
   Mail,
   Settings,
   LogOut,
-  Linkedin,
   Shield,
   Moon,
   Sun,
@@ -43,19 +42,21 @@ export default function Sidebar({ user }: SidebarProps) {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
+    <aside className="w-64 bg-white dark:bg-[#0D131F] border-r border-slate-200 dark:border-white/10 flex flex-col">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Kruti.io" className="h-20 w-auto" />
-          <span className="hidden sm:block text-2xl font-bold tracking-tighter text-gray-900 dark:text-white">
-            Kruti<span className="text-[#0A66C2]">.io</span>
+      <div className="p-5 border-b border-slate-100 dark:border-white/10">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 font-display text-lg font-bold text-white">
+            K
           </span>
-        </div>
+          <span className="font-display text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Kruti<span className="text-blue-600 dark:text-blue-400">.io</span>
+          </span>
+        </Link>
       </div>
 
       {/* User */}
-      <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+      <div className="p-4 border-b border-slate-100 dark:border-white/10">
         <div className="flex items-center gap-3">
           {user.image ? (
             <Image
@@ -66,13 +67,13 @@ export default function Sidebar({ user }: SidebarProps) {
               className="rounded-full"
             />
           ) : (
-            <div className="w-9 h-9 bg-linkedin-blue rounded-full flex items-center justify-center text-white text-sm font-semibold">
+            <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
               {user.name?.[0] ?? "U"}
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.name}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.name}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
           </div>
         </div>
       </div>
@@ -92,11 +93,11 @@ export default function Sidebar({ user }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 active
-                  ? "bg-linkedin-lightblue dark:bg-linkedin-blue/20 text-linkedin-blue"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
               )}
             >
-              <item.icon className={cn("w-4 h-4", active ? "text-linkedin-blue" : "")} />
+              <item.icon className={cn("w-4 h-4", active ? "text-blue-600 dark:text-blue-400" : "")} />
               {item.label}
             </Link>
           );
@@ -105,14 +106,14 @@ export default function Sidebar({ user }: SidebarProps) {
         {/* Admin link */}
         {user.role === "admin" && (
           <>
-            <div className="my-2 border-t border-gray-100 dark:border-gray-800" />
+            <div className="my-2 border-t border-slate-100 dark:border-white/10" />
             <Link
               href="/admin"
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 pathname.startsWith("/admin")
                   ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
               )}
             >
               <Shield className={cn("w-4 h-4", pathname.startsWith("/admin") ? "text-red-700 dark:text-red-400" : "")} />
@@ -123,17 +124,17 @@ export default function Sidebar({ user }: SidebarProps) {
       </nav>
 
       {/* Bottom section: Dark mode + Sign out */}
-      <div className="p-3 border-t border-gray-100 dark:border-gray-800 space-y-1">
+      <div className="p-3 border-t border-slate-100 dark:border-white/10 space-y-1">
         <button
           onClick={toggleTheme}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-colors w-full"
         >
           {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           {theme === "dark" ? "Light Mode" : "Dark Mode"}
         </button>
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-colors w-full"
         >
           <LogOut className="w-4 h-4" />
           Sign Out

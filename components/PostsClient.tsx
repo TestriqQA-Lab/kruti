@@ -69,42 +69,42 @@ function InlineSchedule({ post, onUpdate }: { post: Post; onUpdate: (id: string,
         className={cn(
           "flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md transition-colors",
           post.postedToLinkedIn
-            ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer",
+            ? "text-slate-400 dark:text-slate-500 cursor-not-allowed"
+            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] cursor-pointer",
           isWeekend && "text-amber-600 dark:text-amber-400"
         )}
       >
         <Clock className="w-3 h-3 flex-shrink-0" />
         <span>{displayDate}</span>
-        {displayTime && <span className="text-gray-400 dark:text-gray-500">{displayTime}</span>}
+        {displayTime && <span className="text-slate-400 dark:text-slate-500">{displayTime}</span>}
         {isWeekend && <span className="text-[10px] text-amber-500 font-medium">Weekend</span>}
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-3 space-y-3 w-64">
-            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Schedule Date & Time</p>
+          <div className="absolute left-0 top-full mt-1 z-50 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl shadow-lg p-3 space-y-3 w-64">
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Schedule Date & Time</p>
             <div className="space-y-2">
               <div>
-                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-0.5">Date</label>
+                <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5">Date</label>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   className={cn(
-                    "w-full px-2 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 bg-white dark:bg-gray-800 dark:text-gray-200",
-                    isWeekend ? "border-amber-300 bg-amber-50 dark:bg-amber-900/20" : "border-gray-200 dark:border-gray-700"
+                    "w-full px-2 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-slate-200",
+                    isWeekend ? "border-amber-300 bg-amber-50 dark:bg-amber-900/20" : "border-slate-200 dark:border-white/10"
                   )}
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-0.5">Time</label>
+                <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5">Time</label>
                 <input
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 bg-white dark:bg-gray-800 dark:text-gray-200"
+                  className="w-full px-2 py-1.5 text-xs border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-slate-200"
                 />
               </div>
               {isWeekend && (
@@ -117,14 +117,14 @@ function InlineSchedule({ post, onUpdate }: { post: Post; onUpdate: (id: string,
             <div className="flex gap-2">
               <button
                 onClick={() => setOpen(false)}
-                className="flex-1 text-xs py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
+                className="flex-1 text-xs py-1.5 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-600 dark:text-slate-300 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving || !date}
-                className="flex-1 text-xs py-1.5 bg-[#0A66C2] text-white rounded-lg hover:bg-[#004182] disabled:opacity-50 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 text-xs py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1"
               >
                 {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
                 Save
@@ -334,28 +334,28 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-          <FileText className="w-6 h-6 text-linkedin-blue" />
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-gray-100 flex items-center gap-2">
+          <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           All Posts
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">{posts.length} posts generated</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">{posts.length} posts generated</p>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search posts..."
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 focus:border-linkedin-blue bg-white dark:bg-gray-900 dark:text-gray-100"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white dark:bg-white/[0.03] dark:text-gray-100"
           />
         </div>
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 bg-white dark:bg-gray-900 dark:text-gray-100"
+          className="px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.03] dark:text-gray-100"
         >
           <option value="all">All Types</option>
           <option value="thought-leadership">Thought Leadership</option>
@@ -367,7 +367,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 bg-white dark:bg-gray-900 dark:text-gray-100"
+          className="px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.03] dark:text-gray-100"
         >
           <option value="all">All Status</option>
           <option value="draft">Draft</option>
@@ -377,7 +377,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 bg-white dark:bg-gray-900 dark:text-gray-100"
+          className="px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.03] dark:text-gray-100"
         >
           <option value="default">Sort: Default</option>
           <option value="date-asc">Date (Oldest first)</option>
@@ -386,7 +386,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
         <a
           href="/api/content/export"
           download
-          className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors text-slate-600 dark:text-slate-300"
           title="Export all posts as CSV"
         >
           <Download className="w-4 h-4" />
@@ -409,8 +409,8 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
 
       {/* Bulk action bar */}
       {selectedCount > 0 && (
-        <div className="flex items-center gap-3 bg-[#0A66C2]/5 dark:bg-[#0A66C2]/10 border border-[#0A66C2]/20 rounded-xl px-4 py-3 flex-wrap">
-          <span className="text-sm font-semibold text-[#0A66C2] dark:text-blue-400">
+        <div className="flex items-center gap-3 bg-blue-600/5 dark:bg-blue-600/10 border border-blue-600/20 rounded-xl px-4 py-3 flex-wrap">
+          <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
             {selectedCount} post{selectedCount !== 1 ? "s" : ""} selected
           </span>
           <div className="flex-1" />
@@ -419,9 +419,9 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
           <button
             onClick={() => setShowScheduleModal(true)}
             disabled={bulkLoading}
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors disabled:opacity-50 dark:text-gray-300"
+            className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-slate-300 dark:border-white/10 rounded-lg hover:bg-white dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50 dark:text-slate-300"
           >
-            <Calendar className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" />
+            <Calendar className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
             Schedule
           </button>
 
@@ -449,7 +449,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
           <button
             onClick={() => handleBulkStatus("draft")}
             disabled={bulkLoading}
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors disabled:opacity-50 dark:text-gray-300"
+            className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-slate-300 dark:border-white/10 rounded-lg hover:bg-white dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50 dark:text-slate-300"
           >
             Mark Draft
           </button>
@@ -467,7 +467,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
           {/* Clear */}
           <button
             onClick={clearSelection}
-            className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            className="flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           >
             <X className="w-4 h-4" />
           </button>
@@ -475,22 +475,22 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
       )}
 
       {/* Posts List */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm overflow-hidden">
         {/* Table header with select-all */}
         {sorted.length > 0 && (
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03]">
             <button
               onClick={toggleSelectAll}
-              className="flex-shrink-0 text-gray-400 hover:text-[#0A66C2] transition-colors"
+              className="flex-shrink-0 text-slate-400 hover:text-blue-600 transition-colors"
               title={allFilteredSelected ? "Deselect all" : "Select all"}
             >
               {allFilteredSelected ? (
-                <CheckSquare className="w-4 h-4 text-[#0A66C2]" />
+                <CheckSquare className="w-4 h-4 text-blue-600" />
               ) : (
                 <Square className="w-4 h-4" />
               )}
             </button>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               {allFilteredSelected ? "Deselect all" : `Select all ${sorted.length}`}
             </span>
           </div>
@@ -498,22 +498,22 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
 
         {sorted.length === 0 ? (
           <div className="py-16 text-center">
-            <FileText className="w-12 h-12 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
-            <p className="text-gray-500 dark:text-gray-400">No posts found.</p>
+            <FileText className="w-12 h-12 text-slate-200 dark:text-white/10 mx-auto mb-3" />
+            <p className="text-slate-500 dark:text-slate-400">No posts found.</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-50 dark:divide-gray-800">
+          <div className="divide-y divide-slate-50 dark:divide-white/10">
             {sorted.map((post) => {
               const isSelected = selected.has(post.id);
               return (
-                <div key={post.id} className={cn("flex items-start gap-3 px-5 py-4 transition-colors", isSelected ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-800")}>
+                <div key={post.id} className={cn("flex items-start gap-3 px-5 py-4 transition-colors", isSelected ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-slate-50 dark:hover:bg-white/[0.06]")}>
                   {/* Checkbox */}
                   <button
                     onClick={(e) => toggleSelect(post.id, e)}
-                    className="flex-shrink-0 mt-0.5 text-gray-300 dark:text-gray-600 hover:text-[#0A66C2] transition-colors"
+                    className="flex-shrink-0 mt-0.5 text-slate-300 dark:text-white/10 hover:text-blue-600 transition-colors"
                   >
                     {isSelected ? (
-                      <CheckSquare className="w-4 h-4 text-[#0A66C2]" />
+                      <CheckSquare className="w-4 h-4 text-blue-600" />
                     ) : (
                       <Square className="w-4 h-4" />
                     )}
@@ -534,7 +534,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{post.title}</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-gray-100 truncate">{post.title}</p>
                         {post.postedToLinkedIn && (
                           <span className="flex-shrink-0 flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">
                             <Linkedin className="w-3 h-3" />
@@ -542,7 +542,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{post.body.slice(0, 100)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{post.body.slice(0, 100)}</p>
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <span className={cn("text-xs px-2 py-0.5 rounded-full border", getPostTypeColor(post.postType))}>
                           {post.postType}
@@ -550,7 +550,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
                         <span className={cn("text-xs px-2 py-0.5 rounded-full", getStatusColor(post.status))}>
                           {post.status}
                         </span>
-                        <span className="text-xs text-gray-400 dark:text-gray-500">{post.weekLabel}</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500">{post.weekLabel}</span>
                       </div>
                       <InlineSchedule
                         post={post}
@@ -566,7 +566,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
                   {!post.postedToLinkedIn && (
                     <button
                       onClick={(e) => handleDuplicate(post.id, e)}
-                      className="flex-shrink-0 mt-0.5 p-1.5 text-gray-300 dark:text-gray-600 hover:text-[#0A66C2] hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                      className="flex-shrink-0 mt-0.5 p-1.5 text-slate-300 dark:text-white/10 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                       title="Duplicate post"
                     >
                       <Copy className="w-4 h-4" />
@@ -582,24 +582,24 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
       {/* Schedule Modal — time only (each post keeps its own date) */}
       {showScheduleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+          <div className="bg-white dark:bg-white/[0.03] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Set Time for {selectedCount} Post{selectedCount !== 1 ? "s" : ""}</h3>
-              <button onClick={() => setShowScheduleModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100">Set Time for {selectedCount} Post{selectedCount !== 1 ? "s" : ""}</h3>
+              <button onClick={() => setShowScheduleModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Posting Time</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Posting Time</label>
                 <input
                   type="time"
                   value={scheduleTime}
                   onChange={(e) => setScheduleTime(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0A66C2]/20 focus:border-[#0A66C2] bg-white dark:bg-gray-800 dark:text-gray-100"
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white dark:bg-white/[0.06] dark:text-gray-100"
                 />
               </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
                 Each post keeps its existing scheduled date. Only the posting time is updated.
                 Posts without a date will be scheduled for tomorrow at this time.
                 Status will be set to Ready.
@@ -608,13 +608,13 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
             <div className="flex gap-3">
               <button
                 onClick={() => setShowScheduleModal(false)}
-                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="flex-1 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleBulkSchedule}
-                className="flex-1 py-2.5 linkedin-gradient text-white rounded-xl text-sm font-medium hover:opacity-90 transition-all"
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium hover:opacity-90 transition-all"
               >
                 Apply Time
               </button>
@@ -626,14 +626,14 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
       {/* Delete Confirm Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+          <div className="bg-white dark:bg-white/[0.03] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-red-100 dark:bg-red-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Delete {selectedCount} post{selectedCount !== 1 ? "s" : ""}?</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100">Delete {selectedCount} post{selectedCount !== 1 ? "s" : ""}?</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   This cannot be undone. Already-published posts will not be affected.
                 </p>
               </div>
@@ -641,7 +641,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="flex-1 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
               >
                 Cancel
               </button>

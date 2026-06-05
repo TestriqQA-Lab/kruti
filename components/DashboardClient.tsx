@@ -158,7 +158,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
   const statCards = [
     { label: "Total Posts", value: stats.totalPosts, icon: FileText, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/30" },
     { label: "Ready to Post", value: stats.readyPosts, icon: CheckCircle, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/30" },
-    { label: "Published", value: stats.publishedPosts, icon: Linkedin, color: "text-[#0A66C2] dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/30" },
+    { label: "Published", value: stats.publishedPosts, icon: Linkedin, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/30" },
     { label: "Drafts", value: stats.draftPosts, icon: AlertCircle, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/30" },
   ];
 
@@ -183,10 +183,10 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-gray-100">
             Good {getTimeOfDay()}, {user?.name?.split(" ")[0] ?? "there"}!
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
             {user?.headline ?? "Ready to build your LinkedIn presence?"}
           </p>
         </div>
@@ -196,7 +196,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
           {isTrialExpired ? (
             <Link
               href="/subscribe"
-              className="flex items-center gap-2 bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-5 py-2.5 rounded-xl font-medium hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors"
+              className="flex items-center gap-2 bg-slate-300 dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 px-5 py-2.5 rounded-xl font-medium hover:bg-slate-400 dark:hover:bg-white/[0.08] transition-colors"
             >
               <Lock className="w-4 h-4" />
               Subscribe to Generate Posts
@@ -205,7 +205,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
           <button
             onClick={handleGenerate}
             disabled={generating || limitReached}
-            className="flex items-center gap-2 linkedin-gradient text-white px-5 py-2.5 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-70 shadow-md shadow-blue-200 dark:shadow-blue-900/30"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-70 shadow-md shadow-blue-200 dark:shadow-blue-900/30"
           >
             {generating ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -221,17 +221,17 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
                 {postsRemaining} of {postsLimit} posts remaining this cycle
               </p>
               {cycleResetDate && (
-                <p className="text-xs text-gray-400 dark:text-gray-500">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   Resets {formatShortDate(new Date(cycleResetDate))}
                 </p>
               )}
             </div>
           ) : (
             <div className="text-right">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {formatShortDate(batchStart)} &ndash; {formatShortDate(batchEnd)}
               </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
                 {postsRemaining} of {postsLimit} posts remaining
                 {cycleResetDate && (
                   <> · resets {formatShortDate(new Date(cycleResetDate))}</>
@@ -257,8 +257,8 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
       {generating && progress.length > 0 && (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Loader2 className="w-5 h-5 text-linkedin-blue animate-spin" />
-            <h3 className="font-semibold text-linkedin-blue flex-1">
+            <Loader2 className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
+            <h3 className="font-semibold text-blue-600 dark:text-blue-400 flex-1">
               Generating your next {postsPerBatch} posts...
             </h3>
             <button
@@ -303,33 +303,33 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat) => (
-          <div key={stat.label} className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm">
+          <div key={stat.label} className="bg-white dark:bg-white/[0.03] rounded-2xl p-5 border border-slate-100 dark:border-white/10 shadow-sm">
             <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-3", stat.bg)}>
               <stat.icon className={cn("w-5 h-5", stat.color)} />
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{stat.label}</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-gray-100">{stat.value}</div>
+            <div className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{stat.label}</div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upcoming / Recent Posts */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
-          <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-gray-400" />
+        <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm">
+          <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-white/10">
+            <h2 className="font-semibold text-slate-900 dark:text-gray-100 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-slate-400" />
               {upcomingPosts.length > 0 && upcomingPosts[0].scheduledAt && new Date(upcomingPosts[0].scheduledAt) > new Date()
                 ? "Upcoming Posts"
                 : "Recent Posts"}
             </h2>
-            <Link href="/posts" className="text-sm text-linkedin-blue hover:underline flex items-center gap-1">
+            <Link href="/posts" className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
               View all <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="p-2">
             {upcomingPosts.length === 0 ? (
-              <div className="py-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+              <div className="py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
                 {recentPlan
                   ? "No upcoming posts. Generate your next batch of content!"
                   : "Generate your first batch of posts to get started."}
@@ -339,25 +339,25 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
                 <Link
                   key={post.id}
                   href={`/posts/${post.id}`}
-                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{post.title}</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-gray-100 truncate">{post.title}</p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className={cn("text-xs px-2 py-0.5 rounded-full border", getPostTypeColor(post.postType))}>
                         {post.postType}
                       </span>
                       {post.scheduledAt && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{formatDate(post.scheduledAt)}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{formatDate(post.scheduledAt)}</span>
                       )}
                       {post.postedToLinkedIn && (
-                        <span className="text-xs bg-[#0A66C2]/10 text-[#0A66C2] dark:text-blue-400 px-2 py-0.5 rounded-full">
+                        <span className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
                           Posted
                         </span>
                       )}
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" />
+                  <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0 mt-1" />
                 </Link>
               ))
             )}
@@ -365,14 +365,14 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
         </div>
 
         {/* Content Strategy */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
-          <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-gray-400" />
+        <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm">
+          <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-white/10">
+            <h2 className="font-semibold text-slate-900 dark:text-gray-100 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-slate-400" />
               Latest Strategy
             </h2>
             {recentPlan && (
-              <span className="text-xs text-gray-400 dark:text-gray-500">
+              <span className="text-xs text-slate-400 dark:text-slate-500">
                 Starting{" "}
                 {new Date(recentPlan.weekStart).toLocaleDateString("en-US", {
                   month: "short",
@@ -386,8 +386,8 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
               <StrategyPillars strategy={recentPlan.strategy} />
             ) : (
               <div className="py-8 text-center">
-                <Sparkles className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <Sparkles className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   Click &quot;Generate Next {postsPerBatch} Posts&quot; above to create your personalized strategy and content
                 </p>
               </div>
@@ -406,13 +406,13 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
           <Link
             key={a.href}
             href={a.href}
-            className="flex items-center gap-3 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm bg-white dark:bg-gray-900 hover:shadow-md transition-shadow"
+            className="flex items-center gap-3 p-4 rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm bg-white dark:bg-white/[0.03] hover:shadow-md transition-shadow"
           >
             <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", a.color)}>
               <a.icon className="w-5 h-5" />
             </div>
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 hidden sm:block">{a.label}</span>
-            <ArrowRight className="w-4 h-4 text-gray-400 ml-auto" />
+            <span className="text-sm font-medium text-slate-900 dark:text-gray-100 hidden sm:block">{a.label}</span>
+            <ArrowRight className="w-4 h-4 text-slate-400 ml-auto" />
           </Link>
         ))}
       </div>
@@ -434,7 +434,7 @@ function StrategyPillars({ strategy }: { strategy: string }) {
       <div className="space-y-3">
         {parsed.weekTheme && (
           <div className="bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded-lg">
-            <p className="text-xs font-semibold text-[#0A66C2] dark:text-blue-400">{parsed.weekTheme}</p>
+            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">{parsed.weekTheme}</p>
             {parsed.weekFocus && (
               <p className="text-xs text-blue-600 dark:text-blue-300 mt-0.5">{parsed.weekFocus}</p>
             )}
@@ -443,27 +443,27 @@ function StrategyPillars({ strategy }: { strategy: string }) {
         {pillars.map((p, i) => (
           <div key={i}>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{p.name}</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">{p.percentage}%</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{p.name}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{p.percentage}%</span>
             </div>
-            <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-2 bg-slate-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
               <div
-                className="h-full linkedin-gradient rounded-full"
+                className="h-full bg-blue-600 hover:bg-blue-700 rounded-full"
                 style={{ width: `${p.percentage}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{p.description}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{p.description}</p>
           </div>
         ))}
         {parsed.weeklyGoal && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg mt-2">
+          <p className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-white/[0.06] px-3 py-2 rounded-lg mt-2">
             Goal: {parsed.weeklyGoal}
           </p>
         )}
       </div>
     );
   } catch {
-    return <p className="text-sm text-gray-500 dark:text-gray-400">Strategy data unavailable.</p>;
+    return <p className="text-sm text-slate-500 dark:text-slate-400">Strategy data unavailable.</p>;
   }
 }
 

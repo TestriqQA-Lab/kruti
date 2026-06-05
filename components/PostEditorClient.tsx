@@ -451,7 +451,7 @@ export default function PostEditorClient({
   const humanModeLabel =
     humanMode === null ? "Default" : humanMode ? "On" : "Off";
   const humanModeBg =
-    humanMode === true ? "bg-[#0A66C2]" : humanMode === false ? "bg-gray-200 dark:bg-gray-600" : "bg-amber-400";
+    humanMode === true ? "bg-blue-600" : humanMode === false ? "bg-slate-200 dark:bg-white/[0.06]" : "bg-amber-400";
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -470,7 +470,7 @@ export default function PostEditorClient({
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm"
+            className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -481,7 +481,7 @@ export default function PostEditorClient({
           {!isPublished && (
             <div className="ml-auto flex items-center gap-1.5">
               {autoSaveStatus === "saving" && (
-                <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   Saving...
                 </span>
@@ -506,10 +506,10 @@ export default function PostEditorClient({
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 text-sm px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors dark:text-gray-300"
+            className="flex items-center gap-1.5 text-sm px-3 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors dark:text-slate-300"
             title="Copy to clipboard"
           >
-            {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-500 dark:text-gray-400" />}
+            {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
             {copied ? "Copied!" : "Copy"}
           </button>
 
@@ -534,7 +534,7 @@ export default function PostEditorClient({
             <button
               onClick={handlePublishClick}
               disabled={posting || isTrialExpired}
-              className="flex items-center gap-1.5 text-sm px-4 py-2 bg-[#0A66C2] text-white rounded-lg hover:bg-[#004182] transition-colors disabled:opacity-70"
+              className="flex items-center gap-1.5 text-sm px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-70"
               title={isTrialExpired ? "Subscribe to post to LinkedIn" : undefined}
             >
               {posting ? (
@@ -564,7 +564,7 @@ export default function PostEditorClient({
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-1.5 text-sm px-4 py-2 linkedin-gradient text-white rounded-lg hover:opacity-90 disabled:opacity-70"
+                className="flex items-center gap-1.5 text-sm px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg hover:opacity-90 disabled:opacity-70"
               >
                 {saving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -619,7 +619,7 @@ export default function PostEditorClient({
         <div className="lg:col-span-2 space-y-4">
           {/* Title */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 block">
               Post Hook / Opening Line
             </label>
             <input
@@ -627,8 +627,8 @@ export default function PostEditorClient({
               onChange={(e) => setTitle(e.target.value)}
               disabled={isPublished}
               className={cn(
-                "w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 focus:border-linkedin-blue bg-white dark:bg-gray-900 dark:text-gray-100",
-                isPublished && "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                "w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white dark:bg-white/[0.03] dark:text-gray-100",
+                isPublished && "bg-slate-50 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 cursor-not-allowed"
               )}
               placeholder="Post hook..."
             />
@@ -637,10 +637,10 @@ export default function PostEditorClient({
           {/* Body */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Post Body
               </label>
-              <span className={cn("text-xs", charCount > charLimit * 0.9 ? "text-orange-500" : "text-gray-400 dark:text-gray-500")}>
+              <span className={cn("text-xs", charCount > charLimit * 0.9 ? "text-orange-500" : "text-slate-400 dark:text-slate-500")}>
                 {charCount} / {charLimit}
               </span>
             </div>
@@ -650,8 +650,8 @@ export default function PostEditorClient({
               disabled={isPublished}
               rows={14}
               className={cn(
-                "w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 focus:border-linkedin-blue resize-none bg-white dark:bg-gray-900 dark:text-gray-100",
-                isPublished && "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                "w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none bg-white dark:bg-white/[0.03] dark:text-gray-100",
+                isPublished && "bg-slate-50 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 cursor-not-allowed"
               )}
               placeholder="Post content..."
             />
@@ -659,16 +659,16 @@ export default function PostEditorClient({
 
           {/* Hashtags Editor */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
               <Hash className="w-3 h-3" />
               Hashtags
-              <span className="font-normal text-gray-400 dark:text-gray-500 ml-1">({hashtags.length})</span>
+              <span className="font-normal text-slate-400 dark:text-slate-500 ml-1">({hashtags.length})</span>
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {hashtags.map((tag, i) => (
                 <span
                   key={i}
-                  className="group flex items-center gap-1 text-xs px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-linkedin-blue dark:text-blue-400 rounded-lg"
+                  className="group flex items-center gap-1 text-xs px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg"
                 >
                   #{tag}
                   {!isPublished && (
@@ -690,7 +690,7 @@ export default function PostEditorClient({
                 <input
                   type="text"
                   placeholder="Add hashtag..."
-                  className="flex-1 px-3 py-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 focus:border-linkedin-blue bg-white dark:bg-gray-900 dark:text-gray-100"
+                  className="flex-1 px-3 py-2 text-xs border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white dark:bg-white/[0.03] dark:text-gray-100"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -712,7 +712,7 @@ export default function PostEditorClient({
                       input.value = "";
                     }
                   }}
-                  className="px-3 py-2 text-xs font-medium border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300"
+                  className="px-3 py-2 text-xs font-medium border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors text-slate-600 dark:text-slate-300"
                 >
                   Add
                 </button>
@@ -722,7 +722,7 @@ export default function PostEditorClient({
 
           {/* Post Signature Editor */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 block">
               Post Signature
             </label>
             <textarea
@@ -732,8 +732,8 @@ export default function PostEditorClient({
               rows={3}
               placeholder="Signature..."
               className={cn(
-                "w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 focus:border-linkedin-blue resize-none bg-white dark:bg-gray-900 dark:text-gray-100",
-                isPublished && "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                "w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none bg-white dark:bg-white/[0.03] dark:text-gray-100",
+                isPublished && "bg-slate-50 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 cursor-not-allowed"
               )}
             />
           </div>
@@ -741,11 +741,11 @@ export default function PostEditorClient({
           {/* Actions — hidden for published posts */}
           {!isPublished && (
             isTrialExpired ? (
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                <AlertCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-white/[0.06] rounded-xl border border-slate-200 dark:border-white/10">
+                <AlertCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   Your trial has ended.{" "}
-                  <a href="/subscribe" className="text-[#0A66C2] font-semibold hover:underline">Subscribe</a>
+                  <a href="/subscribe" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">Subscribe</a>
                   {" "}to regenerate posts, generate images, and create variants.
                 </p>
               </div>
@@ -754,12 +754,12 @@ export default function PostEditorClient({
               <button
                 onClick={handleRegenerate}
                 disabled={regenerating}
-                className="flex items-center gap-2 text-sm px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-70 transition-colors dark:text-gray-300"
+                className="flex items-center gap-2 text-sm px-4 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] disabled:opacity-70 transition-colors dark:text-slate-300"
               >
                 {regenerating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Sparkles className="w-4 h-4 text-linkedin-blue" />
+                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 )}
                 Regenerate Post
               </button>
@@ -790,13 +790,13 @@ export default function PostEditorClient({
               <button
                 onClick={handleGenerateImage}
                 disabled={generatingImage || imageGenRemaining <= 0}
-                className="flex items-center gap-2 text-sm px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-70 transition-colors dark:text-gray-300"
+                className="flex items-center gap-2 text-sm px-4 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] disabled:opacity-70 transition-colors dark:text-slate-300"
                 title={imageGenRemaining <= 0 ? "Image generation limit reached for this post" : `${imageGenRemaining} generation${imageGenRemaining === 1 ? "" : "s"} remaining`}
               >
                 {generatingImage ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <ImageIcon className="w-4 h-4 text-linkedin-blue" />
+                  <ImageIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 )}
                 {imageGenRemaining <= 0 ? "Limit Reached" : imageUrl ? "Regenerate Image" : "Generate Image"}
               </button>
@@ -809,14 +809,14 @@ export default function PostEditorClient({
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Image Preview */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Post Image</h3>
+          <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Post Image</h3>
               {imageUrl && (
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setLightboxOpen(true)}
-                    className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors"
                     title="View full size"
                   >
                     <ZoomIn className="w-4 h-4" />
@@ -824,7 +824,7 @@ export default function PostEditorClient({
                   {!isPublished && (
                     <button
                       onClick={handleRemoveImage}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                       title="Remove image"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -853,11 +853,11 @@ export default function PostEditorClient({
                           setHistoryIndex(newIndex);
                           setImageUrl(imageHistory[newIndex]);
                         }}
-                        className="text-xs px-2.5 py-1.5 font-medium bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-1"
+                        className="text-xs px-2.5 py-1.5 font-medium bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 rounded-lg transition-colors flex items-center gap-1"
                       >
                         <ArrowLeft className="w-3 h-3" /> Prev
                       </button>
-                      <span className="text-[10px] text-gray-500 font-medium">
+                      <span className="text-[10px] text-slate-500 font-medium">
                         {historyIndex + 1} of {imageHistory.length}
                       </span>
                       <button
@@ -866,7 +866,7 @@ export default function PostEditorClient({
                           setHistoryIndex(newIndex);
                           setImageUrl(imageHistory[newIndex]);
                         }}
-                        className="text-xs px-2.5 py-1.5 font-medium bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-1"
+                        className="text-xs px-2.5 py-1.5 font-medium bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 rounded-lg transition-colors flex items-center gap-1"
                       >
                         Next <ArrowLeft className="w-3 h-3 rotate-180" />
                       </button>
@@ -876,27 +876,27 @@ export default function PostEditorClient({
               ) : (
                 <div
                   className={cn(
-                    "aspect-square rounded-xl bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center transition-colors",
-                    imageGenRemaining > 0 ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750" : "opacity-60"
+                    "aspect-square rounded-xl bg-slate-50 dark:bg-white/[0.06] border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center transition-colors",
+                    imageGenRemaining > 0 ? "cursor-pointer hover:bg-slate-100 dark:hover:bg-white/[0.08]" : "opacity-60"
                   )}
                   onClick={imageGenRemaining > 0 ? handleGenerateImage : undefined}
                 >
                   {generatingImage ? (
                     <>
-                      <Loader2 className="w-8 h-8 text-linkedin-blue animate-spin mb-2" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Generating...</p>
+                      <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin mb-2" />
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Generating...</p>
                     </>
                   ) : imageGenRemaining <= 0 ? (
                     <>
-                      <ImageIcon className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center px-4">
+                      <ImageIcon className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                      <p className="text-xs text-slate-500 dark:text-slate-400 text-center px-4">
                         Generation limit reached. Upload an image instead.
                       </p>
                     </>
                   ) : (
                     <>
-                      <ImageIcon className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center px-4">
+                      <ImageIcon className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                      <p className="text-xs text-slate-500 dark:text-slate-400 text-center px-4">
                         Click to generate an AI image
                       </p>
                     </>
@@ -918,35 +918,35 @@ export default function PostEditorClient({
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
-                      className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-70 transition-colors dark:text-gray-300"
+                      className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] disabled:opacity-70 transition-colors dark:text-slate-300"
                     >
                       {uploading ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <Upload className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                        <Upload className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                       )}
                       {uploading ? "Uploading..." : imageUrl ? "Replace Image" : "Upload Image"}
                     </button>
                     <button
                       onClick={handleGenerateImage}
                       disabled={generatingImage || imageGenRemaining <= 0}
-                      className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-70 transition-colors dark:text-gray-300"
+                      className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] disabled:opacity-70 transition-colors dark:text-slate-300"
                       title={imageGenRemaining <= 0 ? "Limit reached" : `${imageGenRemaining} left`}
                     >
                       {generatingImage ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <Sparkles className="w-3.5 h-3.5 text-linkedin-blue" />
+                        <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                       )}
                       {generatingImage ? "Generating..." : imageGenRemaining <= 0 ? "Limit Reached" : imageUrl ? "Regenerate" : "AI Generate"}
                     </button>
                   </div>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 text-center">
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 text-center">
                     JPG, PNG, GIF, WebP &middot; Max 5MB
                   </p>
                   <p className={cn(
                     "text-[10px] mt-1 text-center",
-                    imageGenRemaining <= 0 ? "text-amber-500 dark:text-amber-400" : "text-gray-400 dark:text-gray-500"
+                    imageGenRemaining <= 0 ? "text-amber-500 dark:text-amber-400" : "text-slate-400 dark:text-slate-500"
                   )}>
                     {imageGenRemaining <= 0
                       ? "AI generation limit reached for this post"
@@ -958,14 +958,14 @@ export default function PostEditorClient({
           </div>
 
           {/* Post Details */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Post Details</h3>
+          <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Post Details</h3>
             <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Status</label>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Status</label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 bg-white dark:bg-gray-800 dark:text-gray-100"
+                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-gray-100"
                 disabled={post.postedToLinkedIn || isTrialExpired}
               >
                 <option value="draft">Draft</option>
@@ -975,7 +975,7 @@ export default function PostEditorClient({
             </div>
             {/* Auto-Publish Schedule */}
             <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
                 Auto-Publish Date & Time
               </label>
@@ -985,17 +985,17 @@ export default function PostEditorClient({
                   value={scheduledDate}
                   onChange={(e) => setScheduledDate(e.target.value)}
                   disabled={post.postedToLinkedIn}
-                  className="flex-1 px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 disabled:opacity-50 bg-white dark:bg-gray-800 dark:text-gray-100"
+                  className="flex-1 px-2 py-1.5 text-xs border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 bg-white dark:bg-white/[0.06] dark:text-gray-100"
                 />
                 <input
                   type="time"
                   value={scheduledTime}
                   onChange={(e) => setScheduledTime(e.target.value)}
                   disabled={post.postedToLinkedIn}
-                  className="w-24 px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-linkedin-blue/20 disabled:opacity-50 bg-white dark:bg-gray-800 dark:text-gray-100"
+                  className="w-24 px-2 py-1.5 text-xs border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 bg-white dark:bg-white/[0.06] dark:text-gray-100"
                 />
               </div>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
                 Timezone: {userTimezone.replace(/_/g, " ")}
               </p>
               {isWeekend && (
@@ -1006,15 +1006,15 @@ export default function PostEditorClient({
               )}
             </div>
             {post.postedToLinkedIn && (
-              <div className="flex items-center gap-2 text-xs text-[#0A66C2] dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1.5 rounded-lg">
+              <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1.5 rounded-lg">
                 <CheckCircle className="w-3.5 h-3.5" />
                 Posted to LinkedIn
               </div>
             )}
             {post.imagePrompt && (
               <div>
-                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Image Prompt</label>
-                <p className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded-lg leading-relaxed line-clamp-3">
+                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Image Prompt</label>
+                <p className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-white/[0.06] p-2 rounded-lg leading-relaxed line-clamp-3">
                   {post.imagePrompt}
                 </p>
               </div>
@@ -1022,11 +1022,11 @@ export default function PostEditorClient({
           </div>
 
           {/* Human Mode Toggle */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4">
+          <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Human Mode</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Makes AI content less detectable</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Human Mode</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Makes AI content less detectable</p>
               </div>
               <button
                 onClick={cycleHumanMode}
@@ -1046,7 +1046,7 @@ export default function PostEditorClient({
                 />
               </button>
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
               {humanMode === null
                 ? "Using your account default setting"
                 : humanMode
@@ -1141,29 +1141,29 @@ export default function PostEditorClient({
       {/* Pre-publish Checklist Modal */}
       {showPublishChecklist && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+          <div className="bg-white dark:bg-[#0D131F] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-[#0A66C2]" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Pre-publish Checklist</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Review before posting to LinkedIn</p>
+                <h3 className="font-display text-lg font-bold text-slate-900 dark:text-gray-100">Pre-publish Checklist</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Review before posting to LinkedIn</p>
               </div>
             </div>
             <div className="space-y-2">
               {getPublishChecklist().map((item) => (
-                <div key={item.label} className="flex items-center gap-3 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <div key={item.label} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 dark:bg-white/[0.06]">
                   {item.passed ? (
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   ) : (
                     <AlertCircle className={cn("w-5 h-5 flex-shrink-0", item.optional ? "text-amber-400" : "text-red-500")} />
                   )}
-                  <span className={cn("text-sm", item.passed ? "text-gray-700 dark:text-gray-300" : item.optional ? "text-amber-700 dark:text-amber-300" : "text-red-700 dark:text-red-300")}>
+                  <span className={cn("text-sm", item.passed ? "text-slate-700 dark:text-slate-300" : item.optional ? "text-amber-700 dark:text-amber-300" : "text-red-700 dark:text-red-300")}>
                     {item.label}
-                    {!item.passed && item.optional && <span className="text-xs text-gray-400 ml-1">(optional)</span>}
+                    {!item.passed && item.optional && <span className="text-xs text-slate-400 ml-1">(optional)</span>}
                   </span>
                 </div>
               ))}
@@ -1171,21 +1171,21 @@ export default function PostEditorClient({
             {!getPublishChecklist()[0].passed && (
               <p className="text-xs text-red-500 dark:text-red-400">Post body must have at least 20 characters to publish.</p>
             )}
-            <p className="text-xs text-center text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1">
+            <p className="text-xs text-center text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1">
               <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
               Posted via LinkedIn&apos;s official API — safe &amp; compliant
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowPublishChecklist(false)}
-                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="flex-1 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handlePostToLinkedIn}
                 disabled={!getPublishChecklist()[0].passed}
-                className="flex-1 py-2.5 bg-[#0A66C2] text-white rounded-xl text-sm font-medium hover:bg-[#004182] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
@@ -1200,14 +1200,14 @@ export default function PostEditorClient({
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+          <div className="bg-white dark:bg-[#0D131F] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-red-100 dark:bg-red-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Delete this post?</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <h3 className="font-display text-lg font-bold text-slate-900 dark:text-gray-100">Delete this post?</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   This action cannot be undone. The post and its generated image will be permanently removed.
                 </p>
               </div>
@@ -1215,7 +1215,7 @@ export default function PostEditorClient({
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="flex-1 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
               >
                 Cancel
               </button>

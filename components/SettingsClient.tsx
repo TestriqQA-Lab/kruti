@@ -247,13 +247,13 @@ export default function SettingsClient({ user }: { user: User | null }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your profile and content preferences</p>
+          <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white">Settings</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your profile and content preferences</p>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 linkedin-gradient text-white px-5 py-2.5 rounded-xl font-medium hover:opacity-90 disabled:opacity-70 shadow-md shadow-blue-200 dark:shadow-blue-900/30"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium hover:opacity-90 disabled:opacity-70 shadow-md shadow-blue-200 dark:shadow-blue-900/30"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
           {saved ? "Saved!" : "Save Changes"}
@@ -269,7 +269,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
       )}
 
       {/* Profile Overview */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-6">
         <div className="flex items-center gap-4 mb-6">
           {user?.image && (
             <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
@@ -277,10 +277,10 @@ export default function SettingsClient({ user }: { user: User | null }) {
             </div>
           )}
           <div>
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100">{user?.name}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
+            <h2 className="font-semibold text-slate-900 dark:text-white">{user?.name}</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{user?.email}</p>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-xs bg-[#0A66C2]/10 text-[#0A66C2] dark:text-blue-400 px-2 py-0.5 rounded-full inline-block">
+              <span className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full inline-block">
                 LinkedIn Connected
               </span>
               {tokenStatus && (
@@ -307,23 +307,23 @@ export default function SettingsClient({ user }: { user: User | null }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Professional Headline
             </label>
             <input
               value={headline}
               onChange={(e) => setHeadline(e.target.value)}
               placeholder="e.g. Senior Product Manager at Acme Corp"
-              className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0A66C2]/20 focus:border-[#0A66C2] bg-white dark:bg-gray-800 dark:text-gray-100"
+              className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white dark:bg-white/[0.06] dark:text-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Industry</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Industry</label>
             <select
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0A66C2]/20 bg-white dark:bg-gray-800 dark:text-gray-100"
+              className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-white"
             >
               <option value="">Select industry</option>
               {INDUSTRIES.map((ind) => (
@@ -333,7 +333,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Professional Summary
             </label>
             <textarea
@@ -341,25 +341,25 @@ export default function SettingsClient({ user }: { user: User | null }) {
               onChange={(e) => setSummary(e.target.value)}
               rows={3}
               placeholder="Describe your expertise..."
-              className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0A66C2]/20 bg-white dark:bg-gray-800 dark:text-gray-100"
+              className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-white"
             />
           </div>
         </div>
 
         {/* Skills */}
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Skills & Topics</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Skills & Topics</label>
           <div className="flex gap-2 mb-3">
             <input
               value={skillInput}
               onChange={(e) => setSkillInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
               placeholder="Add a skill or topic..."
-              className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0A66C2]/20 bg-white dark:bg-gray-800 dark:text-gray-100"
+              className="flex-1 px-4 py-2 border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-white"
             />
             <button
               onClick={addSkill}
-              className="flex items-center gap-1 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors dark:text-gray-300"
+              className="flex items-center gap-1 px-4 py-2 border border-slate-200 dark:border-white/10 rounded-xl text-sm hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors dark:text-slate-300"
             >
               <Plus className="w-4 h-4" />
               Add
@@ -367,7 +367,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
           </div>
           <div className="flex flex-wrap gap-2">
             {skills.map((skill) => (
-              <span key={skill} className="flex items-center gap-1 text-sm px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-[#0A66C2] dark:text-blue-400 rounded-full">
+              <span key={skill} className="flex items-center gap-1 text-sm px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full">
                 {skill}
                 <button onClick={() => removeSkill(skill)} className="hover:text-blue-900 dark:hover:text-blue-200">
                   <X className="w-3 h-3" />
@@ -379,8 +379,8 @@ export default function SettingsClient({ user }: { user: User | null }) {
       </div>
 
       {/* Tone & Voice */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Tone & Voice</h2>
+      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-6">
+        <h2 className="font-semibold font-display text-slate-900 dark:text-white mb-4">Tone & Voice</h2>
         <div className="grid grid-cols-2 gap-3">
           {TONES.map((t) => (
             <button
@@ -389,23 +389,23 @@ export default function SettingsClient({ user }: { user: User | null }) {
               className={cn(
                 "p-4 rounded-xl border-2 text-left transition-all",
                 tone === t.value
-                  ? "border-[#0A66C2] bg-blue-50 dark:bg-blue-900/20"
-                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                  ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                  : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-gray-600"
               )}
             >
-              <p className={cn("font-medium text-sm", tone === t.value ? "text-[#0A66C2] dark:text-blue-400" : "text-gray-800 dark:text-gray-200")}>
+              <p className={cn("font-medium text-sm", tone === t.value ? "text-blue-600 dark:text-blue-400" : "text-gray-800 dark:text-gray-200")}>
                 {t.label}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t.desc}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t.desc}</p>
             </button>
           ))}
         </div>
       </div>
 
       {/* Content Positioning */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Content Positioning</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">How you want to show up on LinkedIn</p>
+      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-6">
+        <h2 className="font-semibold font-display text-slate-900 dark:text-white mb-1">Content Positioning</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">How you want to show up on LinkedIn</p>
         <div className="space-y-2">
           {POSITIONING_OPTIONS.map((opt) => (
             <button
@@ -414,26 +414,26 @@ export default function SettingsClient({ user }: { user: User | null }) {
               className={cn(
                 "w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all",
                 positioning === opt.value
-                  ? "border-[#0A66C2] bg-blue-50 dark:bg-blue-900/20"
-                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                  ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                  : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-gray-600"
               )}
             >
               <div className="flex-1">
-                <p className={cn("font-medium text-sm", positioning === opt.value ? "text-[#0A66C2] dark:text-blue-400" : "text-gray-800 dark:text-gray-200")}>
+                <p className={cn("font-medium text-sm", positioning === opt.value ? "text-blue-600 dark:text-blue-400" : "text-gray-800 dark:text-gray-200")}>
                   {opt.value}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{opt.desc}</p>
               </div>
-              {positioning === opt.value && <CheckCircle className="w-4 h-4 text-[#0A66C2] dark:text-blue-400 flex-shrink-0" />}
+              {positioning === opt.value && <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />}
             </button>
           ))}
         </div>
       </div>
 
       {/* Content Goals & Styles */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 space-y-6">
+      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-6 space-y-6">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">LinkedIn Goals</h2>
+          <h2 className="font-semibold font-display text-slate-900 dark:text-white mb-1">LinkedIn Goals</h2>
           <div className="flex flex-wrap gap-2 mt-3">
             {CONTENT_GOALS.map((goal) => (
               <button
@@ -442,8 +442,8 @@ export default function SettingsClient({ user }: { user: User | null }) {
                 className={cn(
                   "px-4 py-2 rounded-full text-sm font-medium border-2 transition-all",
                   contentGoals.includes(goal)
-                    ? "border-[#0A66C2] bg-[#0A66C2] text-white"
-                    : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                    ? "border-blue-600 bg-blue-600 text-white"
+                    : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-gray-600"
                 )}
               >
                 {goal}
@@ -453,8 +453,8 @@ export default function SettingsClient({ user }: { user: User | null }) {
         </div>
 
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Content Styles</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">The types of content that resonate with you</p>
+          <h2 className="font-semibold font-display text-slate-900 dark:text-white mb-1">Content Styles</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">The types of content that resonate with you</p>
           <div className="flex flex-wrap gap-2 mt-3">
             {CONTENT_STYLES.map((style) => (
               <button
@@ -464,7 +464,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
                   "px-4 py-2 rounded-full text-sm font-medium border-2 transition-all",
                   contentStyles.includes(style)
                     ? "border-indigo-500 bg-indigo-500 text-white"
-                    : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                    : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-gray-600"
                 )}
               >
                 {style}
@@ -474,24 +474,24 @@ export default function SettingsClient({ user }: { user: User | null }) {
         </div>
 
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Target Audience</h2>
+          <h2 className="font-semibold font-display text-slate-900 dark:text-white mb-1">Target Audience</h2>
           <textarea
             value={targetAudience}
             onChange={(e) => setTargetAudience(e.target.value.slice(0, 300))}
             rows={3}
             placeholder="e.g. Early-stage startup founders and CTOs in the SaaS space..."
-            className="w-full mt-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0A66C2]/20 bg-white dark:bg-gray-800 dark:text-gray-100"
+            className="w-full mt-2 px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-white"
           />
-          <p className="text-xs text-gray-400 dark:text-gray-500 text-right">{targetAudience.length}/300</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 text-right">{targetAudience.length}/300</p>
         </div>
       </div>
 
       {/* Human Mode */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Human Mode (Global Default)</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <h2 className="font-semibold font-display text-slate-900 dark:text-white">Human Mode (Global Default)</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Makes AI-generated content sound more naturally human — slight variations in style
               and phrasing that make posts less detectable as AI-generated.
             </p>
@@ -500,7 +500,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
             onClick={() => setHumanMode(!humanMode)}
             className={cn(
               "relative w-14 h-7 rounded-full transition-colors flex-shrink-0 ml-6",
-              humanMode ? "bg-[#0A66C2]" : "bg-gray-200 dark:bg-gray-600"
+              humanMode ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-600"
             )}
           >
             <span
@@ -511,7 +511,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
             />
           </button>
         </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
           {humanMode
             ? "Human Mode is ON — all generated posts will include natural writing variations"
             : "Human Mode is OFF — clean, polished AI output (can be toggled per-post)"}
@@ -519,9 +519,9 @@ export default function SettingsClient({ user }: { user: User | null }) {
       </div>
 
       {/* Post Signature */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Post Signature</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-6">
+        <h2 className="font-semibold font-display text-slate-900 dark:text-white mb-1">Post Signature</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
           This text is automatically appended to every post when published to LinkedIn.
           Use it for a consistent sign-off, tagline, or call-to-action.
         </p>
@@ -530,15 +530,15 @@ export default function SettingsClient({ user }: { user: User | null }) {
           onChange={(e) => setPostSignature(e.target.value)}
           rows={3}
           placeholder={`e.g.\n\nFollow me for more insights on [topic].\nBook a free call: https://calendly.com/yourname`}
-          className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0A66C2]/20 focus:border-[#0A66C2] bg-white dark:bg-gray-800 dark:text-gray-100"
+          className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white dark:bg-white/[0.06] dark:text-white"
         />
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-right">{postSignature.length} chars</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 text-right">{postSignature.length} chars</p>
       </div>
 
       {/* Posting Schedule */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Posting Schedule</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-6">
+        <h2 className="font-semibold font-display text-slate-900 dark:text-white mb-1">Posting Schedule</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
           Posts set to &quot;Ready&quot; will auto-publish to LinkedIn at these times
         </p>
 
@@ -550,8 +550,8 @@ export default function SettingsClient({ user }: { user: User | null }) {
               className={cn(
                 "px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all",
                 postingSchedule.days.includes(day)
-                  ? "border-[#0A66C2] bg-blue-50 dark:bg-blue-900/20 text-[#0A66C2] dark:text-blue-400"
-                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                  ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                  : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-gray-600"
               )}
             >
               {day.slice(0, 3)}
@@ -560,14 +560,14 @@ export default function SettingsClient({ user }: { user: User | null }) {
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Posting time:</label>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Posting time:</label>
           <input
             type="time"
             value={postingSchedule.time}
             onChange={(e) => setPostingSchedule((s) => ({ ...s, time: e.target.value }))}
-            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0A66C2]/20 bg-white dark:bg-gray-800 dark:text-gray-100"
+            className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-white"
           />
-          <p className="text-xs text-gray-400 dark:text-gray-500">{timezone.replace(/_/g, " ")}</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">{timezone.replace(/_/g, " ")}</p>
         </div>
 
         {/* Timezone with search */}
@@ -575,11 +575,11 @@ export default function SettingsClient({ user }: { user: User | null }) {
       </div>
 
       {/* Subscription */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-6">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-gray-400" />
+            <h2 className="font-semibold font-display text-slate-900 dark:text-white flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-slate-400" />
               Subscription
             </h2>
             {sub ? (
@@ -599,18 +599,18 @@ export default function SettingsClient({ user }: { user: User | null }) {
                   </span>
                 </div>
                 {sub.currentPeriodEnd && sub.status === "active" && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Renews {new Date(sub.currentPeriodEnd).toLocaleDateString()}
                   </p>
                 )}
                 {sub.trialEnd && sub.status === "trialing" && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Trial ends {new Date(sub.trialEnd).toLocaleDateString()}
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">No subscription found</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">No subscription found</p>
             )}
           </div>
 
@@ -623,12 +623,12 @@ export default function SettingsClient({ user }: { user: User | null }) {
                 Cancel Subscription
               </button>
               {showCancelConfirm && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 p-4">
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-20 p-4">
                   <div className="flex items-start gap-2 mb-3">
                     <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Cancel subscription?</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">Cancel subscription?</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Your access will continue until the end of the current billing period.
                       </p>
                     </div>
@@ -644,7 +644,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
                     </button>
                     <button
                       onClick={() => setShowCancelConfirm(false)}
-                      className="flex-1 py-2 text-xs font-semibold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="flex-1 py-2 text-xs font-semibold border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
                     >
                       Keep Plan
                     </button>
@@ -655,7 +655,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
           ) : sub?.status !== "active" ? (
             <a
               href="/subscribe"
-              className="flex items-center gap-2 text-sm px-4 py-2 bg-[#0A66C2] text-white rounded-xl hover:bg-[#004182] transition-colors"
+              className="flex items-center gap-2 text-sm px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
             >
               Subscribe Now
             </a>
@@ -664,28 +664,28 @@ export default function SettingsClient({ user }: { user: User | null }) {
 
         {/* Invoice History */}
         {sub?.razorpaySubscriptionId && (
-          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+          <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/10">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                 Invoice History
               </h3>
               {!invoicesLoaded && !invoicesLoading && (
                 <button
                   onClick={loadInvoices}
-                  className="text-sm text-[#0A66C2] hover:underline"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   Load Invoices
                 </button>
               )}
             </div>
             {invoicesLoading && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-slate-500">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Loading invoices...
               </div>
             )}
             {invoicesLoaded && invoices.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 No invoices found yet.
               </p>
             )}
@@ -694,14 +694,14 @@ export default function SettingsClient({ user }: { user: User | null }) {
                 {invoices.map((inv) => (
                   <div
                     key={inv.id}
-                    className="flex items-center justify-between text-sm py-2.5 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/50"
+                    className="flex items-center justify-between text-sm py-2.5 px-3 rounded-lg bg-slate-50 dark:bg-white/[0.06]"
                   >
-                    <span className="text-gray-600 dark:text-gray-400 min-w-[90px]">
+                    <span className="text-slate-600 dark:text-slate-400 min-w-[90px]">
                       {inv.date
                         ? new Date(inv.date).toLocaleDateString()
                         : "—"}
                     </span>
-                    <span className="text-gray-900 dark:text-gray-100 font-medium">
+                    <span className="text-slate-900 dark:text-white font-medium">
                       {inv.currency === "USD" ? "$" : "₹"}
                       {inv.amount}
                     </span>
@@ -712,13 +712,13 @@ export default function SettingsClient({ user }: { user: User | null }) {
                           ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400"
                           : inv.status === "authorized"
                             ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400"
-                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                            : "bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-400"
                       )}
                     >
                       {inv.status === "captured" ? "Paid" : inv.status}
                     </span>
                     {inv.method && (
-                      <span className="text-xs text-gray-400 capitalize">
+                      <span className="text-xs text-slate-400 capitalize">
                         {inv.method}
                       </span>
                     )}
@@ -735,7 +735,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full flex items-center justify-center gap-2 linkedin-gradient text-white py-3 rounded-xl font-semibold hover:opacity-90 disabled:opacity-70"
+          className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold hover:opacity-90 disabled:opacity-70"
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : saved ? <CheckCircle className="w-5 h-5" /> : <Save className="w-5 h-5" />}
           {saved ? "All changes saved!" : "Save All Settings"}
@@ -758,31 +758,31 @@ function TimezoneSelect({ value, onChange }: { value: string; onChange: (tz: str
 
   return (
     <div className="mt-4 relative">
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Timezone</label>
+      <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">Timezone</label>
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-left focus:outline-none focus:ring-2 focus:ring-[#0A66C2]/20 bg-white dark:bg-gray-800 dark:text-gray-100 flex items-center justify-between"
+        className="w-full px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-white flex items-center justify-between"
       >
         <span>{value.replace(/_/g, " ")}</span>
-        <ChevronDown className="w-4 h-4 text-gray-400" />
+        <ChevronDown className="w-4 h-4 text-slate-400" />
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl max-h-64 overflow-hidden flex flex-col">
-          <div className="p-2 border-b border-gray-100 dark:border-gray-800">
+        <div className="absolute z-50 mt-1 w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl max-h-64 overflow-hidden flex flex-col">
+          <div className="p-2 border-b border-slate-100 dark:border-white/10">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search timezone..."
               autoFocus
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0A66C2]/20 bg-white dark:bg-gray-800 dark:text-gray-100"
+              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-white"
             />
           </div>
           <div className="overflow-y-auto max-h-48">
             {filtered.length === 0 ? (
-              <p className="text-sm text-gray-400 p-3 text-center">No matches</p>
+              <p className="text-sm text-slate-400 p-3 text-center">No matches</p>
             ) : (
               filtered.map((tz) => (
                 <button
@@ -790,7 +790,7 @@ function TimezoneSelect({ value, onChange }: { value: string; onChange: (tz: str
                   onClick={() => { onChange(tz); setOpen(false); setSearch(""); }}
                   className={cn(
                     "w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors",
-                    tz === value ? "bg-blue-50 dark:bg-blue-900/20 text-[#0A66C2] font-medium" : "text-gray-700 dark:text-gray-300"
+                    tz === value ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium" : "text-slate-700 dark:text-slate-300"
                   )}
                 >
                   {tz.replace(/_/g, " ")}
@@ -806,7 +806,7 @@ function TimezoneSelect({ value, onChange }: { value: string; onChange: (tz: str
         <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(""); }} />
       )}
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
         Posts will be scheduled and auto-published in this timezone
       </p>
     </div>

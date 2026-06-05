@@ -212,10 +212,10 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-950 dark:to-gray-900 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
+    <div className="min-h-screen bg-[#F6F8FB] dark:bg-[#0A0E14] flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-white/[0.03] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-[#0A66C2] px-8 py-6 text-white">
+        <div className="bg-blue-600 px-8 py-6 text-white">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -223,7 +223,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold">Welcome to LinkedIn Content Pro</h1>
+              <h1 className="text-xl font-bold font-display">Welcome to LinkedIn Content Pro</h1>
               <p className="text-blue-200 text-sm">Let&apos;s set up your content strategy</p>
             </div>
           </div>
@@ -244,7 +244,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
                     {i + 1 < step ? (
                       <CheckCircle className="w-4 h-4 text-green-700" />
                     ) : (
-                      <Icon className={`w-3 h-3 ${i + 1 === step ? "text-[#0A66C2]" : "text-white"}`} />
+                      <Icon className={`w-3 h-3 ${i + 1 === step ? "text-blue-600" : "text-white"}`} />
                     )}
                   </div>
                   <span className="text-xs text-blue-100 hidden sm:block">{title}</span>
@@ -268,23 +268,23 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
           {step === 1 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Confirm your profile</h2>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">We pulled this from LinkedIn — feel free to update it</p>
+                <h2 className="text-xl font-bold font-display text-slate-900 dark:text-white">Confirm your profile</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">We pulled this from LinkedIn — feel free to update it</p>
               </div>
 
               {user.image && (
                 <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={user.image} alt="Profile" className="w-14 h-14 rounded-full border-2 border-[#0A66C2]" />
+                  <img src={user.image} alt="Profile" className="w-14 h-14 rounded-full border-2 border-blue-600" />
                   <div>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">{user.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">LinkedIn Member</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{user.name}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">LinkedIn Member</p>
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Professional Headline
                 </label>
                 <input
@@ -292,12 +292,12 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
                   value={headline}
                   onChange={(e) => setHeadline(e.target.value)}
                   placeholder="e.g. Senior Product Manager at Acme Corp"
-                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0A66C2] focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.06] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Industry
                 </label>
                 <input
@@ -310,10 +310,10 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
                   onFocus={() => setShowIndustryDropdown(true)}
                   onBlur={() => setShowIndustryDropdown(false)}
                   placeholder="Select or type your industry"
-                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0A66C2] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-white/[0.06] text-slate-900 dark:text-white"
                 />
                 {showIndustryDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                     {INDUSTRIES.filter((ind) => ind.toLowerCase().includes(industry.toLowerCase())).length > 0 ? (
                       INDUSTRIES.filter((ind) => ind.toLowerCase().includes(industry.toLowerCase())).map((ind) => (
                         <div
@@ -323,14 +323,14 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
                             setIndustry(ind);
                             setShowIndustryDropdown(false);
                           }}
-                          className="px-4 py-2.5 text-sm text-gray-900 hover:bg-blue-50 cursor-pointer"
+                          className="px-4 py-2.5 text-sm text-slate-900 hover:bg-blue-50 cursor-pointer"
                         >
                           {ind}
                         </div>
                       ))
                     ) : (
                       industry.trim() ? (
-                        <div className="px-4 py-2.5 text-sm text-gray-500 italic">
+                        <div className="px-4 py-2.5 text-sm text-slate-500 italic">
                           Using custom industry: &quot;{industry}&quot;
                         </div>
                       ) : null
@@ -340,15 +340,15 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Professional Summary <span className="text-gray-400">(optional)</span>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Professional Summary <span className="text-slate-400">(optional)</span>
                 </label>
                 <textarea
                   value={summary}
                   onChange={(e) => setSummary(e.target.value)}
                   rows={3}
                   placeholder="Briefly describe your expertise and what you do..."
-                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0A66C2]"
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.06] text-slate-900 dark:text-white rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -358,8 +358,8 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
           {step === 2 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">How do you want to show up?</h2>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Choose the content positioning that fits your personal brand</p>
+                <h2 className="text-xl font-bold font-display text-slate-900 dark:text-white">How do you want to show up?</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Choose the content positioning that fits your personal brand</p>
               </div>
 
               <div className="space-y-3">
@@ -369,19 +369,19 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
                     onClick={() => setPositioning(option.value)}
                     className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all ${
                       positioning === option.value
-                        ? "border-[#0A66C2] bg-blue-50 dark:bg-blue-900/20"
-                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800"
+                        ? "border-blue-600 bg-blue-50 dark:bg-blue-500/10"
+                        : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/10 bg-white dark:bg-white/[0.06]"
                     }`}
                   >
                     <span className="text-2xl">{option.icon}</span>
                     <div>
-                      <p className={`font-semibold text-sm ${positioning === option.value ? "text-[#0A66C2]" : "text-gray-800 dark:text-gray-200"}`}>
+                      <p className={`font-semibold text-sm ${positioning === option.value ? "text-blue-600 dark:text-blue-400" : "text-slate-800 dark:text-slate-200"}`}>
                         {option.value}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{option.description}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{option.description}</p>
                     </div>
                     {positioning === option.value && (
-                      <CheckCircle className="w-5 h-5 text-[#0A66C2] ml-auto flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 ml-auto flex-shrink-0" />
                     )}
                   </button>
                 ))}
@@ -393,12 +393,12 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
           {step === 3 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Goals & Content Style</h2>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Select all that apply — we&apos;ll personalize your content strategy</p>
+                <h2 className="text-xl font-bold font-display text-slate-900 dark:text-white">Goals & Content Style</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Select all that apply — we&apos;ll personalize your content strategy</p>
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">What are your LinkedIn goals?</h3>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">What are your LinkedIn goals?</h3>
                 <div className="flex flex-wrap gap-2">
                   {CONTENT_GOALS.map((goal) => (
                     <button
@@ -406,8 +406,8 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
                       onClick={() => toggleMulti(goal, contentGoals, setContentGoals)}
                       className={`px-4 py-2 rounded-full text-sm font-medium border-2 transition-all ${
                         contentGoals.includes(goal)
-                          ? "border-[#0A66C2] bg-[#0A66C2] text-white"
-                          : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/10"
                       }`}
                     >
                       {goal}
@@ -417,7 +417,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Preferred content styles</h3>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Preferred content styles</h3>
                 <div className="flex flex-wrap gap-2">
                   {CONTENT_STYLES.map((style) => (
                     <button
@@ -426,7 +426,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
                       className={`px-4 py-2 rounded-full text-sm font-medium border-2 transition-all ${
                         contentStyles.includes(style)
                           ? "border-indigo-500 bg-indigo-500 text-white"
-                          : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                          : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/10"
                       }`}
                     >
                       {style}
@@ -441,12 +441,12 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
           {step === 4 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Who are you writing for?</h2>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Describe your ideal LinkedIn audience — this powers the AI strategy</p>
+                <h2 className="text-xl font-bold font-display text-slate-900 dark:text-white">Who are you writing for?</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Describe your ideal LinkedIn audience — this powers the AI strategy</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Target Audience Description
                 </label>
                 <textarea
@@ -454,15 +454,15 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
                   onChange={(e) => setTargetAudience(e.target.value.slice(0, 300))}
                   rows={5}
                   placeholder="e.g. Early-stage startup founders and CTOs in the SaaS space, struggling with team scaling and product-market fit..."
-                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0A66C2]"
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.06] text-slate-900 dark:text-white rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p className="text-xs text-gray-400 dark:text-gray-500 text-right mt-1">{targetAudience.length}/300</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 text-right mt-1">{targetAudience.length}/300</p>
               </div>
 
               {/* Summary of choices */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 space-y-2">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Your content setup:</p>
-                <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+              <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-4 space-y-2">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Your content setup:</p>
+                <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
                   <p><span className="font-medium">Positioning:</span> {positioning || "Not selected"}</p>
                   <p><span className="font-medium">Goals:</span> {contentGoals.join(", ") || "None selected"}</p>
                   <p><span className="font-medium">Styles:</span> {contentStyles.join(", ") || "None selected"}</p>
@@ -473,11 +473,11 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
         </div>
 
         {/* Footer navigation */}
-        <div className="px-8 py-5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
+        <div className="px-8 py-5 bg-[#F6F8FB] dark:bg-white/[0.06] border-t border-slate-100 dark:border-white/10 flex justify-between items-center">
           <button
             onClick={() => setStep((s) => Math.max(1, s - 1))}
             disabled={step === 1}
-            className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4" />
             Back
@@ -488,7 +488,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
               <div
                 key={i}
                 className={`h-2 rounded-full transition-all ${
-                  i + 1 === step ? "w-6 bg-[#0A66C2]" : i + 1 < step ? "w-2 bg-[#0A66C2]/60" : "w-2 bg-gray-300 dark:bg-gray-600"
+                  i + 1 === step ? "w-6 bg-blue-600" : i + 1 < step ? "w-2 bg-blue-600/60" : "w-2 bg-slate-300 dark:bg-white/10"
                 }`}
               />
             ))}
@@ -498,7 +498,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
             <button
               onClick={() => setStep((s) => s + 1)}
               disabled={step === 2 && !positioning}
-              className="flex items-center gap-2 text-sm font-semibold text-white bg-[#0A66C2] px-5 py-2.5 rounded-xl hover:bg-[#004182] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 text-sm font-semibold text-white bg-blue-600 px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
               <ChevronRight className="w-4 h-4" />
@@ -507,7 +507,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
             <button
               onClick={handleSubmit}
               disabled={submitting || !targetAudience.trim()}
-              className="flex items-center gap-2 text-sm font-semibold text-white bg-[#0A66C2] px-5 py-2.5 rounded-xl hover:bg-[#004182] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 text-sm font-semibold text-white bg-blue-600 px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? "Setting up..." : "Start Creating"}
               <CheckCircle className="w-4 h-4" />
