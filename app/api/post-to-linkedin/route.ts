@@ -32,10 +32,23 @@ export async function POST(req: NextRequest) {
   // Validate post ownership
   const post = await prisma.post.findFirst({
     where: { id: postId, plan: { userId: session.user.id } },
+    include: { plan: { select: { companyProfileId: true } } },
   });
 
   if (!post) {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
+  }
+
+  // Company-profile posts cannot be published yet — only the Personal workspace
+  // can auto/manually publish to LinkedIn for now.
+  if (post.plan.companyProfileId) {
+    return NextResponse.json(
+      {
+        error:
+          "Publishing for company profiles isn't available yet. You can copy or export this post, or publish from your Personal workspace.",
+      },
+      { status: 400 }
+    );
   }
 
   if (post.postedToLinkedIn) {

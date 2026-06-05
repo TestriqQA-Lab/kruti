@@ -7,6 +7,7 @@ import { buildStrategyPrompt, PreviousWeekSummary, deriveAllowedPostTypes } from
 import { buildProfileContext } from "@/lib/linkedin";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { getActiveWorkspaceId } from "@/lib/company";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -29,6 +30,34 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  // Resolve the active workspace (null = Personal, else a company the user owns)
+  const companyProfileId = await getActiveWorkspaceId(session.user.id);
+  const company = companyProfileId
+    ? await prisma.companyProfile.findFirst({
+        where: { id: companyProfileId, userId: session.user.id },
+      })
+    : null;
+  // Preference source used for the prompt: the company (if active) else the user
+  const source = company
+    ? {
+        ...user,
+        name: company.name,
+        headline: company.tagline,
+        summary: company.about,
+        skills: null,
+        industry: company.industry,
+        positioning: company.positioning,
+        contentGoals: company.contentGoals,
+        contentStyles: company.contentStyles,
+        targetAudience: company.targetAudience,
+        tonePrefs: company.tonePrefs,
+        humanMode: company.humanMode,
+        postingSchedule: company.postingSchedule,
+        postSignature: company.postSignature,
+        timezone: company.timezone,
+      }
+    : user;
+
   // Determine the start date: auto-continue from the day after the last scheduled post
   let weekStart: Date;
   if (body.weekStart) {
@@ -36,7 +65,7 @@ export async function POST(req: NextRequest) {
   } else {
     // Find the user's latest scheduled post
     const latestPost = await prisma.post.findFirst({
-      where: { plan: { userId: user.id }, scheduledAt: { not: null } },
+      where: { plan: { userId: user.id, companyProfileId }, scheduledAt: { not: null } },
       orderBy: { scheduledAt: "desc" },
       select: { scheduledAt: true },
     });
@@ -62,6 +91,7 @@ export async function POST(req: NextRequest) {
   const previousPlans = await prisma.contentPlan.findMany({
     where: {
       userId: user.id,
+      companyProfileId,
       weekStart: { lt: weekStart }, // only weeks before the selected week
     },
     orderBy: { weekStart: "desc" },
@@ -98,8 +128,8 @@ export async function POST(req: NextRequest) {
     };
   });
 
-  const profileContext = buildProfileContext(user);
-  const allowedTypes = deriveAllowedPostTypes(user.contentStyles);
+  const profileContext = buildProfileContext(source);
+  const allowedTypes = deriveAllowedPostTypes(source.contentStyles);
   const prompt = buildStrategyPrompt(profileContext, weekStart, previousWeeks, allowedTypes);
 
   try {
@@ -107,7 +137,7 @@ export async function POST(req: NextRequest) {
     const strategy = parseJSON(raw);
 
     const existing = await prisma.contentPlan.findFirst({
-      where: { userId: user.id, companyProfileId: null, weekStart },
+      where: { userId: user.id, companyProfileId, weekStart },
       select: { id: true },
     });
     const plan = existing
@@ -116,7 +146,7 @@ export async function POST(req: NextRequest) {
           data: { strategy: JSON.stringify(strategy) },
         })
       : await prisma.contentPlan.create({
-          data: { userId: user.id, weekStart, strategy: JSON.stringify(strategy) },
+          data: { userId: user.id, companyProfileId, weekStart, strategy: JSON.stringify(strategy) },
         });
 
     return NextResponse.json({ plan, strategy });
@@ -132,6 +162,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const companyProfileId = await getActiveWorkspaceId(session.user.id);
+
   const { searchParams } = new URL(req.url);
   const weekStartParam = searchParams.get("weekStart");
 
@@ -139,7 +171,7 @@ export async function GET(req: NextRequest) {
     const weekStart = new Date(weekStartParam);
     weekStart.setHours(0, 0, 0, 0);
     const plan = await prisma.contentPlan.findFirst({
-      where: { userId: session.user.id, companyProfileId: null, weekStart },
+      where: { userId: session.user.id, companyProfileId, weekStart },
       include: { posts: { orderBy: { scheduledAt: "asc" } } },
     });
     return NextResponse.json(plan);
@@ -147,7 +179,7 @@ export async function GET(req: NextRequest) {
 
   // Return most recent plan
   const plan = await prisma.contentPlan.findFirst({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, companyProfileId },
     orderBy: { weekStart: "desc" },
     include: { posts: { orderBy: { scheduledAt: "asc" } } },
   });

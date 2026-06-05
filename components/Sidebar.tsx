@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -12,10 +13,13 @@ import {
   Settings,
   Building2,
   LogOut,
-  Linkedin,
   Shield,
   Moon,
   Sun,
+  ChevronsUpDown,
+  Check,
+  Plus,
+  User as UserIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -38,11 +42,34 @@ interface SidebarProps {
     image?: string | null;
     role?: string;
   };
+  companies?: { id: string; name: string; logoUrl: string | null }[];
+  activeWorkspaceId?: string | null;
 }
 
-export default function Sidebar({ user }: SidebarProps) {
+export default function Sidebar({ user, companies = [], activeWorkspaceId = null }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const [wsOpen, setWsOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  const activeCompany = companies.find((c) => c.id === activeWorkspaceId) || null;
+  const activeLabel = activeCompany ? activeCompany.name : "Personal";
+
+  const switchWorkspace = async (value: string) => {
+    setSwitching(true);
+    try {
+      await fetch("/api/company/active", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspace: value }),
+      });
+      setWsOpen(false);
+      router.refresh();
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
@@ -54,6 +81,64 @@ export default function Sidebar({ user }: SidebarProps) {
             Kruti<span className="text-[#0A66C2]">.io</span>
           </span>
         </div>
+      </div>
+
+      {/* Workspace switcher */}
+      <div className="relative p-3 border-b border-gray-100 dark:border-gray-800">
+        <button
+          onClick={() => setWsOpen((v) => !v)}
+          disabled={switching}
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-60"
+        >
+          <span className="w-8 h-8 rounded-md bg-linkedin-lightblue dark:bg-linkedin-blue/20 flex items-center justify-center text-[#0A66C2] flex-shrink-0 overflow-hidden">
+            {activeCompany?.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={activeCompany.logoUrl} alt={activeCompany.name} className="w-full h-full object-cover" />
+            ) : activeCompany ? (
+              <Building2 className="w-4 h-4" />
+            ) : (
+              <UserIcon className="w-4 h-4" />
+            )}
+          </span>
+          <span className="flex-1 min-w-0 text-left">
+            <span className="block text-[10px] uppercase tracking-wide text-gray-400">Workspace</span>
+            <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">{activeLabel}</span>
+          </span>
+          <ChevronsUpDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        </button>
+
+        {wsOpen && (
+          <div className="absolute left-3 right-3 mt-1 z-30 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 max-h-72 overflow-y-auto">
+            <button
+              onClick={() => switchWorkspace("personal")}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              <UserIcon className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1 text-left truncate">Personal</span>
+              {!activeWorkspaceId && <Check className="w-4 h-4 text-[#0A66C2]" />}
+            </button>
+            {companies.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => switchWorkspace(c.id)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                <Building2 className="w-4 h-4 flex-shrink-0" />
+                <span className="flex-1 text-left truncate">{c.name}</span>
+                {activeWorkspaceId === c.id && <Check className="w-4 h-4 text-[#0A66C2]" />}
+              </button>
+            ))}
+            <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+            <Link
+              href="/companies"
+              onClick={() => setWsOpen(false)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#0A66C2] hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              <Plus className="w-4 h-4 flex-shrink-0" />
+              Manage companies
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* User */}
@@ -80,7 +165,7 @@ export default function Sidebar({ user }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const active =
             item.href === "/dashboard"

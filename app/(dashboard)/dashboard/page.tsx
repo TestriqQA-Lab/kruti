@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import DashboardClient from "@/components/DashboardClient";
+import { getActiveWorkspaceId } from "@/lib/company";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -10,27 +11,45 @@ export default async function DashboardPage() {
 
   const now = new Date();
 
-  const [user, recentPlan, allPostCounts, newsletters, upcomingPosts] = await Promise.all([
-    prisma.user.findUnique({
+  // Resolve the active workspace (null = Personal, else a company the user owns)
+  const companyProfileId = await getActiveWorkspaceId(session.user.id);
+
+  // Display + schedule source: the company (if active) else the user.
+  // Normalized into the shape DashboardClient expects.
+  let displayUser:
+    | { name: string | null; headline: string | null; industry: string | null; image: string | null; postingSchedule: string | null }
+    | null = null;
+  if (companyProfileId) {
+    const c = await prisma.companyProfile.findFirst({
+      where: { id: companyProfileId, userId: session.user.id },
+      select: { name: true, tagline: true, industry: true, logoUrl: true, postingSchedule: true },
+    });
+    if (c) displayUser = { name: c.name, headline: c.tagline, industry: c.industry, image: c.logoUrl, postingSchedule: c.postingSchedule };
+  } else {
+    const u = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { name: true, headline: true, industry: true, image: true, postingSchedule: true },
-    }),
+    });
+    if (u) displayUser = { name: u.name, headline: u.headline, industry: u.industry, image: u.image, postingSchedule: u.postingSchedule };
+  }
+
+  const [recentPlan, allPostCounts, newsletters, upcomingPosts] = await Promise.all([
     // Get most recent week's plan
     prisma.contentPlan.findFirst({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id, companyProfileId },
       orderBy: { weekStart: "desc" },
     }),
-    // Count all posts for this user
+    // Count all posts for this workspace
     prisma.post.groupBy({
       by: ["status"],
-      where: { plan: { userId: session.user.id } },
+      where: { plan: { userId: session.user.id, companyProfileId } },
       _count: { _all: true },
     }),
-    prisma.newsletter.count({ where: { userId: session.user.id } }),
+    prisma.newsletter.count({ where: { userId: session.user.id, companyProfileId } }),
     // Upcoming posts across ALL plans — scheduled in the future and not yet posted
     prisma.post.findMany({
       where: {
-        plan: { userId: session.user.id },
+        plan: { userId: session.user.id, companyProfileId },
         postedToLinkedIn: false,
         scheduledAt: { gt: now },
       },
@@ -51,15 +70,15 @@ export default async function DashboardPage() {
   // Also count posts that are posted to LinkedIn (safety net for status mismatch)
   const [linkedInPostedCount, latestScheduledPost, subscription] = await Promise.all([
     prisma.post.count({
-      where: { plan: { userId: session.user.id }, postedToLinkedIn: true },
+      where: { plan: { userId: session.user.id, companyProfileId }, postedToLinkedIn: true },
     }),
     // Find the latest scheduled post to determine where the next batch should start
     prisma.post.findFirst({
-      where: { plan: { userId: session.user.id }, scheduledAt: { not: null } },
+      where: { plan: { userId: session.user.id, companyProfileId }, scheduledAt: { not: null } },
       orderBy: { scheduledAt: "desc" },
       select: { scheduledAt: true },
     }),
-    // Get subscription for billing cycle post count
+    // Subscription stays account-level (post quota is shared across all workspaces)
     prisma.subscription.findUnique({
       where: { userId: session.user.id },
       select: { postsGeneratedThisCycle: true, currentPeriodEnd: true, status: true, createdAt: true, cyclePostsResetAt: true, trialEnd: true },
@@ -81,9 +100,9 @@ export default async function DashboardPage() {
     nextStartDate.setHours(0, 0, 0, 0);
   }
 
-  // Compute posts per batch based on user's posting schedule
-  const postingSchedule = user?.postingSchedule
-    ? (JSON.parse(user.postingSchedule) as { days: string[]; time: string })
+  // Compute posts per batch based on the workspace's posting schedule
+  const postingSchedule = displayUser?.postingSchedule
+    ? (JSON.parse(displayUser.postingSchedule) as { days: string[]; time: string })
     : { days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], time: "09:00" };
   const postsPerBatch = postingSchedule.days.length;
 
@@ -119,7 +138,7 @@ export default async function DashboardPage() {
   let postsToShow = upcomingPosts;
   if (postsToShow.length === 0 && totalPosts > 0) {
     postsToShow = await prisma.post.findMany({
-      where: { plan: { userId: session.user.id } },
+      where: { plan: { userId: session.user.id, companyProfileId } },
       orderBy: { scheduledAt: "desc" },
       take: 5,
       select: {
@@ -136,7 +155,7 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      user={user}
+      user={displayUser}
       recentPlan={
         recentPlan
           ? { id: recentPlan.id, strategy: recentPlan.strategy, weekStart: recentPlan.weekStart }

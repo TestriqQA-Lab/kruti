@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
+import { getUserCompanyProfiles, getActiveWorkspaceId } from "@/lib/company";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -14,6 +15,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     where: { userId: session.user.id },
     select: { status: true, trialEnd: true },
   });
+
+  const [companies, activeWorkspaceId] = await Promise.all([
+    getUserCompanyProfiles(session.user.id),
+    getActiveWorkspaceId(session.user.id),
+  ]);
 
   const now = new Date();
   const daysLeft = sub?.trialEnd
@@ -26,7 +32,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
-      <Sidebar user={session.user} />
+      <Sidebar
+        user={session.user}
+        companies={companies.map((c) => ({ id: c.id, name: c.name, logoUrl: c.logoUrl }))}
+        activeWorkspaceId={activeWorkspaceId}
+      />
       <main className="flex-1 overflow-y-auto flex flex-col">
         {isTrialExpired && (
           <div className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 px-6 py-3 flex items-center justify-between flex-shrink-0">

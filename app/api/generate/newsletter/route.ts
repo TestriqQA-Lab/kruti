@@ -7,6 +7,7 @@ import { buildNewsletterPrompt } from "@/lib/prompts";
 import { buildProfileContext } from "@/lib/linkedin";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { getActiveWorkspaceId } from "@/lib/company";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -34,11 +35,39 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  // Resolve the active workspace (null = Personal, else a company the user owns)
+  const companyProfileId = await getActiveWorkspaceId(session.user.id);
+  const company = companyProfileId
+    ? await prisma.companyProfile.findFirst({
+        where: { id: companyProfileId, userId: session.user.id },
+      })
+    : null;
+  const source = company
+    ? {
+        ...user,
+        name: company.name,
+        headline: company.tagline,
+        summary: company.about,
+        skills: null,
+        industry: company.industry,
+        positioning: company.positioning,
+        contentGoals: company.contentGoals,
+        contentStyles: company.contentStyles,
+        targetAudience: company.targetAudience,
+        tonePrefs: company.tonePrefs,
+        humanMode: company.humanMode,
+        postingSchedule: company.postingSchedule,
+        postSignature: company.postSignature,
+        timezone: company.timezone,
+      }
+    : user;
+
   // Get the most recent (or specified week's) content plan for context
   const plan = weekStart
     ? await prisma.contentPlan.findFirst({
         where: {
           userId: session.user.id,
+          companyProfileId,
           weekStart: {
             gte: weekStart,
             lt: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000),
@@ -46,7 +75,7 @@ export async function POST(req: NextRequest) {
         },
       })
     : await prisma.contentPlan.findFirst({
-        where: { userId: session.user.id },
+        where: { userId: session.user.id, companyProfileId },
         orderBy: { weekStart: "desc" },
       });
 
@@ -58,7 +87,7 @@ export async function POST(req: NextRequest) {
         { name: "Personal Stories", description: "Authentic experiences" },
       ];
 
-  const profileContext = buildProfileContext(user);
+  const profileContext = buildProfileContext(source);
   const prompt = buildNewsletterPrompt(profileContext, pillars, month, year);
 
   try {
@@ -76,6 +105,7 @@ export async function POST(req: NextRequest) {
     const created = await prisma.newsletter.create({
       data: {
         userId: session.user.id,
+        companyProfileId,
         title: newsletter.title,
         subject: newsletter.subject,
         body: JSON.stringify(newsletter),
@@ -97,8 +127,9 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const companyProfileId = await getActiveWorkspaceId(session.user.id);
   const newsletters = await prisma.newsletter.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, companyProfileId },
     orderBy: { createdAt: "desc" },
   });
 

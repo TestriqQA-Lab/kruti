@@ -39,9 +39,35 @@ export async function POST(req: NextRequest) {
   });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  // Determine how many posts to generate based on user's posting schedule
-  const schedule = user.postingSchedule
-    ? (JSON.parse(user.postingSchedule) as { days: string[]; time: string })
+  // If this plan belongs to a company workspace, use that company's preferences
+  const company = plan.companyProfileId
+    ? await prisma.companyProfile.findFirst({
+        where: { id: plan.companyProfileId, userId: session.user.id },
+      })
+    : null;
+  const source = company
+    ? {
+        ...user,
+        name: company.name,
+        headline: company.tagline,
+        summary: company.about,
+        skills: null,
+        industry: company.industry,
+        positioning: company.positioning,
+        contentGoals: company.contentGoals,
+        contentStyles: company.contentStyles,
+        targetAudience: company.targetAudience,
+        tonePrefs: company.tonePrefs,
+        humanMode: company.humanMode,
+        postingSchedule: company.postingSchedule,
+        postSignature: company.postSignature,
+        timezone: company.timezone,
+      }
+    : user;
+
+  // Determine how many posts to generate based on the workspace's posting schedule
+  const schedule = source.postingSchedule
+    ? (JSON.parse(source.postingSchedule) as { days: string[]; time: string })
     : { days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], time: "09:00" };
   const postCount = schedule.days.length; // one post per scheduled day
 
@@ -83,10 +109,10 @@ export async function POST(req: NextRequest) {
     postMix: object;
   };
 
-  const profileContext = buildProfileContext(user);
-  const humanMode = user.humanMode ?? false;
+  const profileContext = buildProfileContext(source);
+  const humanMode = source.humanMode ?? false;
 
-  const allowedTypes = deriveAllowedPostTypes(user.contentStyles);
+  const allowedTypes = deriveAllowedPostTypes(source.contentStyles);
 
   const prompt = buildPostsPrompt(
     profileContext,
@@ -115,7 +141,7 @@ export async function POST(req: NextRequest) {
 
     // Schedule posts on the user's chosen posting days using their timezone and preferred time
     const weekStart = new Date(plan.weekStart);
-    const timezone = user.timezone || "Asia/Kolkata";
+    const timezone = source.timezone || "Asia/Kolkata";
     const postingSlots = getNextScheduledSlots(weekStart, schedule.days, schedule.time, timezone);
 
     // Create posts, cycling through available slots if fewer slots than posts

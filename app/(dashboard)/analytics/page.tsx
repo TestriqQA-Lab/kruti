@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import AnalyticsClient from "@/components/AnalyticsClient";
+import { getActiveWorkspaceId } from "@/lib/company";
 
 export default async function AnalyticsPage() {
   const session = await getServerSession(authOptions);
@@ -12,7 +13,8 @@ export default async function AnalyticsPage() {
   const eightWeeksAgo = new Date(now.getTime() - 8 * 7 * 24 * 60 * 60 * 1000);
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-  const userFilter = { plan: { userId: session.user.id } };
+  const companyProfileId = await getActiveWorkspaceId(session.user.id);
+  const userFilter = { plan: { userId: session.user.id, companyProfileId } };
 
   const [
     postsByStatus,

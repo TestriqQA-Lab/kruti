@@ -26,6 +26,9 @@ export async function runAutoPost(): Promise<{ posted: number; failed: number; s
         lte: windowEnd,      // Include past-due posts + next 5 min
       },
       plan: {
+        // Auto-posting runs for the Personal workspace only. Company-profile
+        // posts are draft/export only until org-page posting is enabled.
+        companyProfileId: null,
         user: {
           subscription: {
             status: { in: ["active", "trialing", "cancel_pending"] },
@@ -46,6 +49,7 @@ export async function runAutoPost(): Promise<{ posted: number; failed: number; s
       status: "ready",
       postedToLinkedIn: false,
       scheduledAt: { lt: staleThreshold },
+      plan: { companyProfileId: null },
     },
   });
   if (stalePosts > 0) {

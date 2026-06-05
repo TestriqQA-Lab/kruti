@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getActiveWorkspaceId } from "@/lib/company";
 
 function escapeCSV(value: string): string {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
@@ -16,8 +17,9 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const companyProfileId = await getActiveWorkspaceId(session.user.id);
   const posts = await prisma.post.findMany({
-    where: { plan: { userId: session.user.id } },
+    where: { plan: { userId: session.user.id, companyProfileId } },
     orderBy: { scheduledAt: "asc" },
     include: { plan: { select: { weekStart: true } } },
   });
