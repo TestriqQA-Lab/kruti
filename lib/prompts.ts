@@ -20,6 +20,21 @@ HUMAN MODE ACTIVE - ADDITIONAL AUTHENTICITY RULES:
 - Vary your punctuation naturally - not every sentence needs to be perfectly structured
 - Write with the energy of someone who typed this on their laptop between meetings
 - Do NOT add deliberate misspellings - just natural human writing rhythm
+- Keep it understated: simple short paragraphs, a small line gap between them, no hype
+`.trim();
+
+// AI MODE = the opposite of Human Mode. Polished, scannable, emoji-led,
+// high-engagement LinkedIn style. Used ONLY when humanMode is OFF.
+const AI_MODE_RULES = `
+AI MODE ACTIVE - POLISHED, HIGH-ENGAGEMENT LINKEDIN STYLE:
+- This is the energetic, scannable AI style (NOT the understated human style)
+- Open with a punchy one-line hook led by a single relevant emoji (e.g. 🚀, 💡, 🎯)
+- Use short, scannable lines with generous line breaks between thoughts
+- For any list of points or achievements, put each on its own line starting with a ✅ checkmark
+- Use a few tasteful, relevant emojis throughout (4-8 total — never spammy, never random)
+- Build momentum and END the body with a short engagement question that invites comments (you may add 👇)
+- Confident, upbeat and shareable tone
+- Still avoid the most obvious corporate buzzwords (synergy, leverage, game-changer) — stay punchy but genuine
 `.trim();
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -28,6 +43,15 @@ function getRules(humanMode: boolean): string {
   return humanMode
     ? `${NO_EMOJI_RULES}\n\n${HUMAN_MODE_RULES}`
     : NO_EMOJI_RULES;
+}
+
+// Post-style rules. Human mode = understated, no-emoji, human voice.
+// AI mode (humanMode OFF) = polished emoji + ✅ checkmark + engagement-question
+// style. This is what makes the two post examples look different.
+function getPostRules(humanMode: boolean): string {
+  return humanMode
+    ? `${NO_EMOJI_RULES}\n\n${HUMAN_MODE_RULES}`
+    : AI_MODE_RULES;
 }
 
 export function deriveAllowedPostTypes(contentStylesStr: string | null | undefined): string[] {
@@ -166,7 +190,25 @@ export function buildPostsPrompt(
   postCount: number = 5,
   allowedTypes: string[] = ["thought-leadership", "tips", "story", "question", "listicle"]
 ): string {
-  const rules = getRules(humanMode);
+  const rules = getPostRules(humanMode);
+
+  // Mode-aware formatting + hashtag guidance — this is what makes Human and
+  // AI posts visibly different.
+  const formatRule = humanMode
+    ? `- Do NOT use emojis or decorative/symbol bullets — write plain, natural paragraphs (numbered lists are fine)
+- Keep it understated and human; no hype, and NO hashtags inside the body`
+    : `- Open the hook with a single relevant emoji (e.g. 🚀, 💡, 🎯)
+- When listing achievements or points, put each on its own line prefixed with a ✅ checkmark
+- Use a few tasteful, relevant emojis (4-8 total, never spammy)
+- END the body with a short engagement question inviting comments (you may add 👇)`;
+
+  const hashtagRule = humanMode
+    ? `"hashtags": []  (HUMAN MODE: no hashtags — return an empty array)`
+    : `"hashtags": ["string", "string", "string"]  (3-5 relevant lowercase hashtags, no spaces)`;
+
+  const closing = humanMode
+    ? "Return ONLY the JSON array. No markdown. No explanation. No emojis."
+    : "Return ONLY the JSON array. No markdown. No explanation.";
 
   return `You are an expert LinkedIn ghostwriter. Create ${postCount} high-quality, original LinkedIn posts for the user's scheduled posting days.
 
@@ -185,7 +227,7 @@ Generate exactly ${postCount} posts as a JSON array. Each post must follow this 
   {
     "title": "string (compelling hook - the opening line of the post, max 150 chars)",
     "body": "string (full post body, max 1300 characters, use line breaks for readability)",
-    "hashtags": ["string", "string", "string", "string", "string"],
+    ${hashtagRule},
     "postType": "${allowedTypes.join("|")}",
     "imagePrompt": "string (a short 1-2 sentence visual concept — describe the SCENE or METAPHOR, not text to display. Example: 'A lighthouse beam cutting through fog at dawn, symbolizing guidance' NOT 'An image showing the words Leadership Matters')",
     "bestTimeToPost": "string (e.g. Tuesday 9am)",
@@ -195,13 +237,12 @@ Generate exactly ${postCount} posts as a JSON array. Each post must follow this 
 
 Rules for each post:
 - Each post must sound like it was written by the specific person in the profile above
-- Vary the format: some with short paragraphs, some with numbered points, some as narrative
+- Vary the format across the set (short paragraphs, numbered points, narrative)
 - Include a strong, specific call-to-action in each post body
-- Do not use bullet points starting with dashes - use numbered lists or plain paragraphs
-- Hashtags must be relevant, lowercase, no spaces (e.g. productmanagement, leadership)
+${formatRule}
 - Image prompts must describe a scene or visual metaphor only — NEVER describe text or words that should appear in the image
 
-Return ONLY the JSON array. No markdown. No explanation. No emojis.`;
+${closing}`;
 }
 
 // ─── Single Post Regeneration ─────────────────────────────────────────────────
@@ -213,7 +254,20 @@ export function buildSinglePostPrompt(
   theme: string,
   humanMode: boolean = false
 ): string {
-  const rules = getRules(humanMode);
+  const rules = getPostRules(humanMode);
+
+  const styleRule = humanMode
+    ? `- Do NOT use emojis or symbol bullets — plain, natural, human paragraphs
+- No hashtags inside the body`
+    : `- Open with a relevant emoji hook, use ✅ checkmark bullets for any list, sprinkle a few tasteful emojis, and END with an engagement question (you may add 👇)`;
+
+  const hashtagRule = humanMode
+    ? `"hashtags": []  (HUMAN MODE: no hashtags)`
+    : `"hashtags": ["string", "string", "string"]  (3-5 relevant lowercase hashtags)`;
+
+  const closing = humanMode
+    ? "Return ONLY valid JSON. No markdown. No explanation. No emojis."
+    : "Return ONLY valid JSON. No markdown. No explanation.";
 
   return `You are an expert LinkedIn ghostwriter. Regenerate a single LinkedIn post with a fresh perspective.
 
@@ -226,15 +280,18 @@ THEME: ${theme}
 
 ${rules}
 
+STYLE FOR THIS POST:
+${styleRule}
+
 Generate the post as a JSON object:
 {
   "title": "string (compelling opening hook, max 150 chars)",
   "body": "string (full post body, max 1300 characters, use line breaks for readability)",
-  "hashtags": ["string", "string", "string", "string", "string"],
+  ${hashtagRule},
   "imagePrompt": "string (short visual concept — describe a scene or metaphor, NO text/words to render)"
 }
 
-Return ONLY valid JSON. No markdown. No explanation. No emojis.`;
+${closing}`;
 }
 
 // ─── Variant Post Prompt (A/B Testing) ───────────────────────────────────────

@@ -1,9 +1,10 @@
 /**
- * GET   /api/mobile/posts/[id]   — single post
- * PATCH /api/mobile/posts/[id]   — update a post (title/body/status/...)
- * DELETE/api/mobile/posts/[id]   — delete a post
+ * GET    /api/mobile/posts/[id]  — single post
+ * PATCH  /api/mobile/posts/[id]  — update a post (title/body/status/humanMode/...)
+ * DELETE /api/mobile/posts/[id]  — delete a post
  *
  * Place at: app/api/mobile/posts/[id]/route.ts
+ * (Delete the stray app/api/mobile/posts/[id]/route.ts.ts — it's a duplicate.)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -22,8 +23,7 @@ export async function GET(
     where: { id: params.id, plan: { userId } },
     include: { plan: true },
   });
-  if (!post)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(post);
 }
 
@@ -39,10 +39,7 @@ export async function PATCH(
 
   const VALID_STATUSES = ["draft", "ready", "published"];
   if ("status" in body && !VALID_STATUSES.includes(body.status)) {
-    return NextResponse.json(
-      { error: "Invalid status value" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
   }
 
   const existing = await prisma.post.findFirst({
@@ -51,8 +48,7 @@ export async function PATCH(
   if (!existing)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // The mobile app sends hashtags as a space-joined string ("#a #b").
-  // Normalize to the JSON-array string the DB stores.
+  // hashtags may arrive as array or space-joined string → store JSON array string.
   let hashtagsValue: string | null | undefined = undefined;
   if ("hashtags" in body) {
     if (body.hashtags == null) {
@@ -70,6 +66,13 @@ export async function PATCH(
     }
   }
 
+  // Per-post Human Mode override: true | false | null (null = inherit user default).
+  let humanOverride: boolean | null | undefined = undefined;
+  if ("humanModeOverride" in body) {
+    humanOverride =
+      body.humanModeOverride === null ? null : !!body.humanModeOverride;
+  }
+
   const updated = await prisma.post.update({
     where: { id: params.id },
     data: {
@@ -85,6 +88,7 @@ export async function PATCH(
         customSignature: body.customSignature,
       }),
       ...("imagePrompt" in body && { imagePrompt: body.imagePrompt }),
+      ...(humanOverride !== undefined && { humanModeOverride: humanOverride }),
     },
   });
 
