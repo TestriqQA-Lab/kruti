@@ -10,6 +10,7 @@ import {
   BarChart3,
   Mail,
   Settings,
+  Building2,
   LogOut,
   Linkedin,
   Shield,
@@ -22,6 +23,7 @@ import { useTheme } from "@/components/ThemeProvider";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/companies", label: "Company Profiles", icon: Building2 },
   { href: "/calendar", label: "Content Calendar", icon: Calendar },
   { href: "/posts", label: "Posts", icon: FileText },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
