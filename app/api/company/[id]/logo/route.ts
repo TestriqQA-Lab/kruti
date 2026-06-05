@@ -12,7 +12,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const company = await prisma.companyProfile.findFirst({
-    where: { id: params.id, userId: session.user.id },
+    where: { id: params.id, userId: session.user.id, user: { companyProfilesEnabled: true } },
     select: { id: true },
   });
   if (!company) {

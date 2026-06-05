@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Search, Shield, ShieldOff, Trash2, Database, UserX, MoreVertical } from "lucide-react";
+import { Search, Shield, ShieldOff, Trash2, Database, UserX, MoreVertical, Building2 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ interface UserRow {
   image: string | null;
   role: string;
   onboardingCompleted: boolean;
+  companyProfilesEnabled: boolean;
   createdAt: string | Date;
   subscription: { status: string; trialEnd: string | Date | null; currentPeriodEnd: string | Date | null } | null;
   _count: { contentPlans: number; newsletters: number };
@@ -77,6 +78,20 @@ export default function AdminUsersClient({
       fetchUsers(search, page);
     } catch (err) {
       console.error("Action failed:", err);
+    }
+  }
+
+  async function toggleCompanies(userId: string, enabled: boolean) {
+    setActiveMenu(null);
+    try {
+      await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyProfilesEnabled: enabled }),
+      });
+      fetchUsers(search, page);
+    } catch (err) {
+      console.error("Toggle failed:", err);
     }
   }
 
@@ -148,11 +163,18 @@ export default function AdminUsersClient({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {user.role === "admin" ? (
-                      <span className="text-xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full font-medium">admin</span>
-                    ) : (
-                      <span className="text-xs text-gray-400">user</span>
-                    )}
+                    <div className="flex flex-col items-start gap-1">
+                      {user.role === "admin" ? (
+                        <span className="text-xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full font-medium">admin</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">user</span>
+                      )}
+                      {user.companyProfilesEnabled && (
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium">
+                          <Building2 className="w-3 h-3" /> Companies
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">{statusBadge(user.subscription?.status)}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{user._count.contentPlans}</td>
@@ -181,6 +203,13 @@ export default function AdminUsersClient({
                             <Shield className="w-4 h-4" /> Make Admin
                           </button>
                         )}
+                        <button
+                          onClick={() => toggleCompanies(user.id, !user.companyProfilesEnabled)}
+                          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
+                        >
+                          <Building2 className="w-4 h-4" />
+                          {user.companyProfilesEnabled ? "Disable Company Profiles" : "Enable Company Profiles"}
+                        </button>
                         <button
                           onClick={() => handleAction(user.id, "delete-data")}
                           className="flex items-center gap-2 w-full px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800 text-amber-600"

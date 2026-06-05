@@ -13,6 +13,7 @@ export default async function AdminUsersPage() {
         image: true,
         role: true,
         onboardingCompleted: true,
+        companyProfilesEnabled: true,
         createdAt: true,
         subscription: {
           select: { status: true, trialEnd: true, currentPeriodEnd: true },

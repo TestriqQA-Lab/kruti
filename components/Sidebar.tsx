@@ -44,9 +44,15 @@ interface SidebarProps {
   };
   companies?: { id: string; name: string; logoUrl: string | null }[];
   activeWorkspaceId?: string | null;
+  companyProfilesEnabled?: boolean;
 }
 
-export default function Sidebar({ user, companies = [], activeWorkspaceId = null }: SidebarProps) {
+export default function Sidebar({
+  user,
+  companies = [],
+  activeWorkspaceId = null,
+  companyProfilesEnabled = false,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -83,7 +89,8 @@ export default function Sidebar({ user, companies = [], activeWorkspaceId = null
         </div>
       </div>
 
-      {/* Workspace switcher */}
+      {/* Workspace switcher (only when the Company Profiles feature is enabled) */}
+      {companyProfilesEnabled && (
       <div className="relative p-3 border-b border-gray-100 dark:border-gray-800">
         <button
           onClick={() => setWsOpen((v) => !v)}
@@ -140,6 +147,7 @@ export default function Sidebar({ user, companies = [], activeWorkspaceId = null
           </div>
         )}
       </div>
+      )}
 
       {/* User */}
       <div className="p-4 border-b border-gray-100 dark:border-gray-800">
@@ -166,7 +174,9 @@ export default function Sidebar({ user, companies = [], activeWorkspaceId = null
 
       {/* Nav */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {navItems
+          .filter((item) => item.href !== "/companies" || companyProfilesEnabled)
+          .map((item) => {
           const active =
             item.href === "/dashboard"
               ? pathname === "/dashboard"

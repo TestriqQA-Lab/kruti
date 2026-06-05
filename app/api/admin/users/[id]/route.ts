@@ -32,6 +32,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     updateData.role = body.role;
   }
 
+  if ("companyProfilesEnabled" in body && typeof body.companyProfilesEnabled === "boolean") {
+    updateData.companyProfilesEnabled = body.companyProfilesEnabled;
+  }
+
   const updated = await prisma.user.update({
     where: { id: params.id },
     data: updateData,

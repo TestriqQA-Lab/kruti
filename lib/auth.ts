@@ -98,6 +98,7 @@ export const authOptions: NextAuthOptions = {
 
           token.uid = uid;
           token.role = dbUser?.role ?? "user";
+          token.companyProfilesEnabled = dbUser?.companyProfilesEnabled ?? false;
           token.onboardingCompleted = dbUser?.onboardingCompleted ?? false;
           token.subscriptionStatus = dbUser?.subscription?.status ?? "none";
           token.trialEnd = dbUser?.subscription?.trialEnd?.toISOString() ?? null;
@@ -111,6 +112,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.uid as string;
         session.user.role = (token.role as string) ?? "user";
+        session.user.companyProfilesEnabled = (token.companyProfilesEnabled as boolean) ?? false;
         session.user.onboardingCompleted = token.onboardingCompleted as boolean;
         session.user.subscriptionStatus = token.subscriptionStatus as string;
         session.user.trialEnd = (token.trialEnd as string | null) ?? null;
@@ -137,6 +139,7 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
       onboardingCompleted?: boolean;
+      companyProfilesEnabled?: boolean;
       subscriptionStatus?: string;
       trialEnd?: string | null;
     };
@@ -148,6 +151,7 @@ declare module "next-auth/jwt" {
     uid?: string;
     role?: string;
     onboardingCompleted?: boolean;
+    companyProfilesEnabled?: boolean;
     subscriptionStatus?: string;
     trialEnd?: string | null;
   }

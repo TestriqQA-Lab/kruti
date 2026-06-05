@@ -16,10 +16,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     select: { status: true, trialEnd: true },
   });
 
-  const [companies, activeWorkspaceId] = await Promise.all([
-    getUserCompanyProfiles(session.user.id),
-    getActiveWorkspaceId(session.user.id),
-  ]);
+  const companyProfilesEnabled = session.user.companyProfilesEnabled ?? false;
+  const companies = companyProfilesEnabled ? await getUserCompanyProfiles(session.user.id) : [];
+  const activeWorkspaceId = companyProfilesEnabled ? await getActiveWorkspaceId(session.user.id) : null;
 
   const now = new Date();
   const daysLeft = sub?.trialEnd
@@ -36,6 +35,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         user={session.user}
         companies={companies.map((c) => ({ id: c.id, name: c.name, logoUrl: c.logoUrl }))}
         activeWorkspaceId={activeWorkspaceId}
+        companyProfilesEnabled={companyProfilesEnabled}
       />
       <main className="flex-1 overflow-y-auto flex flex-col">
         {isTrialExpired && (

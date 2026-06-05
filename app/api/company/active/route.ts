@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   if (workspace !== "personal") {
     // verify the company belongs to this user before activating it
     const owned = await prisma.companyProfile.findFirst({
-      where: { id: workspace, userId: session.user.id },
+      where: { id: workspace, userId: session.user.id, user: { companyProfilesEnabled: true } },
       select: { id: true },
     });
     if (!owned) {

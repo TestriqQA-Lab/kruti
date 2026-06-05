@@ -58,6 +58,9 @@ model User {
   tonePrefs           String?       @db.Text // JSON: formal/casual/inspirational
   // Onboarding & content preferences
   onboardingCompleted Boolean       @default(false)
+  // Gates the Company Profiles feature. Set true only for users who manage
+  // LinkedIn Company Pages (via admin toggle now; LinkedIn org auto-detect later).
+  companyProfilesEnabled Boolean    @default(false)
   contentGoals        String?       @db.Text // JSON: ["Lead Generation", "Brand Awareness"]
   positioning         String?       // "Thought Leader" | "Industry Expert" | etc.
   contentStyles       String?       @db.Text // JSON: ["Narrative", "How-to", ...]

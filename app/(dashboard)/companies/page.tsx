@@ -3,12 +3,14 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import CompaniesClient from "@/components/CompaniesClient";
+import { isCompanyProfilesEnabled } from "@/lib/company";
 
 export const dynamic = "force-dynamic";
 
 export default async function CompaniesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
+  if (!(await isCompanyProfilesEnabled(session.user.id))) redirect("/dashboard");
 
   const companies = await prisma.companyProfile.findMany({
     where: { userId: session.user.id },

@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
         image: true,
         role: true,
         onboardingCompleted: true,
+        companyProfilesEnabled: true,
         createdAt: true,
         subscription: {
           select: { status: true, trialEnd: true, currentPeriodEnd: true },

@@ -17,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const company = await prisma.companyProfile.findFirst({
-    where: { id: params.id, userId: session.user.id },
+    where: { id: params.id, userId: session.user.id, user: { companyProfilesEnabled: true } },
   });
   if (!company) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -33,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const existing = await prisma.companyProfile.findFirst({
-    where: { id: params.id, userId: session.user.id },
+    where: { id: params.id, userId: session.user.id, user: { companyProfilesEnabled: true } },
     select: { id: true },
   });
   if (!existing) {
@@ -96,7 +96,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   }
 
   const existing = await prisma.companyProfile.findFirst({
-    where: { id: params.id, userId: session.user.id },
+    where: { id: params.id, userId: session.user.id, user: { companyProfilesEnabled: true } },
     select: { id: true },
   });
   if (!existing) {
