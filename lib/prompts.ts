@@ -196,15 +196,13 @@ export function buildPostsPrompt(
   // AI posts visibly different.
   const formatRule = humanMode
     ? `- Do NOT use emojis or decorative/symbol bullets — write plain, natural paragraphs (numbered lists are fine)
-- Keep it understated and human; no hype, and NO hashtags inside the body`
+- Keep it understated and human; no hype
+- Do NOT use hashtags: set the "hashtags" field to an empty array []`
     : `- Open the hook with a single relevant emoji (e.g. 🚀, 💡, 🎯)
 - When listing achievements or points, put each on its own line prefixed with a ✅ checkmark
 - Use a few tasteful, relevant emojis (4-8 total, never spammy)
-- END the body with a short engagement question inviting comments (you may add 👇)`;
-
-  const hashtagRule = humanMode
-    ? `"hashtags": []  (HUMAN MODE: no hashtags — return an empty array)`
-    : `"hashtags": ["string", "string", "string"]  (3-5 relevant lowercase hashtags, no spaces)`;
+- END the body with a short engagement question inviting comments (you may add 👇)
+- Provide 3-5 relevant lowercase hashtags (no spaces) in the "hashtags" field`;
 
   const closing = humanMode
     ? "Return ONLY the JSON array. No markdown. No explanation. No emojis."
@@ -227,7 +225,7 @@ Generate exactly ${postCount} posts as a JSON array. Each post must follow this 
   {
     "title": "string (compelling hook - the opening line of the post, max 150 chars)",
     "body": "string (full post body, max 1300 characters, use line breaks for readability)",
-    ${hashtagRule},
+    "hashtags": ["string", "string", "string", "string", "string"],
     "postType": "${allowedTypes.join("|")}",
     "imagePrompt": "string (a short 1-2 sentence visual concept — describe the SCENE or METAPHOR, not text to display. Example: 'A lighthouse beam cutting through fog at dawn, symbolizing guidance' NOT 'An image showing the words Leadership Matters')",
     "bestTimeToPost": "string (e.g. Tuesday 9am)",
@@ -258,12 +256,9 @@ export function buildSinglePostPrompt(
 
   const styleRule = humanMode
     ? `- Do NOT use emojis or symbol bullets — plain, natural, human paragraphs
-- No hashtags inside the body`
-    : `- Open with a relevant emoji hook, use ✅ checkmark bullets for any list, sprinkle a few tasteful emojis, and END with an engagement question (you may add 👇)`;
-
-  const hashtagRule = humanMode
-    ? `"hashtags": []  (HUMAN MODE: no hashtags)`
-    : `"hashtags": ["string", "string", "string"]  (3-5 relevant lowercase hashtags)`;
+- Do NOT use hashtags: set the "hashtags" field to an empty array []`
+    : `- Open with a relevant emoji hook, use ✅ checkmark bullets for any list, sprinkle a few tasteful emojis, and END with an engagement question (you may add 👇)
+- Provide 3-5 relevant lowercase hashtags in the "hashtags" field`;
 
   const closing = humanMode
     ? "Return ONLY valid JSON. No markdown. No explanation. No emojis."
@@ -287,7 +282,7 @@ Generate the post as a JSON object:
 {
   "title": "string (compelling opening hook, max 150 chars)",
   "body": "string (full post body, max 1300 characters, use line breaks for readability)",
-  ${hashtagRule},
+  "hashtags": ["string", "string", "string", "string", "string"],
   "imagePrompt": "string (short visual concept — describe a scene or metaphor, NO text/words to render)"
 }
 
