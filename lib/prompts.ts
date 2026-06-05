@@ -10,6 +10,7 @@ CRITICAL WRITING RULES - FOLLOW WITHOUT EXCEPTION:
 - Vary paragraph length - mix short punchy sentences with longer explanatory ones
 - Do not start multiple consecutive sentences with "I"
 - Sound conversational and direct
+- Never use markdown or asterisks: no **bold**, no _italics_, no # headings, no "*" bullets
 `.trim();
 
 const HUMAN_MODE_RULES = `
@@ -35,6 +36,7 @@ AI MODE ACTIVE - POLISHED, HIGH-ENGAGEMENT LINKEDIN STYLE:
 - Build momentum and END the body with a short engagement question that invites comments (you may add 👇)
 - Confident, upbeat and shareable tone
 - Still avoid the most obvious corporate buzzwords (synergy, leverage, game-changer) — stay punchy but genuine
+- Emojis and ✅ are fine, but NEVER use markdown or asterisks: no **bold**, no _italics_, no # headings
 `.trim();
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -287,6 +289,60 @@ Generate the post as a JSON object:
 }
 
 ${closing}`;
+}
+
+// ─── Restyle (same content, switch Human <-> AI style) ───────────────────────
+// Used by the mobile per-post Human Mode toggle. It REWRITES the existing post
+// in the chosen style WITHOUT changing the topic/title/meaning, and never emits
+// Markdown / asterisks.
+export function buildRestylePrompt(
+  profileContext: string,
+  title: string,
+  body: string,
+  humanMode: boolean = false,
+): string {
+  const styleRule = humanMode
+    ? `- Plain, natural, human-sounding paragraphs. Conversational and understated.
+- Do NOT use any emojis.
+- Do NOT use hashtags: set the "hashtags" field to an empty array [].
+- Use short paragraphs with a blank line between them. No symbol bullets.`
+    : `- Open with a punchy hook line led by a single relevant emoji (e.g. 🚀, 💡, 🎯).
+- For any list of points/achievements, put each on its own line starting with a ✅ checkmark.
+- Use a few tasteful, relevant emojis (4-8 total, never spammy).
+- END the body with a short engagement question inviting comments (you may add 👇).
+- Provide 3-5 relevant lowercase hashtags in the "hashtags" field.`;
+
+  return `You are an expert LinkedIn editor. REWRITE the post below in a new writing style.
+
+PROFESSIONAL PROFILE:
+${profileContext}
+
+ORIGINAL POST TITLE: ${title}
+ORIGINAL POST BODY:
+"""
+${body}
+"""
+
+YOUR TASK:
+- Keep the EXACT SAME topic, message, facts, examples and key points as the original.
+- Do NOT invent new information, do NOT change the subject, do NOT drift off-context.
+- Keep roughly the same meaning and length. Only change the WRITING STYLE + formatting.
+
+STYLE RULES:
+${styleRule}
+
+ABSOLUTE FORMATTING RULES (apply to BOTH modes):
+- Output PLAIN TEXT only. Do NOT use Markdown of any kind.
+- NEVER use the asterisk character "*" anywhere — no *italics*, no **bold**, no "* " bullets.
+- Never wrap words in symbols for emphasis.
+
+Return ONLY a JSON object with this exact shape:
+{
+  "body": "string (the rewritten post body, plain text, NO asterisks, max 1300 chars)",
+  "hashtags": ["string", "string", "string"]
+}
+
+Return ONLY valid JSON. No markdown fences. No explanation.`;
 }
 
 // ─── Variant Post Prompt (A/B Testing) ───────────────────────────────────────
