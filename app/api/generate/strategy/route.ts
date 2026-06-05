@@ -106,11 +106,18 @@ export async function POST(req: NextRequest) {
     const raw = await generateText(prompt);
     const strategy = parseJSON(raw);
 
-    const plan = await prisma.contentPlan.upsert({
-      where: { userId_weekStart: { userId: user.id, weekStart } },
-      create: { userId: user.id, weekStart, strategy: JSON.stringify(strategy) },
-      update: { strategy: JSON.stringify(strategy) },
+    const existing = await prisma.contentPlan.findFirst({
+      where: { userId: user.id, companyProfileId: null, weekStart },
+      select: { id: true },
     });
+    const plan = existing
+      ? await prisma.contentPlan.update({
+          where: { id: existing.id },
+          data: { strategy: JSON.stringify(strategy) },
+        })
+      : await prisma.contentPlan.create({
+          data: { userId: user.id, weekStart, strategy: JSON.stringify(strategy) },
+        });
 
     return NextResponse.json({ plan, strategy });
   } catch (err) {
@@ -131,8 +138,8 @@ export async function GET(req: NextRequest) {
   if (weekStartParam) {
     const weekStart = new Date(weekStartParam);
     weekStart.setHours(0, 0, 0, 0);
-    const plan = await prisma.contentPlan.findUnique({
-      where: { userId_weekStart: { userId: session.user.id, weekStart } },
+    const plan = await prisma.contentPlan.findFirst({
+      where: { userId: session.user.id, companyProfileId: null, weekStart },
       include: { posts: { orderBy: { scheduledAt: "asc" } } },
     });
     return NextResponse.json(plan);

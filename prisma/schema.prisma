@@ -70,6 +70,7 @@ model User {
   sessions            Session[]
   contentPlans        ContentPlan[]
   newsletters         Newsletter[]
+  companyProfiles     CompanyProfile[]
   subscription        Subscription?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -94,15 +95,18 @@ model Subscription {
 }
 
 model ContentPlan {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  weekStart DateTime // Monday of the week this plan covers
-  strategy  String   @db.Text // JSON: pillars, theme, audience, tone, postMix
-  posts     Post[]
-  createdAt DateTime @default(now())
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyProfileId String? // null = personal workspace; set = a company workspace
+  companyProfile   CompanyProfile? @relation(fields: [companyProfileId], references: [id], onDelete: Cascade)
+  weekStart        DateTime // Monday of the week this plan covers
+  strategy         String          @db.Text // JSON: pillars, theme, audience, tone, postMix
+  posts            Post[]
+  createdAt        DateTime        @default(now())
 
-  @@unique([userId, weekStart])
+  @@unique([userId, companyProfileId, weekStart])
+  @@index([companyProfileId])
 }
 
 model Post {
@@ -140,18 +144,54 @@ model Post {
 }
 
 model Newsletter {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  subject     String
-  body        String   @db.Text // JSON: sections array
-  pillars     String?  @db.Text // JSON: source pillars used
-  scheduledAt DateTime?
-  status      String   @default("draft")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyProfileId String? // null = personal workspace; set = a company workspace
+  companyProfile   CompanyProfile? @relation(fields: [companyProfileId], references: [id], onDelete: Cascade)
+  title            String
+  subject          String
+  body             String          @db.Text // JSON: sections array
+  pillars          String?         @db.Text // JSON: source pillars used
+  scheduledAt      DateTime?
+  status           String          @default("draft")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@index([userId])
+  @@index([companyProfileId])
   @@index([scheduledAt])
+}
+
+// A company/brand workspace owned by a user. Mirrors the user's content
+// preferences so AI generation can speak in the company's voice. All of a
+// company's content (ContentPlan, Post via plan, Newsletter) is scoped here.
+model CompanyProfile {
+  id                  String        @id @default(cuid())
+  userId              String
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  tagline             String? // short headline / one-liner
+  about               String?       @db.Text // longer description (summary equivalent)
+  industry            String?
+  website             String?
+  logoUrl             String? // company logo (Vercel Blob)
+  // Content preferences (mirror of User content prefs)
+  tonePrefs           String?       @db.Text
+  positioning         String?
+  contentGoals        String?       @db.Text // JSON array string
+  contentStyles       String?       @db.Text // JSON array string
+  targetAudience      String?       @db.Text
+  humanMode           Boolean       @default(false)
+  postingSchedule     String?       @db.Text // JSON: { days: [...], time: "09:00" }
+  postSignature       String?       @db.Text
+  timezone            String        @default("Asia/Kolkata")
+  linkedinOrgId       String? // future: company-page posting (urn:li:organization:<id>)
+  onboardingCompleted Boolean       @default(false)
+  contentPlans        ContentPlan[]
+  newsletters         Newsletter[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([userId])
 }
