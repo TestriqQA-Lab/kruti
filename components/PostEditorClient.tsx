@@ -33,6 +33,7 @@ import { useSession } from "next-auth/react";
 import { formatInTimeZone } from "date-fns-tz";
 import { fromZonedTime } from "date-fns-tz";
 import { WATERMARK_TEXT } from "@/lib/subscription-check";
+import { parseImageHistory } from "@/lib/image-history";
 
 interface Post {
   id: string;
@@ -44,6 +45,7 @@ interface Post {
   scheduledAt: Date | string | null;
   imageUrl: string | null;
   carouselImages: string | null;
+  imageHistory: string | null;
   documentUrl: string | null;
   documentName: string | null;
   imagePrompt: string | null;
@@ -85,8 +87,22 @@ export default function PostEditorClient({
   const [body, setBody] = useState(post.body);
   const [status, setStatus] = useState(post.status);
   const [imageUrl, setImageUrl] = useState(post.imageUrl);
-  const [imageHistory, setImageHistory] = useState<string[]>(post.imageUrl ? [post.imageUrl] : []);
-  const [historyIndex, setHistoryIndex] = useState<number>(post.imageUrl ? 0 : -1);
+  // Persistent gallery of every generated/uploaded image set, so past results
+  // stay reusable for free even after a reload or after the generation limit.
+  const [generations, setGenerations] = useState<string[][]>(() => {
+    const stored = parseImageHistory(post.imageHistory);
+    if (stored.length > 0) return stored;
+    // Backfill from the current image/carousel for posts created before history existed
+    const seed: string[][] = [];
+    try {
+      const cur = post.carouselImages ? JSON.parse(post.carouselImages) : null;
+      if (Array.isArray(cur) && cur.length > 0) seed.push(cur);
+      else if (post.imageUrl) seed.push([post.imageUrl]);
+    } catch {
+      if (post.imageUrl) seed.push([post.imageUrl]);
+    }
+    return seed;
+  });
   const [carouselImages, setCarouselImages] = useState<string[]>(() => {
     if (!post.carouselImages) return [];
     try {
@@ -222,6 +238,45 @@ export default function PostEditorClient({
     toast("Previous version restored — save to keep changes", "info");
   }
 
+  // Add a newly produced image set to the in-session gallery (server already
+  // persisted it). Skips a duplicate of the most recent entry, caps the length.
+  function pushGeneration(urls: string[]) {
+    const group = urls.filter((u): u is string => typeof u === "string" && u.length > 0);
+    if (group.length === 0) return;
+    setGenerations((prev) => {
+      const last = prev[prev.length - 1];
+      const dupe = last && last.length === group.length && last.every((u, i) => u === group[i]);
+      return dupe ? prev : [...prev, group].slice(-24);
+    });
+  }
+
+  // Reuse a previous generation (single image or full carousel). This is FREE —
+  // no new generation is consumed — and it persists so the choice survives reload.
+  async function restoreGeneration(group: string[]) {
+    const isCarousel = group.length > 1;
+    setImageUrl(group[0]);
+    setCarouselImages(isCarousel ? group : []);
+    setCarouselIndex(0);
+    setDocumentUrl(null);
+    setDocumentName(null);
+    try {
+      await fetch(`/api/content/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: group[0],
+          carouselImages: isCarousel ? group : null,
+          documentUrl: null,
+          documentName: null,
+        }),
+      });
+      toast(isCarousel ? "Carousel restored" : "Image restored", "success");
+      router.refresh();
+    } catch {
+      toast("Couldn't save that selection", "error");
+    }
+  }
+
   async function handleGenerateImage() {
     setGeneratingImage(true);
     try {
@@ -238,8 +293,7 @@ export default function PostEditorClient({
       }
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
-        setImageHistory(prev => [...prev, data.imageUrl]);
-        setHistoryIndex(imageHistory.length);
+        pushGeneration([data.imageUrl]);
         setDocumentUrl(null);
         setDocumentName(null);
         const remaining = data.remaining ?? 0;
@@ -274,6 +328,7 @@ export default function PostEditorClient({
         setCarouselImages(data.carouselImages);
         setCarouselIndex(0);
         setImageUrl(data.carouselImages[0]);
+        pushGeneration(data.carouselImages);
         setDocumentUrl(null);
         setDocumentName(null);
         setImageGenRemaining(data.remaining ?? 0);
@@ -371,8 +426,7 @@ export default function PostEditorClient({
       const data = await res.json();
       if (res.ok && data.imageUrl) {
         setImageUrl(data.imageUrl);
-        setImageHistory(prev => [...prev, data.imageUrl]);
-        setHistoryIndex(imageHistory.length);
+        pushGeneration([data.imageUrl]);
         setDocumentUrl(null);
         setDocumentName(null);
         toast("Image uploaded", "success");
@@ -1012,44 +1066,15 @@ export default function PostEditorClient({
                   </div>
                 </div>
               ) : imageUrl ? (
-                <>
-                  <div
-                    className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
-                    onClick={() => setLightboxOpen(true)}
-                  >
-                    <Image src={imageUrl} alt="Post image" fill className="object-cover" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                      <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
-                    </div>
+                <div
+                  className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
+                  onClick={() => setLightboxOpen(true)}
+                >
+                  <Image src={imageUrl} alt="Post image" fill className="object-cover" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                    <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
                   </div>
-                  {imageHistory.length > 1 && (
-                    <div className="flex items-center justify-between mt-3 px-1">
-                      <button
-                        onClick={() => {
-                          const newIndex = historyIndex > 0 ? historyIndex - 1 : imageHistory.length - 1;
-                          setHistoryIndex(newIndex);
-                          setImageUrl(imageHistory[newIndex]);
-                        }}
-                        className="text-xs px-2.5 py-1.5 font-medium bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 rounded-lg transition-colors flex items-center gap-1"
-                      >
-                        <ArrowLeft className="w-3 h-3" /> Prev
-                      </button>
-                      <span className="text-[10px] text-slate-500 font-medium">
-                        {historyIndex + 1} of {imageHistory.length}
-                      </span>
-                      <button
-                        onClick={() => {
-                          const newIndex = historyIndex < imageHistory.length - 1 ? historyIndex + 1 : 0;
-                          setHistoryIndex(newIndex);
-                          setImageUrl(imageHistory[newIndex]);
-                        }}
-                        className="text-xs px-2.5 py-1.5 font-medium bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 rounded-lg transition-colors flex items-center gap-1"
-                      >
-                        Next <ArrowLeft className="w-3 h-3 rotate-180" />
-                      </button>
-                    </div>
-                  )}
-                </>
+                </div>
               ) : (
                 <div
                   className={cn(
@@ -1078,6 +1103,46 @@ export default function PostEditorClient({
                       </p>
                     </>
                   )}
+                </div>
+              )}
+
+              {/* Previously generated images — reuse any past result for free */}
+              {!isPublished && generations.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1.5">
+                    Previously generated &middot; tap to reuse (free)
+                  </p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {generations.map((group, i) => {
+                      const isCarousel = group.length > 1;
+                      const active = isCarousel
+                        ? carouselImages.length > 0 && carouselImages[0] === group[0]
+                        : carouselImages.length === 0 && imageUrl === group[0];
+                      return (
+                        <button
+                          key={`${group[0]}-${i}`}
+                          type="button"
+                          onClick={() => restoreGeneration(group)}
+                          className={cn(
+                            "relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors",
+                            active
+                              ? "border-blue-600"
+                              : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/25"
+                          )}
+                          title={isCarousel ? `Carousel — ${group.length} images` : "Single image"}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={group[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                          {isCarousel && (
+                            <span className="absolute bottom-0.5 right-0.5 inline-flex items-center gap-0.5 rounded bg-black/65 px-1 py-0.5 text-[9px] font-bold leading-none text-white">
+                              <ImageIcon className="w-2.5 h-2.5" />
+                              {group.length}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { put } from "@vercel/blob";
+import { appendImageHistory } from "@/lib/image-history";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -56,10 +57,15 @@ export async function POST(req: NextRequest) {
       contentType: file.type,
     });
 
-    // Update the post with the new image URL
+    // Update the post with the new image URL (and keep it in the reusable history)
     await prisma.post.update({
       where: { id: postId },
-      data: { imageUrl: blob.url, documentUrl: null, documentName: null },
+      data: {
+        imageUrl: blob.url,
+        imageHistory: appendImageHistory(post.imageHistory, [blob.url]),
+        documentUrl: null,
+        documentName: null,
+      },
     });
 
     return NextResponse.json({ imageUrl: blob.url });

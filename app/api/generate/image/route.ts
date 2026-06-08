@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generatePostImage, buildImagePrompt, lastImageGenError } from "@/lib/imagen";
+import { appendImageHistory } from "@/lib/image-history";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
@@ -71,6 +72,8 @@ export async function POST(req: NextRequest) {
         imageUrl,
         imagePrompt,
         imageGenCount: post.imageGenCount + 1,
+        // Keep every generated image in the per-post history so it stays reusable
+        imageHistory: appendImageHistory(post.imageHistory, [imageUrl]),
         // An image and a PDF document are mutually exclusive on LinkedIn
         documentUrl: null,
         documentName: null,
