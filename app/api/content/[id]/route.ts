@@ -53,6 +53,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
       }),
       ...("imageUrl" in body && { imageUrl: body.imageUrl }),
+      ...("carouselImages" in body && {
+        carouselImages: Array.isArray(body.carouselImages)
+          ? JSON.stringify(body.carouselImages)
+          : null,
+      }),
       ...("humanModeOverride" in body && { humanModeOverride: body.humanModeOverride }),
       ...("customSignature" in body && { customSignature: body.customSignature }),
       ...("imagePrompt" in body && { imagePrompt: body.imagePrompt }),

@@ -114,6 +114,7 @@ model Post {
   imageUrl          String?
   imagePrompt       String?     @db.Text
   imageGenCount     Int         @default(0) // number of times image was generated for this post
+  carouselImages    String?     @db.Text // JSON array of image URLs for a multi-image carousel post
   hashtags          String?     @db.Text // JSON array string
   postType          String      // thought-leadership | tips | story | poll | carousel
   scheduledAt       DateTime?
