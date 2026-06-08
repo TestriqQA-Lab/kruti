@@ -9,8 +9,37 @@ function getAI(): GoogleGenAI {
   return _ai;
 }
 
-// Track last generation error for better debugging
+// Track last generation error (user-facing message). The raw technical error is
+// always logged separately via console.error for debugging.
 export let lastImageGenError: string | null = null;
+
+/** Map a raw image-model error into a short, clear, user-facing message. */
+function friendlyImageError(rawMessage: string): string {
+  const m = (rawMessage || "").toLowerCase();
+  if (
+    m.includes("spending cap") ||
+    m.includes("resource_exhausted") ||
+    m.includes("quota") ||
+    m.includes("exceeded") ||
+    m.includes("429")
+  ) {
+    return "AI image generation is temporarily unavailable — the monthly image quota has been reached. Please try again later.";
+  }
+  if (m.includes("safety") || m.includes("blocked") || m.includes("prohibited")) {
+    return "The image couldn't be generated for this content. Try editing the post text and generating again.";
+  }
+  if (
+    m.includes("api key") ||
+    m.includes("api_key") ||
+    m.includes("permission") ||
+    m.includes("unauthenticated") ||
+    m.includes("401") ||
+    m.includes("403")
+  ) {
+    return "The AI image service is temporarily unavailable. Please try again later or contact support.";
+  }
+  return "Image generation failed. Please try again in a moment.";
+}
 
 // ─── Image Generation ────────────────────────────────────────────────────────
 
@@ -68,13 +97,15 @@ Square format (1:1). High quality, suitable for LinkedIn.`;
       }
       console.warn(`[Imagen] ${model} returned no image data, trying next model`);
     } catch (err) {
-      lastImageGenError = `${model}: ${(err as Error).message}`;
-      console.error(`[Imagen] ${model} failed:`, (err as Error).message);
+      const raw = (err as Error).message;
+      lastImageGenError = friendlyImageError(raw);
+      // Keep the full technical reason in the server logs for debugging.
+      console.error(`[Imagen] ${model} failed:`, raw);
     }
   }
 
   if (!lastImageGenError) {
-    lastImageGenError = "All image generation models returned no image data";
+    lastImageGenError = "Image generation didn't return an image. Please try again in a moment.";
   }
   return null;
 }
