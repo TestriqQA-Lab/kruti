@@ -64,6 +64,8 @@ export async function POST(req: NextRequest) {
     hashtags: post.hashtags,
     imageUrl: post.imageUrl,
     images,
+    documentUrl: post.documentUrl,
+    documentName: post.documentName,
     customSignature: post.customSignature,
   });
 

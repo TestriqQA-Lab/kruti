@@ -116,6 +116,8 @@ model Post {
   body                String
   imageUrl            String?
   images              String?
+  documentUrl         String?
+  documentName        String?
   imagePrompt         String?
   imageGenCount       Int         @default(0)
   hashtags            String?

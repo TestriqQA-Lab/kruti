@@ -16,6 +16,8 @@ export async function postToLinkedIn(
     hashtags: string | null;
     imageUrl: string | null;
     images?: string[] | null; // Carousel — multiple image URLs (multi-image post)
+    documentUrl?: string | null;  // PDF — published as a LinkedIn document post
+    documentName?: string | null;
     customSignature?: string | null;
   }
 ): Promise<LinkedInPostResult> {
@@ -77,6 +79,18 @@ export async function postToLinkedIn(
   }
 
   const fullText = parts.join("\n");
+
+  // If a PDF document is attached, publish it as a LinkedIn document post
+  // (swipeable PDF / carousel), which uses a different API than image posts.
+  if (post.documentUrl && post.documentUrl.startsWith("https://")) {
+    return postDocumentToLinkedIn(
+      accessToken,
+      linkedinId,
+      fullText,
+      post.documentUrl,
+      post.documentName || "Document",
+    );
+  }
 
   // Build UGC post payload (text only initially)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -236,4 +250,113 @@ async function uploadImageToLinkedIn(
   }
 
   return asset; // e.g. "urn:li:digitalmediaAsset:C5422AQG..."
+}
+
+// Escape reserved characters for LinkedIn's /rest/posts commentary ("Little
+// Text" format) so the post body isn't rejected.
+function escapeLinkedInText(s: string): string {
+  return s.replace(/[\\()[\]{}<>@|~_*#]/g, (c) => "\\" + c);
+}
+
+// Publish a PDF as a LinkedIn document post (swipeable PDF / carousel) using
+// the versioned Documents + Posts API. Returns the same result shape as the
+// image path so callers don't care which one ran.
+async function postDocumentToLinkedIn(
+  accessToken: string,
+  linkedinId: string,
+  text: string,
+  documentUrl: string,
+  documentTitle: string,
+): Promise<LinkedInPostResult> {
+  const VERSION = "202401";
+  const owner = `urn:li:person:${linkedinId}`;
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+    "X-Restli-Protocol-Version": "2.0.0",
+    "LinkedIn-Version": VERSION,
+  };
+
+  try {
+    // 1. Initialize the document upload.
+    const initRes = await fetch(
+      "https://api.linkedin.com/rest/documents?action=initializeUpload",
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ initializeUploadRequest: { owner } }),
+      },
+    );
+    if (!initRes.ok) {
+      const t = await initRes.text();
+      console.error("LinkedIn document init failed:", initRes.status, t);
+      if (initRes.status === 401)
+        return {
+          success: false,
+          error: "LinkedIn token was revoked. Please sign out and sign in again.",
+          requiresReauth: true,
+        };
+      return { success: false, error: "Couldn't start the document upload on LinkedIn." };
+    }
+    const initData = await initRes.json();
+    const uploadUrl = initData.value?.uploadUrl;
+    const documentUrn = initData.value?.document;
+    if (!uploadUrl || !documentUrn)
+      return { success: false, error: "LinkedIn document init returned no upload URL." };
+
+    // 2. Fetch the PDF from Blob and upload its bytes.
+    const pdfRes = await fetch(documentUrl);
+    if (!pdfRes.ok)
+      return { success: false, error: "Couldn't fetch the PDF for upload." };
+    const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
+    const uploadRes = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: pdfBuffer,
+    });
+    if (!uploadRes.ok) {
+      console.error("LinkedIn document PUT failed:", await uploadRes.text());
+      return { success: false, error: "Failed to upload the PDF to LinkedIn." };
+    }
+
+    // 3. Create the document post.
+    const postRes = await fetch("https://api.linkedin.com/rest/posts", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        author: owner,
+        commentary: escapeLinkedInText(text),
+        visibility: "PUBLIC",
+        distribution: {
+          feedDistribution: "MAIN_FEED",
+          targetEntities: [],
+          thirdPartyDistributionChannels: [],
+        },
+        content: {
+          media: { id: documentUrn, title: documentTitle.slice(0, 100) },
+        },
+        lifecycleState: "PUBLISHED",
+        isReshareDisabledByAuthor: false,
+      }),
+    });
+    if (!postRes.ok) {
+      const t = await postRes.text();
+      console.error("LinkedIn document post failed:", postRes.status, t);
+      if (postRes.status === 401)
+        return {
+          success: false,
+          error: "LinkedIn token was revoked. Please sign out and sign in again.",
+          requiresReauth: true,
+        };
+      return { success: false, error: "Failed to publish the document post to LinkedIn." };
+    }
+    const postId =
+      postRes.headers.get("x-restli-id") ||
+      postRes.headers.get("x-linkedin-id") ||
+      undefined;
+    return { success: true, linkedinPostId: postId };
+  } catch (err) {
+    console.error("LinkedIn document post exception:", err);
+    return { success: false, error: "Document post failed unexpectedly." };
+  }
 }

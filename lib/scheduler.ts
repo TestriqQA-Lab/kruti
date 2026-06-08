@@ -93,6 +93,8 @@ export async function runAutoPost(): Promise<{ posted: number; failed: number; s
       hashtags: post.hashtags,
       imageUrl: post.imageUrl,
       images,
+      documentUrl: post.documentUrl,
+      documentName: post.documentName,
     });
 
     await prisma.post.update({
