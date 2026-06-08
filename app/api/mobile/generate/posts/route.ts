@@ -202,9 +202,20 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[mobile posts] generation error:", err);
+    const m = String((err as { message?: string })?.message || "").toLowerCase();
+    const quota =
+      (err as { status?: number })?.status === 429 ||
+      m.includes("spending cap") ||
+      m.includes("quota") ||
+      m.includes("exceeded");
     return NextResponse.json(
-      { error: "Failed to generate posts" },
-      { status: 500 },
+      {
+        error: quota
+          ? "AI generation is temporarily unavailable — the service usage limit was reached. Please try again later."
+          : "Failed to generate posts. Please try again.",
+        code: quota ? "AI_LIMIT_REACHED" : "GENERATION_FAILED",
+      },
+      { status: quota ? 503 : 500 },
     );
   }
 }

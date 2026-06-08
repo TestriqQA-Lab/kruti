@@ -13,11 +13,24 @@ export function getGeminiModel(modelName = "gemini-2.5-flash") {
  */
 function isRetryableError(err: unknown): boolean {
   const e = err as { status?: number; message?: string };
+  const msg = (e?.message || "").toLowerCase();
+
+  // Hard quota / billing / spend-cap failures never succeed on retry — fail
+  // fast instead of burning ~10s of pointless retries.
+  if (
+    msg.includes("spending cap") ||
+    msg.includes("spend cap") ||
+    msg.includes("quota") ||
+    msg.includes("billing") ||
+    msg.includes("exceeded")
+  ) {
+    return false;
+  }
+
   const status = e?.status;
   if (status === 502 || status === 503 || status === 429 || status === 500) {
     return true;
   }
-  const msg = (e?.message || "").toLowerCase();
   return (
     msg.includes("502") ||
     msg.includes("503") ||
