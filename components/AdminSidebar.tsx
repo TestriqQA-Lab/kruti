@@ -39,13 +39,14 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-            <Shield className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">Admin Panel</span>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Kruti.io</p>
+        <div className="flex flex-col gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Kruti.io" className="h-7 w-auto" />
+          <div className="flex items-center gap-1.5">
+            <Shield className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Admin Panel
+            </span>
           </div>
         </div>
       </div>

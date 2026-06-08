@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { blogPosts, getBlogPost } from "@/lib/blog-data";
 import { ArrowLeft, Clock, Tag, Calendar, User, ChevronRight } from "lucide-react";
@@ -158,11 +157,9 @@ export default function BlogPostPage({ params }: Props) {
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Kruti.io" width={250} height={80} className="h-20 w-auto" />
-            <span className="hidden sm:block text-2xl font-bold tracking-tighter text-gray-900 dark:text-white">
-              Kruti<span className="text-[#0A66C2]">.io</span>
-            </span>
+          <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Kruti.io" className="h-12 w-auto" />
           </Link>
           <div className="flex items-center gap-4">
             <Link

@@ -45,13 +45,9 @@ export default function Sidebar({ user }: SidebarProps) {
     <aside className="w-64 bg-white dark:bg-[#0D131F] border-r border-slate-200 dark:border-white/10 flex flex-col">
       {/* Logo */}
       <div className="p-5 border-b border-slate-100 dark:border-white/10">
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 font-display text-lg font-bold text-white">
-            K
-          </span>
-          <span className="font-display text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Kruti<span className="text-blue-600 dark:text-blue-400">.io</span>
-          </span>
+        <Link href="/dashboard" className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Kruti.io" className="h-9 w-auto" />
         </Link>
       </div>
 
