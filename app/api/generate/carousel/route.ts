@@ -6,6 +6,9 @@ import { generateCarouselImages, buildImagePrompt, lastImageGenError } from "@/l
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
+// Generating 4 images can take longer than the default serverless limit.
+export const maxDuration = 60;
+
 const IMAGE_GEN_LIMIT_PER_POST = 2;
 const CAROUSEL_COUNT = 4;
 
