@@ -109,13 +109,9 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-[#F6F8FB]/80 backdrop-blur-md dark:border-white/10 dark:bg-[#0A0E14]/80">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 font-display text-lg font-bold text-white">
-            K
-          </span>
-          <span className="font-display text-lg font-bold tracking-tight text-slate-900 dark:text-white">
-            Kruti<span className="text-blue-600 dark:text-blue-400">.io</span>
-          </span>
+        <Link href="/" className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Kruti.io" className="h-9 w-auto" />
         </Link>
 
         <div className="hidden items-center gap-8 lg:flex">
