@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getValidAccessToken } from "@/lib/linkedin-token";
 import { shouldShowWatermark, WATERMARK_TEXT } from "@/lib/subscription-check";
+import { formatPostBody, cleanInline } from "@/lib/format";
 
 export interface LinkedInPostResult {
   success: boolean;
@@ -54,14 +55,14 @@ export async function postToLinkedIn(
   const hashtags = post.hashtags ? (JSON.parse(post.hashtags) as string[]) : [];
   const parts: string[] = [];
 
-  // Hook / opening line (1 blank line before body)
-  if (post.title?.trim()) {
-    parts.push(post.title.trim());
-    parts.push(""); // blank line after hook
+  // Hook / opening line — directly above the body (no blank line in between)
+  const hook = cleanInline(post.title);
+  if (hook) {
+    parts.push(hook);
   }
 
-  // Main body
-  parts.push(post.body);
+  // Main body (markdown stripped, list items spaced)
+  parts.push(formatPostBody(post.body));
 
   // Hashtags
   if (hashtags.length > 0) {

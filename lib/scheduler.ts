@@ -34,6 +34,11 @@ export async function runAutoPost(): Promise<{ posted: number; failed: number; s
       },
     },
     include: { plan: true },
+    // Auto-post at most ONE post per run so two posts never publish together.
+    // Any backlog drains one post per 5-min cron cycle; the user can publish the
+    // rest manually from the schedule/editor.
+    orderBy: { scheduledAt: "asc" },
+    take: 1,
   });
 
   if (duePosts.length > 0) {

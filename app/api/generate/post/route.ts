@@ -7,6 +7,7 @@ import { buildSinglePostPrompt } from "@/lib/prompts";
 import { buildProfileContext } from "@/lib/linkedin";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { formatPostBody, cleanInline } from "@/lib/format";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -46,11 +47,11 @@ export async function POST(req: NextRequest) {
     strategy.weeks?.find((w) => w.weekNumber === post.weekNumber)?.theme ??
     "Professional Insights";
 
-  // Determine effective human mode: post override > user default
+  // Determine effective human mode: per-post override, else Human Mode by default
   const effectiveHumanMode =
     post.humanModeOverride !== null && post.humanModeOverride !== undefined
       ? post.humanModeOverride
-      : (user.humanMode ?? false);
+      : true;
 
   const profileContext = buildProfileContext(user);
   const prompt = buildSinglePostPrompt(
@@ -73,8 +74,8 @@ export async function POST(req: NextRequest) {
     const updated = await prisma.post.update({
       where: { id: postId },
       data: {
-        title: generated.title,
-        body: generated.body,
+        title: cleanInline(generated.title),
+        body: formatPostBody(generated.body),
         hashtags: JSON.stringify(generated.hashtags),
         imagePrompt: generated.imagePrompt,
       },

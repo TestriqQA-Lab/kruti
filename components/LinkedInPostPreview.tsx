@@ -12,6 +12,7 @@ import {
   Send,
 } from "lucide-react";
 import Image from "next/image";
+import { formatPostBody, cleanInline } from "@/lib/format";
 
 interface LinkedInPostPreviewProps {
   name: string | null;
@@ -47,10 +48,10 @@ export default function LinkedInPostPreview({
 }: LinkedInPostPreviewProps) {
   const [expanded, setExpanded] = useState(false);
 
-  // Compose full post text: 1 blank line before hook, 3 blank lines after hook, then body
-  const fullText = title
-    ? `${title}\n\n\n\n${body}`
-    : body;
+  // Compose full post text: hook directly above the body (no blank-line gap),
+  // with markdown stripped and list items spaced for an accurate preview.
+  const cleanBody = formatPostBody(body);
+  const fullText = title ? `${cleanInline(title)}\n${cleanBody}` : cleanBody;
   const shouldTruncate = fullText.length > TRUNCATE_LENGTH;
 
   return (
