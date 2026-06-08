@@ -35,6 +35,10 @@ export async function GET(req: NextRequest) {
     return new Response("Missing required params (order, key)", { status: 400 });
   }
 
+  // Absolute URL to the Kruti logo (served from /public) — used both on this
+  // page and as the Razorpay checkout merchant logo.
+  const logoUrl = `${url.origin}/kruti-mark.png`;
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,10 +58,9 @@ export async function GET(req: NextRequest) {
     body { display: flex; align-items: center; justify-content: center; padding: 24px; }
     .container { text-align: center; max-width: 360px; width: 100%; }
     .logo {
-      width: 78px; height: 78px; border-radius: 18px;
-      background: #2563EB; display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 22px; color: #FFFFFF; font-size: 38px; font-weight: 800;
-      letter-spacing: -2.5px; box-shadow: 0 14px 30px rgba(37,99,235,0.34);
+      width: 86px; height: 86px; border-radius: 20px; object-fit: contain;
+      display: block; margin: 0 auto 22px; background: #FFFFFF;
+      box-shadow: 0 14px 30px rgba(37,99,235,0.24);
     }
     h1 { font-size: 21px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.4px; }
     p { font-size: 13.5px; color: #64748B; line-height: 1.55; }
@@ -77,7 +80,7 @@ export async function GET(req: NextRequest) {
 </head>
 <body>
   <div class="container">
-    <div class="logo">K</div>
+    <img class="logo" src="/kruti-mark.png" alt="Kruti" />
     <h1 id="title">Opening secure checkout…</h1>
     <p id="sub">Razorpay payment is loading. This is the same secure flow used on kruti.io.</p>
     <div class="spinner" id="spinner"></div>
@@ -91,6 +94,7 @@ export async function GET(req: NextRequest) {
     var CURRENCY = ${JSON.stringify(currency)};
     var UNAME    = ${JSON.stringify(name)};
     var UEMAIL   = ${JSON.stringify(email)};
+    var LOGO     = ${JSON.stringify(logoUrl)};
     var APP_SCHEME = "krutimobile://payment-callback";
 
     function setStatus(title, subtitle, showRetry) {
@@ -118,8 +122,9 @@ export async function GET(req: NextRequest) {
         order_id: ORDER_ID,
         amount: AMOUNT,
         currency: CURRENCY,
-        name: "Kruti",
+        name: "Kruti.io",
         description: "Content Pro — Monthly",
+        image: LOGO,
         prefill: { name: UNAME, email: UEMAIL },
         theme: { color: "#2563EB" },
         modal: {
