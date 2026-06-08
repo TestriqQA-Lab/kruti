@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL") // Non-pooled connection for migrations
+  directUrl = env("DIRECT_URL")
 }
 
 model Account {
@@ -14,12 +14,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -43,96 +43,99 @@ model VerificationToken {
 }
 
 model User {
-  id                  String        @id @default(cuid())
-  linkedinId          String?       @unique
-  name                String?
-  email               String?       @unique
-  emailVerified       DateTime?
-  role                String        @default("user")  // "user" | "admin"
-  image               String?
-  headline            String?
-  summary             String?       @db.Text
-  skills              String?       @db.Text // JSON array string
-  industry            String?
-  profileUrl          String?
-  tonePrefs           String?       @db.Text // JSON: formal/casual/inspirational
-  // Onboarding & content preferences
-  onboardingCompleted Boolean       @default(false)
-  contentGoals        String?       @db.Text // JSON: ["Lead Generation", "Brand Awareness"]
-  positioning         String?       // "Thought Leader" | "Industry Expert" | etc.
-  contentStyles       String?       @db.Text // JSON: ["Narrative", "How-to", ...]
-  targetAudience      String?       @db.Text // free text description
-  humanMode           Boolean       @default(true)
-  postingSchedule     String?       @db.Text // JSON: { days: ["Monday","Wednesday"], time: "09:00" }
-  postSignature       String?       @db.Text // Text always appended to every LinkedIn post
-  timezone            String        @default("Asia/Kolkata") // IANA timezone string
-  accounts            Account[]
-  sessions            Session[]
-  contentPlans        ContentPlan[]
-  newsletters         Newsletter[]
-  subscription        Subscription?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  id                     String           @id @default(cuid())
+  linkedinId             String?          @unique
+  name                   String?
+  email                  String?          @unique
+  emailVerified          DateTime?
+  role                   String           @default("user")
+  image                  String?
+  headline               String?
+  summary                String?
+  skills                 String?
+  industry               String?
+  profileUrl             String?
+  tonePrefs              String?
+  onboardingCompleted    Boolean          @default(false)
+  contentGoals           String?
+  positioning            String?
+  contentStyles          String?
+  targetAudience         String?
+  humanMode              Boolean          @default(false)
+  postingSchedule        String?
+  postSignature          String?
+  timezone               String           @default("Asia/Kolkata")
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  companyProfilesEnabled Boolean          @default(false)
+  accounts               Account[]
+  CompanyProfile         CompanyProfile[]
+  contentPlans           ContentPlan[]
+  newsletters            Newsletter[]
+  sessions               Session[]
+  subscription           Subscription?
 }
 
 model Subscription {
   id                      String    @id @default(cuid())
   userId                  String    @unique
-  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   razorpayCustomerId      String?   @unique
   razorpaySubscriptionId  String?   @unique
   razorpayPlanId          String?
-  currency                String    @default("INR") // "INR" or "USD"
-  status                  String    @default("trialing") // trialing|active|past_due|canceled|unpaid
+  currency                String    @default("INR")
+  status                  String    @default("trialing")
   trialEnd                DateTime?
   currentPeriodEnd        DateTime?
-  postsGeneratedThisCycle Int       @default(0)   // hard count of posts generated in current billing cycle
-  cyclePostsResetAt       DateTime? // when the post counter was last reset (start of cycle)
-  trialRemindersSent      String    @default("")  // comma-separated: "3d,1d,0d"
+  postsGeneratedThisCycle Int       @default(0)
+  cyclePostsResetAt       DateTime?
+  trialRemindersSent      String    @default("")
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ContentPlan {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  weekStart DateTime // Monday of the week this plan covers
-  strategy  String   @db.Text // JSON: pillars, theme, audience, tone, postMix
-  posts     Post[]
-  createdAt DateTime @default(now())
+  id               String          @id @default(cuid())
+  userId           String
+  weekStart        DateTime
+  strategy         String
+  createdAt        DateTime        @default(now())
+  companyProfileId String?
+  CompanyProfile   CompanyProfile? @relation(fields: [companyProfileId], references: [id], onDelete: Cascade)
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts            Post[]
 
-  @@unique([userId, weekStart])
+  @@unique([userId, companyProfileId, weekStart])
+  @@index([companyProfileId])
 }
 
 model Post {
-  id                String      @id @default(cuid())
-  planId            String
-  plan              ContentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  title             String      @db.Text
-  body              String      @db.Text
-  imageUrl          String?
-  imagePrompt       String?     @db.Text
-  imageGenCount     Int         @default(0) // number of times image was generated for this post
-  hashtags          String?     @db.Text // JSON array string
-  postType          String      // thought-leadership | tips | story | poll | carousel
-  scheduledAt       DateTime?
-  status            String      @default("draft") // draft | ready | published
-  weekNumber        Int         @default(1)
-  humanModeOverride Boolean?    // null = use user default, true = on, false = off
-  customSignature   String?     @db.Text // Overrides user.postSignature if not null. If empty string, means removed.
-  postedToLinkedIn  Boolean     @default(false)
-  linkedinPostId    String?     // UGC post ID from LinkedIn API
-  postError         String?     @db.Text // last error if auto-post failed
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-
-  // Engagement metrics (future: populated via LinkedIn API with r_member_social scope)
+  id                  String      @id @default(cuid())
+  planId              String
+  title               String
+  body                String
+  imageUrl            String?
+  images              String?
+  imagePrompt         String?
+  imageGenCount       Int         @default(0)
+  hashtags            String?
+  postType            String
+  scheduledAt         DateTime?
+  status              String      @default("draft")
+  weekNumber          Int         @default(1)
+  humanModeOverride   Boolean?
+  postedToLinkedIn    Boolean     @default(false)
+  linkedinPostId      String?
+  postError           String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
   linkedinLikes       Int?
   linkedinComments    Int?
   linkedinShares      Int?
   linkedinImpressions Int?
   engagementSyncedAt  DateTime?
+  customSignature     String?
+  plan                ContentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@index([planId])
   @@index([status])
@@ -140,18 +143,50 @@ model Post {
 }
 
 model Newsletter {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  subject     String
-  body        String   @db.Text // JSON: sections array
-  pillars     String?  @db.Text // JSON: source pillars used
-  scheduledAt DateTime?
-  status      String   @default("draft")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String          @id @default(cuid())
+  userId           String
+  title            String
+  subject          String
+  body             String
+  pillars          String?
+  scheduledAt      DateTime?
+  status           String          @default("draft")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  companyProfileId String?
+  CompanyProfile   CompanyProfile? @relation(fields: [companyProfileId], references: [id], onDelete: Cascade)
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([scheduledAt])
+  @@index([companyProfileId])
+}
+
+model CompanyProfile {
+  id                  String        @id
+  userId              String
+  name                String
+  tagline             String?
+  about               String?
+  industry            String?
+  website             String?
+  logoUrl             String?
+  tonePrefs           String?
+  positioning         String?
+  contentGoals        String?
+  contentStyles       String?
+  targetAudience      String?
+  humanMode           Boolean       @default(false)
+  postingSchedule     String?
+  postSignature       String?
+  timezone            String        @default("Asia/Kolkata")
+  linkedinOrgId       String?
+  onboardingCompleted Boolean       @default(false)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime
+  User                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ContentPlan         ContentPlan[]
+  Newsletter          Newsletter[]
+
+  @@index([userId])
 }

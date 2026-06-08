@@ -8,6 +8,13 @@ import { cleanupOldImages } from "@/lib/image-cleanup";
 // Finds posts with status "ready" that are due (past-due or within the next
 // 5 minutes) and publishes them to LinkedIn. Called every 5 min by Vercel Cron.
 // Posts older than 72 hours past their scheduled time are skipped as stale.
+//
+// DUPLICATE-SAFE: before publishing, each post is atomically "claimed"
+// (ready -> publishing) via a conditional updateMany. Only ONE publisher —
+// this cron run, an overlapping cron run, OR a manual publish — can win the
+// claim; everyone else sees count 0 and skips. This removes the race where a
+// slow/timed-out LinkedIn call left a post as ready/false long enough to be
+// picked up and posted a second time.
 export async function runAutoPost(): Promise<{ posted: number; failed: number; skippedStale: number }> {
   let posted = 0;
   let failed = 0;
@@ -54,6 +61,18 @@ export async function runAutoPost(): Promise<{ posted: number; failed: number; s
   }
 
   for (const post of duePosts) {
+    // ── ATOMIC CLAIM ──
+    // Flip ready -> publishing in a single conditional update. If another
+    // publisher already grabbed it (claim or publish), count is 0 -> skip.
+    const claim = await prisma.post.updateMany({
+      where: { id: post.id, postedToLinkedIn: false, status: "ready" },
+      data: { status: "publishing" },
+    });
+    if (claim.count === 0) {
+      console.log(`[Cron:auto-post] Skipped ${post.id} — already claimed/published elsewhere`);
+      continue;
+    }
+
     console.log(`[Cron:auto-post] Posting ${post.id} for user ${post.plan.userId}`);
     const result = await postToLinkedIn(post.plan.userId, {
       title: post.title,
@@ -67,6 +86,8 @@ export async function runAutoPost(): Promise<{ posted: number; failed: number; s
       data: {
         postedToLinkedIn: result.success,
         linkedinPostId: result.linkedinPostId ?? undefined,
+        // On failure, release the claim back to "ready" so the next cron run
+        // retries. On success, mark "published".
         status: result.success ? "published" : "ready",
         postError: result.error ?? null,
       },
@@ -278,4 +299,3 @@ export async function runTokenRefresh(): Promise<{ refreshed: number; failed: nu
 
   return { refreshed, failed };
 }
-
