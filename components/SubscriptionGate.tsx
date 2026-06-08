@@ -229,7 +229,7 @@ export default function SubscriptionGate({ daysLeft, trialExpired }: Subscriptio
       {/* Header */}
       <div className="text-center mb-8">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="Kruti.io" className="h-12 w-auto mx-auto mb-4" />
+        <img src="/logo.png" alt="Kruti.io" className="h-16 w-auto mx-auto mb-4" />
         {trialExpired ? (
           <>
             <h1 className="text-3xl font-bold font-display text-slate-900 dark:text-white">Your trial has ended</h1>

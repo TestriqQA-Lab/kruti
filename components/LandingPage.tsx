@@ -165,7 +165,7 @@ function Brand() {
   return (
     <a href="#overview" className="flex items-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="Kruti.io" className="h-9 w-auto" />
+      <img src="/logo.png" alt="Kruti.io" className="h-12 w-auto" />
     </a>
   );
 }

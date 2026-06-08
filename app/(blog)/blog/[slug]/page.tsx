@@ -159,7 +159,7 @@ export default function BlogPostPage({ params }: Props) {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Kruti.io" className="h-12 w-auto" />
+            <img src="/logo.png" alt="Kruti.io" className="h-16 w-auto" />
           </Link>
           <div className="flex items-center gap-4">
             <Link

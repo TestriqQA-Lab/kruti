@@ -10,7 +10,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Kruti.io" className="h-12 w-auto" />
+            <img src="/logo.png" alt="Kruti.io" className="h-16 w-auto" />
           </Link>
           <Link
             href="/"
