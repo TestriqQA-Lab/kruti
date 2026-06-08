@@ -19,6 +19,10 @@ import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { getMobileUserId } from "@/lib/mobileAuth";
 
+// Gemini generation + retry backoff can take >10s — give the function room
+// so it doesn't time out (which surfaced to the app as a 500).
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const userId = await getMobileUserId(req);
   if (!userId)

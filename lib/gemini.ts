@@ -92,5 +92,13 @@ export function parseJSON<T>(text: string): T {
     .replace(/^```\n?/, "")
     .replace(/\n?```$/, "")
     .trim();
-  return JSON.parse(cleaned) as T;
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    // Fallback: extract the first {...} object or [...] array from the text
+    // (Gemini sometimes wraps the JSON in a sentence or two of prose).
+    const match = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (match) return JSON.parse(match[0]) as T;
+    throw new Error("Gemini did not return valid JSON");
+  }
 }

@@ -20,6 +20,10 @@ import { formatPostBody } from "@/lib/format-post";
 
 const POST_LIMIT_PER_CYCLE = 30;
 
+// Generating a full batch of posts via Gemini can take well over 10s —
+// give the serverless function room so it doesn't time out (→ 500).
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const userId = await getMobileUserId(req);
   if (!userId)
