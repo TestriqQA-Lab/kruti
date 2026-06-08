@@ -23,6 +23,7 @@ interface LinkedInPostPreviewProps {
   hashtags: string[];
   postSignature: string | null;
   imageUrl: string | null;
+  carouselImages?: string[];
   watermark?: string | null;
 }
 
@@ -44,9 +45,11 @@ export default function LinkedInPostPreview({
   hashtags,
   postSignature,
   imageUrl,
+  carouselImages = [],
   watermark,
 }: LinkedInPostPreviewProps) {
   const [expanded, setExpanded] = useState(false);
+  const [slide, setSlide] = useState(0);
 
   // Compose full post text: hook directly above the body (no blank-line gap),
   // with markdown stripped and list items spaced for an accurate preview.
@@ -159,18 +162,54 @@ export default function LinkedInPostPreview({
           </div>
         )}
 
-        {/* Post image */}
-        {imageUrl && (
-          <div className="relative w-full aspect-[1.91/1] bg-slate-100 dark:bg-white/[0.06]">
-            <Image
-              src={imageUrl}
-              alt="Post image"
-              fill
-              className="object-cover"
-              unoptimized
+        {/* Post image(s) — carousel slider when multiple, else single image */}
+        {carouselImages.length > 0 ? (
+          <div className="relative w-full aspect-square bg-slate-100 dark:bg-white/[0.06] select-none">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={carouselImages[Math.min(slide, carouselImages.length - 1)]}
+              alt={`Slide ${Math.min(slide, carouselImages.length - 1) + 1}`}
+              className="absolute inset-0 w-full h-full object-cover"
             />
+            <span className="absolute top-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+              {Math.min(slide, carouselImages.length - 1) + 1}/{carouselImages.length}
+            </span>
+            {carouselImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSlide((s) => (s > 0 ? s - 1 : carouselImages.length - 1))}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/65 text-white flex items-center justify-center text-lg leading-none"
+                  aria-label="Previous slide"
+                >
+                  &#8249;
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSlide((s) => (s < carouselImages.length - 1 ? s + 1 : 0))}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/65 text-white flex items-center justify-center text-lg leading-none"
+                  aria-label="Next slide"
+                >
+                  &#8250;
+                </button>
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {carouselImages.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`h-1.5 rounded-full transition-all ${
+                        i === Math.min(slide, carouselImages.length - 1) ? "w-4 bg-white" : "w-1.5 bg-white/50"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
-        )}
+        ) : imageUrl ? (
+          <div className="relative w-full aspect-[1.91/1] bg-slate-100 dark:bg-white/[0.06]">
+            <Image src={imageUrl} alt="Post image" fill className="object-cover" unoptimized />
+          </div>
+        ) : null}
 
         {/* Reactions bar (decorative) */}
         <div className="px-4 py-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">

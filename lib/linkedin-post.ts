@@ -17,6 +17,7 @@ export async function postToLinkedIn(
     body: string;
     hashtags: string | null;
     imageUrl: string | null;
+    carouselImages?: string[] | null; // multiple images → multi-image (carousel) post
     customSignature?: string | null;
   }
 ): Promise<LinkedInPostResult> {
@@ -108,31 +109,33 @@ export async function postToLinkedIn(
     },
   };
 
-  // If image exists (Blob URL or any HTTPS URL), upload to LinkedIn first
-  if (post.imageUrl && post.imageUrl.startsWith("https://")) {
+  // Collect images: a multi-image carousel takes precedence over a single image.
+  const carousel = (post.carouselImages ?? []).filter((u) => !!u && u.startsWith("https://"));
+  const images =
+    carousel.length > 0
+      ? carousel
+      : post.imageUrl && post.imageUrl.startsWith("https://")
+      ? [post.imageUrl]
+      : [];
+
+  if (images.length > 0) {
     try {
-      const assetUrn = await uploadImageToLinkedIn(
-        accessToken,
-        linkedinId,
-        post.imageUrl
-      );
-      if (assetUrn) {
+      const assetUrns = (
+        await Promise.all(images.map((u) => uploadImageToLinkedIn(accessToken, linkedinId, u)))
+      ).filter((a): a is string => !!a);
+
+      if (assetUrns.length > 0) {
         ugcPost.specificContent = {
           "com.linkedin.ugc.ShareContent": {
             shareCommentary: { text: fullText },
             shareMediaCategory: "IMAGE",
-            media: [
-              {
-                status: "READY",
-                media: assetUrn,
-              },
-            ],
+            media: assetUrns.map((asset) => ({ status: "READY", media: asset })),
           },
         };
       }
     } catch (imgErr) {
-      console.error("Image upload to LinkedIn failed, posting without image:", imgErr);
-      // Continue posting without image
+      console.error("Image upload to LinkedIn failed, posting without image(s):", imgErr);
+      // Continue posting without image(s)
     }
   }
 

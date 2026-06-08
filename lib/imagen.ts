@@ -79,6 +79,40 @@ Square format (1:1). High quality, suitable for LinkedIn.`;
   return null;
 }
 
+// ─── Carousel (multiple images) ───────────────────────────────────────────────
+
+// Distinct framings so each carousel slide looks visually different.
+const CAROUSEL_VARIATIONS = [
+  "wide cinematic establishing shot",
+  "close-up detail with shallow depth of field",
+  "overhead top-down flat-lay perspective",
+  "dramatic side angle with bold directional lighting",
+  "minimalist composition with generous negative space",
+  "vibrant dynamic three-quarter perspective",
+];
+
+/**
+ * Generate `count` visually-distinct images for a carousel post, in parallel.
+ * Returns the successfully-generated Blob URLs (may be fewer than `count` if
+ * some generations fail).
+ */
+export async function generateCarouselImages(
+  basePrompt: string,
+  postId: string,
+  industry?: string,
+  count = 4
+): Promise<string[]> {
+  const base = basePrompt || "Professional abstract business concept";
+  const prompts = Array.from(
+    { length: count },
+    (_, i) => `${base} — ${CAROUSEL_VARIATIONS[i % CAROUSEL_VARIATIONS.length]}`
+  );
+  const results = await Promise.all(
+    prompts.map((p, i) => generatePostImage(p, `${postId}-c${i}`, industry))
+  );
+  return results.filter((u): u is string => !!u);
+}
+
 // ─── Image Prompt Builder ────────────────────────────────────────────────────
 
 export function buildImagePrompt(

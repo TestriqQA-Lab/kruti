@@ -42,6 +42,7 @@ interface Post {
   status: string;
   scheduledAt: Date | string | null;
   imageUrl: string | null;
+  carouselImages: string | null;
   imagePrompt: string | null;
   imageGenCount: number;
   weekNumber: number;
@@ -83,6 +84,17 @@ export default function PostEditorClient({
   const [imageUrl, setImageUrl] = useState(post.imageUrl);
   const [imageHistory, setImageHistory] = useState<string[]>(post.imageUrl ? [post.imageUrl] : []);
   const [historyIndex, setHistoryIndex] = useState<number>(post.imageUrl ? 0 : -1);
+  const [carouselImages, setCarouselImages] = useState<string[]>(() => {
+    if (!post.carouselImages) return [];
+    try {
+      const a = JSON.parse(post.carouselImages);
+      return Array.isArray(a) ? (a as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [generatingCarousel, setGeneratingCarousel] = useState(false);
   // true = Human Mode (default), false = AI Mode
   const [humanMode, setHumanMode] = useState<boolean>(post.humanModeOverride ?? true);
   const [signature, setSignature] = useState(
@@ -235,6 +247,33 @@ export default function PostEditorClient({
     }
   }
 
+  async function handleGenerateCarousel() {
+    setGeneratingCarousel(true);
+    try {
+      const res = await fetch("/api/generate/carousel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        toast(data.error || "Failed to generate carousel", "error");
+        if (data.remaining !== undefined) setImageGenRemaining(data.remaining);
+        return;
+      }
+      if (Array.isArray(data.carouselImages) && data.carouselImages.length > 0) {
+        setCarouselImages(data.carouselImages);
+        setCarouselIndex(0);
+        setImageUrl(data.carouselImages[0]);
+        setImageGenRemaining(data.remaining ?? 0);
+        toast(`Carousel created (${data.carouselImages.length} images)`, "success");
+        router.refresh();
+      }
+    } finally {
+      setGeneratingCarousel(false);
+    }
+  }
+
   function handleCopy() {
     let fullText = `${body}\n\n${hashtags.map((h) => `#${h}`).join(" ")}`;
     if (signature.trim()) {
@@ -342,9 +381,11 @@ export default function PostEditorClient({
       await fetch(`/api/content/${post.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: null }),
+        body: JSON.stringify({ imageUrl: null, carouselImages: null }),
       });
       setImageUrl(null);
+      setCarouselImages([]);
+      setCarouselIndex(0);
       toast("Image removed", "info");
       router.refresh();
     } catch {
@@ -838,7 +879,52 @@ export default function PostEditorClient({
               )}
             </div>
             <div className="p-4">
-              {imageUrl ? (
+              {carouselImages.length > 0 ? (
+                <div>
+                  <div className="relative aspect-square rounded-xl overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={carouselImages[carouselIndex]}
+                      alt={`Carousel slide ${carouselIndex + 1}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white">
+                      <ImageIcon className="w-3 h-3" /> Carousel &middot; {carouselIndex + 1}/{carouselImages.length}
+                    </span>
+                    {carouselImages.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCarouselIndex((i) => (i > 0 ? i - 1 : carouselImages.length - 1))}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/65 text-white flex items-center justify-center"
+                          title="Previous slide"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setCarouselIndex((i) => (i < carouselImages.length - 1 ? i + 1 : 0))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/65 text-white flex items-center justify-center"
+                          title="Next slide"
+                        >
+                          <ArrowLeft className="w-4 h-4 rotate-180" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 mt-3">
+                    {carouselImages.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCarouselIndex(i)}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all",
+                          i === carouselIndex ? "w-5 bg-blue-600" : "w-1.5 bg-slate-300 dark:bg-white/20"
+                        )}
+                        aria-label={`Go to slide ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : imageUrl ? (
                 <>
                   <div
                     className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
@@ -945,6 +1031,23 @@ export default function PostEditorClient({
                       {generatingImage ? "Generating..." : imageGenRemaining <= 0 ? "Limit Reached" : imageUrl ? "Regenerate" : "AI Generate"}
                     </button>
                   </div>
+                  <button
+                    onClick={handleGenerateCarousel}
+                    disabled={generatingCarousel || imageGenRemaining <= 0}
+                    className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 border border-blue-200 dark:border-blue-500/30 bg-blue-50/60 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 disabled:opacity-70 transition-colors"
+                    title={imageGenRemaining <= 0 ? "Generation limit reached" : "Generate 4 carousel images"}
+                  >
+                    {generatingCarousel ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <ImageIcon className="w-3.5 h-3.5" />
+                    )}
+                    {generatingCarousel
+                      ? "Generating carousel..."
+                      : carouselImages.length > 0
+                      ? "Regenerate Carousel"
+                      : "Carousel (4 images)"}
+                  </button>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 text-center">
                     JPG, PNG, GIF, WebP &middot; Max 5MB
                   </p>
@@ -1073,6 +1176,7 @@ export default function PostEditorClient({
         hashtags={hashtags}
         postSignature={signature}
         imageUrl={imageUrl}
+        carouselImages={carouselImages}
         watermark={showWatermark ? WATERMARK_TEXT : null}
       />
 

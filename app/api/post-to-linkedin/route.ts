@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     body: post.body,
     hashtags: post.hashtags,
     imageUrl: post.imageUrl,
+    carouselImages: post.carouselImages ? (JSON.parse(post.carouselImages) as string[]) : null,
     customSignature: post.customSignature,
   });
 
