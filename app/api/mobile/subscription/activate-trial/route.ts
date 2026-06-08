@@ -26,6 +26,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // The token's user may no longer exist (e.g. the row was deleted). Creating
+  // a Subscription for a missing user violates the FK — so reject cleanly and
+  // tell the client to re-authenticate.
+  const userExists = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  if (!userExists) {
+    return NextResponse.json(
+      { error: "Session expired. Please sign in again.", code: "USER_NOT_FOUND" },
+      { status: 401 },
+    );
+  }
+
   const existing = await prisma.subscription.findUnique({
     where: { userId },
   });

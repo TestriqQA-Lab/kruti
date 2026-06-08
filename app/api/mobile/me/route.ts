@@ -59,6 +59,7 @@ export async function GET(req: NextRequest) {
       audience: (user as any).audience ?? null,
       timezone: (user as any).timezone ?? null,
       onboardingComplete: (user as any).onboardingCompleted ?? false,
+      onboardingCompleted: (user as any).onboardingCompleted ?? false,
       role: (user as any).role ?? "user",
       subscriptionStatus: user.subscription?.status ?? "none",
       trialEnd: user.subscription?.trialEnd?.toISOString() ?? null,

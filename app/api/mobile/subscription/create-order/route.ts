@@ -81,7 +81,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      // Stale token (user deleted) — tell the client to re-authenticate.
+      return NextResponse.json(
+        { error: "Session expired. Please sign in again.", code: "USER_NOT_FOUND" },
+        { status: 401 },
+      );
     }
 
     const amount = currency === "USD" ? AMOUNT_USD_CENTS : AMOUNT_INR_PAISE;
