@@ -61,7 +61,7 @@ model User {
   positioning            String?
   contentStyles          String?
   targetAudience         String?
-  humanMode              Boolean          @default(false)
+  humanMode              Boolean          @default(true)
   postingSchedule        String?
   postSignature          String?
   timezone               String           @default("Asia/Kolkata")

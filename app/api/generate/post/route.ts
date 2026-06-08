@@ -7,6 +7,7 @@ import { buildSinglePostPrompt } from "@/lib/prompts";
 import { buildProfileContext } from "@/lib/linkedin";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { formatPostBody } from "@/lib/format-post";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
   const effectiveHumanMode =
     post.humanModeOverride !== null && post.humanModeOverride !== undefined
       ? post.humanModeOverride
-      : (user.humanMode ?? false);
+      : (user.humanMode ?? true);
 
   const profileContext = buildProfileContext(user);
   const prompt = buildSinglePostPrompt(
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
       where: { id: postId },
       data: {
         title: generated.title,
-        body: generated.body,
+        body: formatPostBody(generated.body),
         hashtags: JSON.stringify(generated.hashtags),
         imagePrompt: generated.imagePrompt,
       },

@@ -118,15 +118,21 @@ export async function POST(req: NextRequest) {
     const raw = await generateText(prompt);
     const strategy = parseJSON(raw);
 
-    const plan = await prisma.contentPlan.upsert({
-      where: { userId_weekStart: { userId, weekStart } },
-      create: {
-        userId,
-        weekStart,
-        strategy: JSON.stringify(strategy),
-      },
-      update: { strategy: JSON.stringify(strategy) },
+    const existingPlan = await prisma.contentPlan.findFirst({
+      where: { userId, weekStart, companyProfileId: null },
     });
+    const plan = existingPlan
+      ? await prisma.contentPlan.update({
+          where: { id: existingPlan.id },
+          data: { strategy: JSON.stringify(strategy) },
+        })
+      : await prisma.contentPlan.create({
+          data: {
+            userId,
+            weekStart,
+            strategy: JSON.stringify(strategy),
+          },
+        });
 
     return NextResponse.json({
       plan,

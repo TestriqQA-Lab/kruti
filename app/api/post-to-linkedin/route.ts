@@ -45,11 +45,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Parse carousel images (JSON string) so multi-image posts publish all slides.
+  let images: string[] | null = null;
+  if (post.images) {
+    try {
+      const parsed = JSON.parse(post.images);
+      if (Array.isArray(parsed)) {
+        images = parsed.filter((u): u is string => typeof u === "string" && !!u);
+      }
+    } catch {
+      /* images not valid JSON — ignore */
+    }
+  }
+
   const result = await postToLinkedIn(session.user.id, {
     title: post.title,
     body: post.body,
     hashtags: post.hashtags,
     imageUrl: post.imageUrl,
+    images,
     customSignature: post.customSignature,
   });
 

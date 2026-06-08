@@ -16,6 +16,7 @@ import { getNextScheduledSlots } from "@/lib/timezone";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { getMobileUserId } from "@/lib/mobileAuth";
+import { formatPostBody } from "@/lib/format-post";
 
 const POST_LIMIT_PER_CYCLE = 30;
 
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
   };
 
   const profileContext = buildProfileContext(user);
-  const humanMode = user.humanMode ?? false;
+  const humanMode = user.humanMode ?? true;
   const allowedTypes = deriveAllowedPostTypes(user.contentStyles);
 
   const prompt = buildPostsPrompt(
@@ -145,24 +146,25 @@ export async function POST(req: NextRequest) {
 
     const weekStart = new Date(plan.weekStart);
     const timezone = user.timezone || "Asia/Kolkata";
+    // Request one unique slot per post so two posts never share a timestamp
+    // (the modulo wrap could give two posts the same scheduledAt → cron
+    // published them together).
     const postingSlots = getNextScheduledSlots(
       weekStart,
       schedule.days,
       schedule.time,
       timezone,
+      posts.length,
     );
 
     const createdPosts = await Promise.all(
       posts.map(async (post, idx) => {
-        let scheduledAt: Date | undefined;
-        if (postingSlots.length > 0) {
-          scheduledAt = postingSlots[idx % postingSlots.length];
-        }
+        const scheduledAt: Date | undefined = postingSlots[idx];
         return prisma.post.create({
           data: {
             planId: plan.id,
             title: post.title,
-            body: post.body,
+            body: formatPostBody(post.body),
             hashtags: JSON.stringify(post.hashtags),
             postType: post.postType,
             imagePrompt: post.imagePrompt,

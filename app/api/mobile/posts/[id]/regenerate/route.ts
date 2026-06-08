@@ -15,15 +15,7 @@ import { getMobileUserId } from "@/lib/mobileAuth";
 import { generateText, parseJSON } from "@/lib/gemini";
 import { buildRestylePrompt } from "@/lib/prompts";
 import { buildProfileContext } from "@/lib/linkedin";
-
-// Remove any Markdown asterisks the model might still emit.
-function stripStars(t: string): string {
-  if (!t) return t;
-  return t
-    .replace(/^[ \t]*\*+[ \t]*/gm, "") // "* " bullets at line start
-    .replace(/\*+/g, "") // any remaining * / ** emphasis
-    .replace(/[ \t]+$/gm, ""); // trim trailing spaces left behind
-}
+import { formatPostBody } from "@/lib/format-post";
 
 export async function POST(
   req: NextRequest,
@@ -48,7 +40,7 @@ export async function POST(
     let mode: boolean =
       post.humanModeOverride !== null && post.humanModeOverride !== undefined
         ? post.humanModeOverride
-        : (user.humanMode ?? false);
+        : (user.humanMode ?? true);
     try {
       const body = await req.json().catch(() => ({}));
       if (body && typeof body.humanMode === "boolean") {
@@ -96,7 +88,7 @@ export async function POST(
       );
     }
 
-    const cleanBody = stripStars(generated.body);
+    const cleanBody = formatPostBody(generated.body);
     const cleanHashtags = Array.isArray(generated.hashtags)
       ? generated.hashtags.map((h) => String(h).replace(/[#*]/g, "").trim())
       : [];

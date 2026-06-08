@@ -8,6 +8,7 @@ import { buildProfileContext } from "@/lib/linkedin";
 import { getNextScheduledSlots } from "@/lib/timezone";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { formatPostBody } from "@/lib/format-post";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
   };
 
   const profileContext = buildProfileContext(user);
-  const humanMode = user.humanMode ?? false;
+  const humanMode = user.humanMode ?? true;
 
   const allowedTypes = deriveAllowedPostTypes(user.contentStyles);
 
@@ -116,21 +117,20 @@ export async function POST(req: NextRequest) {
     // Schedule posts on the user's chosen posting days using their timezone and preferred time
     const weekStart = new Date(plan.weekStart);
     const timezone = user.timezone || "Asia/Kolkata";
-    const postingSlots = getNextScheduledSlots(weekStart, schedule.days, schedule.time, timezone);
+    // Request one unique slot per post so two posts never share a timestamp
+    // (the modulo wrap could give two posts the same scheduledAt → cron
+    // published them together).
+    const postingSlots = getNextScheduledSlots(weekStart, schedule.days, schedule.time, timezone, posts.length);
 
-    // Create posts, cycling through available slots if fewer slots than posts
     const createdPosts = await Promise.all(
       posts.map(async (post, idx) => {
-        let scheduledAt: Date | undefined;
-        if (postingSlots.length > 0) {
-          scheduledAt = postingSlots[idx % postingSlots.length];
-        }
+        const scheduledAt: Date | undefined = postingSlots[idx];
 
         return prisma.post.create({
           data: {
             planId: plan.id,
             title: post.title,
-            body: post.body,
+            body: formatPostBody(post.body),
             hashtags: JSON.stringify(post.hashtags),
             postType: post.postType,
             imagePrompt: post.imagePrompt,

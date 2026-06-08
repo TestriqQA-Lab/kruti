@@ -101,7 +101,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
   const [targetAudience, setTargetAudience] = useState(user?.targetAudience ?? "");
 
   // Human mode
-  const [humanMode, setHumanMode] = useState(user?.humanMode ?? false);
+  const [humanMode, setHumanMode] = useState(user?.humanMode ?? true);
 
   // Post signature
   const [postSignature, setPostSignature] = useState(user?.postSignature ?? "");

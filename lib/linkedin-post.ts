@@ -15,6 +15,7 @@ export async function postToLinkedIn(
     body: string;
     hashtags: string | null;
     imageUrl: string | null;
+    images?: string[] | null; // Carousel — multiple image URLs (multi-image post)
     customSignature?: string | null;
   }
 ): Promise<LinkedInPostResult> {
@@ -93,25 +94,33 @@ export async function postToLinkedIn(
     },
   };
 
-  // If image exists (Blob URL or any HTTPS URL), upload to LinkedIn first
-  if (post.imageUrl && post.imageUrl.startsWith("https://")) {
+  // Collect the image URLs to publish: prefer the carousel `images` array,
+  // fall back to the single `imageUrl`. De-dupe and keep only HTTPS URLs.
+  const imageUrls = Array.from(
+    new Set(
+      [...(post.images ?? []), post.imageUrl].filter(
+        (u): u is string => !!u && u.startsWith("https://"),
+      ),
+    ),
+  ).slice(0, 9); // LinkedIn caps a multi-image post at 9
+
+  if (imageUrls.length > 0) {
     try {
-      const assetUrn = await uploadImageToLinkedIn(
-        accessToken,
-        linkedinId,
-        post.imageUrl
-      );
-      if (assetUrn) {
+      // Upload each image, keep only the ones that succeeded (in order).
+      const assets: string[] = [];
+      for (const url of imageUrls) {
+        const assetUrn = await uploadImageToLinkedIn(accessToken, linkedinId, url);
+        if (assetUrn) assets.push(assetUrn);
+      }
+      if (assets.length > 0) {
         ugcPost.specificContent = {
           "com.linkedin.ugc.ShareContent": {
             shareCommentary: { text: fullText },
             shareMediaCategory: "IMAGE",
-            media: [
-              {
-                status: "READY",
-                media: assetUrn,
-              },
-            ],
+            media: assets.map((assetUrn) => ({
+              status: "READY",
+              media: assetUrn,
+            })),
           },
         };
       }

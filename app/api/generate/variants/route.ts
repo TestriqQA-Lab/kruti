@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   const effectiveHumanMode =
     post.humanModeOverride !== null && post.humanModeOverride !== undefined
       ? post.humanModeOverride
-      : (user.humanMode ?? false);
+      : (user.humanMode ?? true);
 
   const profileContext = buildProfileContext(user);
 

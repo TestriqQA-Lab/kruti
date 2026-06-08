@@ -49,6 +49,12 @@ export async function GET(req: NextRequest) {
   const used = sub?.postsGeneratedThisCycle ?? 0;
   const postsRemaining = Math.max(0, POST_LIMIT_PER_CYCLE - used);
 
+  // Posts per generation batch = number of posting days (mirrors web).
+  const schedule = user.postingSchedule
+    ? (JSON.parse(user.postingSchedule) as { days: string[]; time: string })
+    : { days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], time: "09:00" };
+  const postsPerBatch = Math.max(1, schedule.days.length);
+
   // Latest strategy (most recent plan)
   let latestStrategy: string | null = null;
   const latestPlan = plans[0];
@@ -80,6 +86,7 @@ export async function GET(req: NextRequest) {
     postsThisCycle: used,
     cycleLimit: POST_LIMIT_PER_CYCLE,
     cycleResetDate: sub?.cyclePostsResetAt ?? null,
+    postsPerBatch,
     latestStrategy,
   });
 }

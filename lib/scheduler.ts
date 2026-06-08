@@ -74,11 +74,25 @@ export async function runAutoPost(): Promise<{ posted: number; failed: number; s
     }
 
     console.log(`[Cron:auto-post] Posting ${post.id} for user ${post.plan.userId}`);
+    // Parse the carousel images array (JSON string) so multi-image posts
+    // publish all slides, not just the cover image.
+    let images: string[] | null = null;
+    if (post.images) {
+      try {
+        const parsed = JSON.parse(post.images);
+        if (Array.isArray(parsed)) {
+          images = parsed.filter((u): u is string => typeof u === "string" && !!u);
+        }
+      } catch {
+        /* images not valid JSON — ignore */
+      }
+    }
     const result = await postToLinkedIn(post.plan.userId, {
       title: post.title,
       body: post.body,
       hashtags: post.hashtags,
       imageUrl: post.imageUrl,
+      images,
     });
 
     await prisma.post.update({
