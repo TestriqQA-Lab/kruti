@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     // Update the post with the new image URL
     await prisma.post.update({
       where: { id: postId },
-      data: { imageUrl: blob.url },
+      data: { imageUrl: blob.url, documentUrl: null, documentName: null },
     });
 
     return NextResponse.json({ imageUrl: blob.url });

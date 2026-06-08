@@ -18,6 +18,8 @@ export async function postToLinkedIn(
     hashtags: string | null;
     imageUrl: string | null;
     carouselImages?: string[] | null; // multiple images → multi-image (carousel) post
+    documentUrl?: string | null; // PDF → LinkedIn document (swipeable PDF carousel) post
+    documentName?: string | null;
     customSignature?: string | null;
   }
 ): Promise<LinkedInPostResult> {
@@ -109,7 +111,9 @@ export async function postToLinkedIn(
     },
   };
 
-  // Collect images: a multi-image carousel takes precedence over a single image.
+  // Media precedence: PDF document > image carousel > single image.
+  const docUrl =
+    post.documentUrl && post.documentUrl.startsWith("https://") ? post.documentUrl : null;
   const carousel = (post.carouselImages ?? []).filter((u) => !!u && u.startsWith("https://"));
   const images =
     carousel.length > 0
@@ -118,7 +122,30 @@ export async function postToLinkedIn(
       ? [post.imageUrl]
       : [];
 
-  if (images.length > 0) {
+  if (docUrl) {
+    // PDF document post — renders as a swipeable carousel on LinkedIn.
+    try {
+      const assetUrn = await uploadDocumentToLinkedIn(accessToken, linkedinId, docUrl);
+      if (assetUrn) {
+        ugcPost.specificContent = {
+          "com.linkedin.ugc.ShareContent": {
+            shareCommentary: { text: fullText },
+            shareMediaCategory: "DOCUMENT",
+            media: [
+              {
+                status: "READY",
+                media: assetUrn,
+                title: { text: post.documentName || "Document" },
+              },
+            ],
+          },
+        };
+      }
+    } catch (docErr) {
+      console.error("Document upload to LinkedIn failed, posting without document:", docErr);
+      // Continue posting without the document
+    }
+  } else if (images.length > 0) {
     try {
       const assetUrns = (
         await Promise.all(images.map((u) => uploadImageToLinkedIn(accessToken, linkedinId, u)))
@@ -245,4 +272,72 @@ async function uploadImageToLinkedIn(
   }
 
   return asset; // e.g. "urn:li:digitalmediaAsset:C5422AQG..."
+}
+
+async function uploadDocumentToLinkedIn(
+  accessToken: string,
+  linkedinId: string,
+  documentUrl: string
+): Promise<string | null> {
+  // Step 1: Register a document upload with LinkedIn
+  const registerRes = await fetch(
+    "https://api.linkedin.com/v2/assets?action=registerUpload",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "X-Restli-Protocol-Version": "2.0.0",
+      },
+      body: JSON.stringify({
+        registerUploadRequest: {
+          recipes: ["urn:li:digitalmediaRecipe:feedshare-document"],
+          owner: `urn:li:person:${linkedinId}`,
+          serviceRelationships: [
+            { relationshipType: "OWNER", identifier: "urn:li:userGeneratedContent" },
+          ],
+        },
+      }),
+    }
+  );
+
+  if (!registerRes.ok) {
+    console.error("LinkedIn document register failed:", await registerRes.text());
+    return null;
+  }
+
+  const registerData = await registerRes.json();
+  const uploadUrl =
+    registerData.value?.uploadMechanism?.[
+      "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+    ]?.uploadUrl;
+  const asset = registerData.value?.asset;
+  if (!uploadUrl || !asset) {
+    console.error("LinkedIn document register: missing uploadUrl or asset");
+    return null;
+  }
+
+  // Step 2: Fetch the PDF from the Blob URL and upload the binary to LinkedIn
+  const docRes = await fetch(documentUrl);
+  if (!docRes.ok) {
+    console.error("Failed to fetch PDF from Blob URL:", documentUrl);
+    return null;
+  }
+  const docBuffer = await docRes.arrayBuffer();
+
+  const uploadRes = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/pdf",
+    },
+    body: docBuffer,
+  });
+
+  if (!uploadRes.ok) {
+    console.error("LinkedIn document upload PUT failed:", await uploadRes.text());
+    return null;
+  }
+
+  return asset; // e.g. "urn:li:digitalmediaAsset:..."
 }

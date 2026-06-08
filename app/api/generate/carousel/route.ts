@@ -74,6 +74,9 @@ export async function POST(req: NextRequest) {
       imageUrl: images[0], // first slide doubles as the single-image fallback
       imagePrompt: basePrompt,
       imageGenCount: post.imageGenCount + 1,
+      // Images and a PDF document are mutually exclusive on LinkedIn
+      documentUrl: null,
+      documentName: null,
     },
   });
 

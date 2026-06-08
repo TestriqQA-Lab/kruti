@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Repeat2,
   Send,
+  FileText,
 } from "lucide-react";
 import Image from "next/image";
 import { formatPostBody, cleanInline } from "@/lib/format";
@@ -24,6 +25,7 @@ interface LinkedInPostPreviewProps {
   postSignature: string | null;
   imageUrl: string | null;
   carouselImages?: string[];
+  documentName?: string | null;
   watermark?: string | null;
 }
 
@@ -46,6 +48,7 @@ export default function LinkedInPostPreview({
   postSignature,
   imageUrl,
   carouselImages = [],
+  documentName,
   watermark,
 }: LinkedInPostPreviewProps) {
   const [expanded, setExpanded] = useState(false);
@@ -162,8 +165,21 @@ export default function LinkedInPostPreview({
           </div>
         )}
 
-        {/* Post image(s) — carousel slider when multiple, else single image */}
-        {carouselImages.length > 0 ? (
+        {/* Post media — PDF document, else carousel slider, else single image */}
+        {documentName ? (
+          <div className="mx-4 mb-3 rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div className="aspect-[1.91/1] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-white/[0.06] dark:to-white/[0.02] flex items-center justify-center">
+              <FileText className="w-12 h-12 text-slate-400 dark:text-slate-500" />
+            </div>
+            <div className="px-3 py-2 border-t border-slate-200 dark:border-white/10 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span className="text-[13px] font-medium text-slate-700 dark:text-slate-200 truncate">
+                {documentName}
+              </span>
+              <span className="ml-auto text-[11px] text-slate-400">PDF</span>
+            </div>
+          </div>
+        ) : carouselImages.length > 0 ? (
           <div className="relative w-full aspect-square bg-slate-100 dark:bg-white/[0.06] select-none">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
