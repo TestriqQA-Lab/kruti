@@ -83,8 +83,8 @@ export default function PostEditorClient({
   const [imageUrl, setImageUrl] = useState(post.imageUrl);
   const [imageHistory, setImageHistory] = useState<string[]>(post.imageUrl ? [post.imageUrl] : []);
   const [historyIndex, setHistoryIndex] = useState<number>(post.imageUrl ? 0 : -1);
-  // null = use user default, true = on, false = off
-  const [humanMode, setHumanMode] = useState<boolean | null>(post.humanModeOverride ?? null);
+  // true = Human Mode (default), false = AI Mode
+  const [humanMode, setHumanMode] = useState<boolean>(post.humanModeOverride ?? true);
   const [signature, setSignature] = useState(
     post.customSignature !== null ? (post.customSignature || "") : (postSignature || "")
   );
@@ -289,12 +289,19 @@ export default function PostEditorClient({
     }
   }
 
-  function cycleHumanMode() {
-    setHumanMode((v) => {
-      if (v === null) return true;
-      if (v === true) return false;
-      return null;
+  async function handleToggleHumanMode() {
+    if (isPublished || regenerating) return;
+    const next = !humanMode;
+    setHumanMode(next);
+    cancelAutoSave();
+    // Persist the per-post mode so the regenerate endpoint uses it,
+    // then regenerate the post content in the selected (Human / AI) mode.
+    await fetch(`/api/content/${post.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ humanModeOverride: next }),
     });
+    await handleRegenerate();
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -448,10 +455,7 @@ export default function PostEditorClient({
     isPublished,
   });
 
-  const humanModeLabel =
-    humanMode === null ? "Default" : humanMode ? "On" : "Off";
-  const humanModeBg =
-    humanMode === true ? "bg-blue-600" : humanMode === false ? "bg-slate-200 dark:bg-white/[0.06]" : "bg-amber-400";
+  const humanModeBg = humanMode ? "bg-blue-600" : "bg-slate-300 dark:bg-white/[0.12]";
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -1021,38 +1025,39 @@ export default function PostEditorClient({
             )}
           </div>
 
-          {/* Human Mode Toggle */}
+          {/* Content mode toggle: Human (default) ↔ AI */}
           <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Human Mode</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Makes AI content less detectable</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  {humanMode ? "Human Mode" : "AI Mode"}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {humanMode ? "Natural, human-written style" : "Standard AI-generated style"}
+                </p>
               </div>
               <button
-                onClick={cycleHumanMode}
-                disabled={isPublished}
+                onClick={handleToggleHumanMode}
+                disabled={isPublished || regenerating}
                 className={cn(
                   "w-12 h-6 rounded-full transition-colors relative flex items-center",
                   humanModeBg,
-                  isPublished && "opacity-50 cursor-not-allowed"
+                  (isPublished || regenerating) && "opacity-50 cursor-not-allowed"
                 )}
-                title="Cycle human mode: Default → On → Off"
+                title="Toggle Human / AI mode (regenerates this post)"
               >
                 <span
                   className={cn(
                     "w-4 h-4 bg-white rounded-full shadow transition-transform mx-1",
-                    humanMode === true ? "translate-x-6" : humanMode === false ? "translate-x-0" : "translate-x-3"
+                    humanMode ? "translate-x-6" : "translate-x-0"
                   )}
                 />
               </button>
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-              {humanMode === null
-                ? "Using your account default setting"
-                : humanMode
-                ? "Enabled for this post"
-                : "Disabled for this post"}
-              {" "}<span className="font-medium">({humanModeLabel})</span>
+              {regenerating
+                ? `Regenerating in ${humanMode ? "Human" : "AI"} mode...`
+                : "Toggling regenerates this post in the selected mode."}
             </p>
           </div>
         </div>

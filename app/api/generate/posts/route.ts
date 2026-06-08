@@ -8,6 +8,7 @@ import { buildProfileContext } from "@/lib/linkedin";
 import { getNextScheduledSlots } from "@/lib/timezone";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { formatPostBody, cleanInline } from "@/lib/format";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -84,7 +85,9 @@ export async function POST(req: NextRequest) {
   };
 
   const profileContext = buildProfileContext(user);
-  const humanMode = user.humanMode ?? false;
+  // Posts are generated in Human Mode by default; the per-post editor toggle
+  // can switch an individual post to AI mode (which regenerates it).
+  const humanMode = true;
 
   const allowedTypes = deriveAllowedPostTypes(user.contentStyles);
 
@@ -129,13 +132,14 @@ export async function POST(req: NextRequest) {
         return prisma.post.create({
           data: {
             planId: plan.id,
-            title: post.title,
-            body: post.body,
+            title: cleanInline(post.title),
+            body: formatPostBody(post.body),
             hashtags: JSON.stringify(post.hashtags),
             postType: post.postType,
             imagePrompt: post.imagePrompt,
             weekNumber: 1,
             scheduledAt,
+            humanModeOverride: true, // default to Human Mode; editor toggle can switch to AI
             status: "draft", // user must review, add image, and mark as ready
           },
         });
