@@ -58,6 +58,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           ? JSON.stringify(body.carouselImages)
           : null,
       }),
+      ...("documentUrl" in body && { documentUrl: body.documentUrl ?? null }),
+      ...("documentName" in body && { documentName: body.documentName ?? null }),
       ...("humanModeOverride" in body && { humanModeOverride: body.humanModeOverride }),
       ...("customSignature" in body && { customSignature: body.customSignature }),
       ...("imagePrompt" in body && { imagePrompt: body.imagePrompt }),

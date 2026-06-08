@@ -15,6 +15,7 @@ import {
   AlertCircle,
   ExternalLink,
   Upload,
+  FileText,
   X,
   ZoomIn,
   Trash2,
@@ -43,6 +44,8 @@ interface Post {
   scheduledAt: Date | string | null;
   imageUrl: string | null;
   carouselImages: string | null;
+  documentUrl: string | null;
+  documentName: string | null;
   imagePrompt: string | null;
   imageGenCount: number;
   weekNumber: number;
@@ -95,6 +98,9 @@ export default function PostEditorClient({
   });
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [generatingCarousel, setGeneratingCarousel] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(post.documentUrl);
+  const [documentName, setDocumentName] = useState<string | null>(post.documentName);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
   // true = Human Mode (default), false = AI Mode
   const [humanMode, setHumanMode] = useState<boolean>(post.humanModeOverride ?? true);
   const [signature, setSignature] = useState(
@@ -141,6 +147,7 @@ export default function PostEditorClient({
   const [showRepurpose, setShowRepurpose] = useState(false);
   const [generatingRepurpose, setGeneratingRepurpose] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   // Weekend detection
   const isWeekend = (() => {
@@ -233,6 +240,8 @@ export default function PostEditorClient({
         setImageUrl(data.imageUrl);
         setImageHistory(prev => [...prev, data.imageUrl]);
         setHistoryIndex(imageHistory.length);
+        setDocumentUrl(null);
+        setDocumentName(null);
         const remaining = data.remaining ?? 0;
         setImageGenRemaining(remaining);
         toast(
@@ -265,6 +274,8 @@ export default function PostEditorClient({
         setCarouselImages(data.carouselImages);
         setCarouselIndex(0);
         setImageUrl(data.carouselImages[0]);
+        setDocumentUrl(null);
+        setDocumentName(null);
         setImageGenRemaining(data.remaining ?? 0);
         toast(`Carousel created (${data.carouselImages.length} images)`, "success");
         router.refresh();
@@ -362,6 +373,8 @@ export default function PostEditorClient({
         setImageUrl(data.imageUrl);
         setImageHistory(prev => [...prev, data.imageUrl]);
         setHistoryIndex(imageHistory.length);
+        setDocumentUrl(null);
+        setDocumentName(null);
         toast("Image uploaded", "success");
         router.refresh();
       } else {
@@ -390,6 +403,52 @@ export default function PostEditorClient({
       router.refresh();
     } catch {
       toast("Failed to remove image", "error");
+    }
+  }
+
+  async function handleUploadDocument(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append("document", file);
+      formData.append("postId", post.id);
+      const res = await fetch("/api/upload/document", { method: "POST", body: formData });
+      const data = await res.json();
+      if (res.ok && data.documentUrl) {
+        setDocumentUrl(data.documentUrl);
+        setDocumentName(data.documentName);
+        // A document replaces image media — reflect the server-side clear locally
+        setImageUrl(null);
+        setCarouselImages([]);
+        setCarouselIndex(0);
+        toast("PDF uploaded", "success");
+        router.refresh();
+      } else {
+        toast(data.error || "PDF upload failed", "error");
+      }
+    } catch {
+      toast("PDF upload failed. Please try again.", "error");
+    } finally {
+      setUploadingDoc(false);
+      if (docInputRef.current) docInputRef.current.value = "";
+    }
+  }
+
+  async function handleRemoveDocument() {
+    try {
+      await fetch(`/api/content/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentUrl: null, documentName: null }),
+      });
+      setDocumentUrl(null);
+      setDocumentName(null);
+      toast("PDF removed", "info");
+      router.refresh();
+    } catch {
+      toast("Failed to remove PDF", "error");
     }
   }
 
@@ -879,7 +938,35 @@ export default function PostEditorClient({
               )}
             </div>
             <div className="p-4">
-              {carouselImages.length > 0 ? (
+              {documentUrl ? (
+                <div className="rounded-xl border border-slate-200 dark:border-white/10 p-4 flex items-center gap-3 bg-slate-50 dark:bg-white/[0.04]">
+                  <div className="w-10 h-12 rounded bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-400 flex-shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+                      {documentName || "Document.pdf"}
+                    </p>
+                    <a
+                      href={documentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      View PDF
+                    </a>
+                  </div>
+                  {!isPublished && (
+                    <button
+                      onClick={handleRemoveDocument}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors flex-shrink-0"
+                      title="Remove PDF"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ) : carouselImages.length > 0 ? (
                 <div>
                   <div className="relative aspect-square rounded-xl overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1048,8 +1135,28 @@ export default function PostEditorClient({
                       ? "Regenerate Carousel"
                       : "Carousel (4 images)"}
                   </button>
+                  <input
+                    ref={docInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleUploadDocument}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => docInputRef.current?.click()}
+                    disabled={uploadingDoc}
+                    className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] disabled:opacity-70 transition-colors dark:text-slate-300"
+                    title="Upload a PDF — published as a LinkedIn document (swipeable PDF carousel)"
+                  >
+                    {uploadingDoc ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <FileText className="w-3.5 h-3.5 text-red-500" />
+                    )}
+                    {uploadingDoc ? "Uploading PDF..." : documentUrl ? "Replace PDF" : "Upload PDF"}
+                  </button>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 text-center">
-                    JPG, PNG, GIF, WebP &middot; Max 5MB
+                    JPG, PNG, GIF, WebP &middot; Max 5MB &middot; PDF &middot; Max 25MB
                   </p>
                   <p className={cn(
                     "text-[10px] mt-1 text-center",
@@ -1177,6 +1284,7 @@ export default function PostEditorClient({
         postSignature={signature}
         imageUrl={imageUrl}
         carouselImages={carouselImages}
+        documentName={documentUrl ? documentName || "Document.pdf" : null}
         watermark={showWatermark ? WATERMARK_TEXT : null}
       />
 

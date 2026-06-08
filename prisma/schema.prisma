@@ -115,6 +115,8 @@ model Post {
   imagePrompt       String?     @db.Text
   imageGenCount     Int         @default(0) // number of times image was generated for this post
   carouselImages    String?     @db.Text // JSON array of image URLs for a multi-image carousel post
+  documentUrl       String?     // uploaded PDF (published as a LinkedIn document / PDF carousel)
+  documentName      String?     // original PDF filename, for display
   hashtags          String?     @db.Text // JSON array string
   postType          String      // thought-leadership | tips | story | poll | carousel
   scheduledAt       DateTime?

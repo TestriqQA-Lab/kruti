@@ -71,6 +71,9 @@ export async function POST(req: NextRequest) {
         imageUrl,
         imagePrompt,
         imageGenCount: post.imageGenCount + 1,
+        // An image and a PDF document are mutually exclusive on LinkedIn
+        documentUrl: null,
+        documentName: null,
       },
     });
   }
