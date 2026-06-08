@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateCarouselImages, buildImagePrompt, lastImageGenError } from "@/lib/imagen";
+import { appendImageHistory } from "@/lib/image-history";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
@@ -74,6 +75,8 @@ export async function POST(req: NextRequest) {
       imageUrl: images[0], // first slide doubles as the single-image fallback
       imagePrompt: basePrompt,
       imageGenCount: post.imageGenCount + 1,
+      // Keep the whole carousel set in history so it can be restored later
+      imageHistory: appendImageHistory(post.imageHistory, images),
       // Images and a PDF document are mutually exclusive on LinkedIn
       documentUrl: null,
       documentName: null,
