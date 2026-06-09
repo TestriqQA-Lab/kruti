@@ -27,6 +27,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import Footer from "@/components/Footer";
+import HeroWorkspaceAnimation from "@/components/HeroWorkspaceAnimation";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Content
@@ -181,12 +182,6 @@ const pricingTrust = [
   { icon: ShieldCheck, label: "Secure payments via Razorpay" },
 ];
 
-const mockPosts = [
-  { title: "3 lessons from scaling our team 5 → 50", type: "Story", status: "Ready", dot: "bg-blue-500" },
-  { title: "The hiring mistake most founders make", type: "Tips", status: "Scheduled", dot: "bg-violet-500" },
-  { title: "Why we stopped chasing vanity metrics", type: "Thought", status: "Draft", dot: "bg-amber-500" },
-  { title: "A simple framework for better 1:1s", type: "How-to", status: "Published", dot: "bg-emerald-500" },
-];
 
 // ──────────────────────────────────────────────────────────────────────────
 // Building blocks
@@ -238,16 +233,6 @@ function Section({
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    Ready: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
-    Scheduled: "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300",
-    Draft: "bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400",
-    Published: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
-  };
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${map[status]}`}>{status}</span>;
-}
-
 function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -272,39 +257,6 @@ function FAQItem({ q, a }: { q: string; a: string }) {
         <div className="overflow-hidden">
           <p className="text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">{a}</p>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ProductPanel() {
-  return (
-    <div className="animate-fade-up [animation-delay:160ms] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_-28px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/[0.03]">
-      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 dark:border-white/10">
-        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-          <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Content workspace
-        </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
-          <Sparkles className="h-3 w-3" /> 5 posts ready
-        </span>
-      </div>
-      <div className="divide-y divide-slate-100 dark:divide-white/[0.06]">
-        {mockPosts.map((p, i) => (
-          <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-            <span className={`h-2 w-2 flex-shrink-0 rounded-full ${p.dot}`} />
-            <span className="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-200">{p.title}</span>
-            <span className="hidden rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-white/5 dark:text-slate-400 sm:inline">
-              {p.type}
-            </span>
-            <StatusPill status={p.status} />
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-400 dark:border-white/10">
-        <span>This week · Mon-Fri · 9:00 AM</span>
-        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-          <Check className="h-3.5 w-3.5" /> Auto-publishing on
-        </span>
       </div>
     </div>
   );
@@ -463,7 +415,7 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
             </div>
           </div>
           <div className="animate-fade-up [animation-delay:120ms]">
-            <ProductPanel />
+            <HeroWorkspaceAnimation />
           </div>
         </div>
       </section>
