@@ -1,17 +1,23 @@
 /**
- * GET    /api/mobile/posts/[id]  — single post
- * PATCH  /api/mobile/posts/[id]  — update a post (title/body/status/humanMode/...)
- * DELETE /api/mobile/posts/[id]  — delete a post
+ * POST /api/mobile/posts/[id]/publish
  *
- * Place at: app/api/mobile/posts/[id]/route.ts
- * (Delete the stray app/api/mobile/posts/[id]/route.ts.ts — it's a duplicate.)
+ * Publishes a post to LinkedIn right away (the "Publish to LinkedIn" button in
+ * the mobile editor). Supports single image, multi-image carousels (via the
+ * versioned Posts API) and PDF document posts — same as the auto-post cron.
+ *
+ * Returns the REAL LinkedIn error on failure so the app can show it.
+ *
+ * Place at: app/api/mobile/posts/[id]/publish/route.ts
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMobileUserId } from "@/lib/mobileAuth";
+import { postToLinkedIn } from "@/lib/linkedin-post";
 
-export async function GET(
+export const maxDuration = 60;
+
+export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
@@ -21,111 +27,75 @@ export async function GET(
 
   const post = await prisma.post.findFirst({
     where: { id: params.id, plan: { userId } },
-    include: { plan: true },
   });
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(post);
-}
+  if (post.postedToLinkedIn)
+    return NextResponse.json(
+      { error: "This post is already published to LinkedIn." },
+      { status: 400 },
+    );
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  const userId = await getMobileUserId(req);
-  if (!userId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const body = await req.json();
-
-  const VALID_STATUSES = ["draft", "ready", "published"];
-  if ("status" in body && !VALID_STATUSES.includes(body.status)) {
-    return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
-  }
-
-  const existing = await prisma.post.findFirst({
-    where: { id: params.id, plan: { userId } },
+  // Atomic claim so the cron and a manual tap can't double-post.
+  const claim = await prisma.post.updateMany({
+    where: { id: post.id, postedToLinkedIn: false, status: { not: "publishing" } },
+    data: { status: "publishing" },
   });
-  if (!existing)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (claim.count === 0)
+    return NextResponse.json(
+      { error: "This post is already being published.", success: false },
+      { status: 409 },
+    );
 
-  // hashtags may arrive as array or space-joined string → store JSON array string.
-  let hashtagsValue: string | null | undefined = undefined;
-  if ("hashtags" in body) {
-    if (body.hashtags == null) {
-      hashtagsValue = null;
-    } else if (Array.isArray(body.hashtags)) {
-      hashtagsValue = JSON.stringify(
-        body.hashtags.map((h: string) => h.replace(/^#/, "")),
-      );
-    } else if (typeof body.hashtags === "string") {
-      const arr = body.hashtags
-        .split(/[\s,]+/)
-        .map((h: string) => h.replace(/^#/, "").trim())
-        .filter(Boolean);
-      hashtagsValue = JSON.stringify(arr);
+  // Parse the carousel images (JSON string) so multi-image posts publish all
+  // slides, not just the cover.
+  let images: string[] | null = null;
+  if (post.images) {
+    try {
+      const parsed = JSON.parse(post.images);
+      if (Array.isArray(parsed)) {
+        images = parsed.filter(
+          (u): u is string => typeof u === "string" && !!u,
+        );
+      }
+    } catch {
+      /* not valid JSON — ignore */
     }
   }
 
-  // Per-post Human Mode override: true | false | null (null = inherit user default).
-  let humanOverride: boolean | null | undefined = undefined;
-  if ("humanModeOverride" in body) {
-    humanOverride =
-      body.humanModeOverride === null ? null : !!body.humanModeOverride;
-  }
+  const result = await postToLinkedIn(userId, {
+    title: post.title,
+    body: post.body,
+    hashtags: post.hashtags,
+    imageUrl: post.imageUrl,
+    images,
+    documentUrl: post.documentUrl,
+    documentName: post.documentName,
+    customSignature: post.customSignature,
+  });
 
-  // Carousel images may arrive as an array of URLs OR an already-stringified
-  // JSON array → always store as a JSON array string (or null to clear).
-  let imagesValue: string | null | undefined = undefined;
-  if ("images" in body) {
-    if (body.images == null) {
-      imagesValue = null;
-    } else if (Array.isArray(body.images)) {
-      const arr = body.images.filter(
-        (u: unknown): u is string => typeof u === "string" && u.length > 0,
-      );
-      imagesValue = arr.length ? JSON.stringify(arr) : null;
-    } else if (typeof body.images === "string") {
-      imagesValue = body.images;
-    }
-  }
-
-  const updated = await prisma.post.update({
-    where: { id: params.id },
+  await prisma.post.update({
+    where: { id: post.id },
     data: {
-      ...("title" in body && { title: body.title }),
-      ...("body" in body && { body: body.body }),
-      ...(hashtagsValue !== undefined && { hashtags: hashtagsValue }),
-      ...("status" in body && { status: body.status }),
-      ...("scheduledAt" in body && {
-        scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
-      }),
-      ...("imageUrl" in body && { imageUrl: body.imageUrl }),
-      ...(imagesValue !== undefined && { images: imagesValue }),
-      ...("customSignature" in body && {
-        customSignature: body.customSignature,
-      }),
-      ...("imagePrompt" in body && { imagePrompt: body.imagePrompt }),
-      ...(humanOverride !== undefined && { humanModeOverride: humanOverride }),
+      postedToLinkedIn: result.success,
+      linkedinPostId: result.linkedinPostId ?? undefined,
+      status: result.success ? "published" : "ready",
+      postError: result.error ?? null,
     },
   });
 
-  return NextResponse.json(updated);
-}
+  if (!result.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: result.error || "Failed to publish to LinkedIn.",
+        requiresReauth: result.requiresReauth ?? false,
+      },
+      { status: 502 },
+    );
+  }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  const userId = await getMobileUserId(req);
-  if (!userId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const existing = await prisma.post.findFirst({
-    where: { id: params.id, plan: { userId } },
+  return NextResponse.json({
+    success: true,
+    linkedinPostId: result.linkedinPostId,
   });
-  if (!existing)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  await prisma.post.delete({ where: { id: params.id } });
-  return NextResponse.json({ success: true });
 }

@@ -118,6 +118,11 @@ export async function postToLinkedIn(
     ),
   ).slice(0, 20); // LinkedIn allows up to 20 images in a multi-image post
 
+  console.log(
+    `[linkedin-post] images received: ${(post.images ?? []).length}, ` +
+      `usable URLs: ${imageUrls.length} → ${imageUrls.length >= 2 ? "MULTI-IMAGE (/rest/posts)" : imageUrls.length === 1 ? "single (ugcPosts)" : "text only"}`,
+  );
+
   // 2+ images → a REAL swipeable carousel via the versioned Posts API.
   // (The legacy /v2/ugcPosts endpoint only ever renders ONE image, which is
   // why carousels were posting a single slide.)
