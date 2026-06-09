@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronRight, ChevronLeft, CheckCircle, User, Target, Palette, Users, Save, Sparkles, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, CheckCircle, User, Target, Palette, Users, Save, Sparkles } from "lucide-react";
 import { useToast } from "@/components/Toast";
 
 const INDUSTRIES = [
@@ -80,6 +80,28 @@ const CONTENT_STYLES = [
   "Social Proof / Results",
 ];
 
+// Deterministic target-audience generation — maps the user's first-3-step
+// onboarding answers to a natural-language audience description (no AI/API call).
+const GOAL_AUDIENCE: Record<string, string> = {
+  "Lead Generation": "potential clients and buyers actively looking for solutions",
+  "Network Building": "peers and collaborators open to building genuine professional relationships",
+  "Brand Awareness": "professionals discovering new voices and ideas to follow in their field",
+  "Job Seeking": "hiring managers and recruiters scouting strong talent",
+  "Sales / Business Development": "decision-makers evaluating products, services, and partnerships",
+  "Recruiting Top Talent": "skilled professionals open to new roles and opportunities",
+};
+
+const POSITIONING_VALUE: Record<string, string> = {
+  "Thought Leader": "bold perspectives and a clear point of view on where the industry is heading",
+  "Industry Expert": "deep, credible analysis and technical insight",
+  "Storyteller": "relatable stories and lessons drawn from real experience",
+  "Educator": "practical frameworks and skills they can apply right away",
+  "Entertainer": "sharp insights delivered in an engaging, memorable way",
+  "Contrarian": "fresh takes that challenge conventional thinking",
+  "Practitioner": "hands-on, tactical advice from someone doing the work",
+  "Community Builder": "a sense of community and conversations worth joining",
+};
+
 interface OnboardingWizardProps {
   user: {
     name?: string | null;
@@ -95,7 +117,6 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
-  const [generatingAudience, setGeneratingAudience] = useState(false);
   const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
 
   // Form state
@@ -171,33 +192,33 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
     );
   }
 
-  async function handleGenerateAudience() {
-    setGeneratingAudience(true);
-    try {
-      const res = await fetch("/api/onboarding/generate-audience", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          headline,
-          industry,
-          summary,
-          positioning,
-          contentGoals,
-          contentStyles,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.error || !data.targetAudience) {
-        toast(data.error || "Couldn't generate the audience. Please try again.", "error");
-        return;
-      }
-      setTargetAudience(String(data.targetAudience).slice(0, 300));
-      toast("Target audience generated from your profile", "success");
-    } catch {
-      toast("Couldn't generate the audience. Please try again.", "error");
-    } finally {
-      setGeneratingAudience(false);
+  // Build the target audience from the user's first-3-step answers (headline,
+  // industry, positioning, goals) — fully client-side, no AI/API call.
+  function handleGenerateAudience() {
+    if (!industry.trim() && !positioning && contentGoals.length === 0) {
+      toast("Complete the earlier steps first so we can tailor your audience.", "error");
+      return;
     }
+
+    const who = industry.trim()
+      ? `${industry.trim()} professionals and decision-makers`
+      : "Professionals and decision-makers in your field";
+
+    const goalDescs = contentGoals
+      .map((g) => GOAL_AUDIENCE[g])
+      .filter(Boolean)
+      .slice(0, 2);
+    const goalPart = goalDescs.length ? ` — especially ${goalDescs.join(", and ")}` : "";
+
+    const value = POSITIONING_VALUE[positioning] || "clear, relevant, high-quality content";
+
+    let text = `${who}${goalPart} — who value ${value}.`;
+    // Respect the 300-char field limit; drop the goal detail first if it overflows.
+    if (text.length > 300) text = `${who} who value ${value}.`;
+    text = text.slice(0, 300);
+
+    setTargetAudience(text);
+    toast("Target audience drafted from your profile — tweak it as you like", "success");
   }
 
   async function handleSubmit() {
@@ -296,7 +317,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
             <div className="space-y-5">
               <div>
                 <h2 className="text-xl font-bold font-display text-slate-900 dark:text-white">Confirm your profile</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">We pulled this from LinkedIn — feel free to update it</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Review and complete your details so we can personalize your content</p>
               </div>
 
               {user.image && (
@@ -312,7 +333,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Professional Headline
+                  Professional Headline <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -325,7 +346,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
 
               <div className="relative">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Industry
+                  Industry <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -473,29 +494,9 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
               </div>
 
               <div>
-                <div className="flex items-center justify-between gap-3 mb-1.5">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Target Audience Description
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleGenerateAudience}
-                    disabled={generatingAudience}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {generatingAudience ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Generate from Profile
-                      </>
-                    )}
-                  </button>
-                </div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  Target Audience Description
+                </label>
                 <textarea
                   value={targetAudience}
                   onChange={(e) => setTargetAudience(e.target.value.slice(0, 300))}
@@ -504,6 +505,14 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
                   className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.06] text-slate-900 dark:text-white rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-slate-400 dark:text-slate-500 text-right mt-1">{targetAudience.length}/300</p>
+                <button
+                  type="button"
+                  onClick={handleGenerateAudience}
+                  className="mt-2 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/60 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Generate from Profile
+                </button>
               </div>
 
               {/* Summary of choices */}
@@ -544,7 +553,10 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
           {step < totalSteps ? (
             <button
               onClick={() => setStep((s) => s + 1)}
-              disabled={step === 2 && !positioning}
+              disabled={
+                (step === 1 && (!headline.trim() || !industry.trim())) ||
+                (step === 2 && !positioning)
+              }
               className="flex items-center gap-2 text-sm font-semibold text-white bg-blue-600 px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
