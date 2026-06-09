@@ -421,7 +421,7 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section id="overview" className="relative scroll-mt-20 overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 -top-10 -z-10 h-[420px] bg-[radial-gradient(50%_70%_at_50%_0%,rgba(37,99,235,0.10),transparent_70%)]" />
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-12 sm:px-8 sm:py-20 lg:grid-cols-2 lg:gap-16">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 pb-12 pt-6 sm:px-8 sm:pb-20 sm:pt-10 lg:grid-cols-2 lg:gap-16">
           <div>
             <div className="animate-fade-up">
               <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
