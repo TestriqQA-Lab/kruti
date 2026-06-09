@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getValidAccessToken } from "@/lib/linkedin-token";
 import { shouldShowWatermark, WATERMARK_TEXT } from "@/lib/subscription-check";
 import { formatPostBody, cleanInline } from "@/lib/format";
+import { imagesToPdf } from "@/lib/images-to-pdf";
 
 export interface LinkedInPostResult {
   success: boolean;
@@ -111,58 +112,75 @@ export async function postToLinkedIn(
     },
   };
 
-  // Media precedence: PDF document > image carousel > single image.
+  // Media precedence: user PDF > multi-image carousel (rendered as a PDF) > single image.
   const docUrl =
     post.documentUrl && post.documentUrl.startsWith("https://") ? post.documentUrl : null;
   const carousel = (post.carouselImages ?? []).filter((u) => !!u && u.startsWith("https://"));
-  const images =
-    carousel.length > 0
-      ? carousel
-      : post.imageUrl && post.imageUrl.startsWith("https://")
-      ? [post.imageUrl]
-      : [];
+  const singleImage =
+    post.imageUrl && post.imageUrl.startsWith("https://") ? post.imageUrl : carousel[0] ?? null;
+
+  // Attach a single image (the only image format the legacy UGC API reliably
+  // renders). Used for single-image posts and as a carousel fallback.
+  const attachSingleImage = async (url: string) => {
+    const asset = await uploadImageToLinkedIn(accessToken, linkedinId, url);
+    if (asset) {
+      ugcPost.specificContent = {
+        "com.linkedin.ugc.ShareContent": {
+          shareCommentary: { text: fullText },
+          shareMediaCategory: "IMAGE",
+          media: [{ status: "READY", media: asset }],
+        },
+      };
+    }
+  };
+
+  // Attach a DOCUMENT asset — LinkedIn renders a multi-page PDF as a swipeable carousel.
+  const attachDocument = (assetUrn: string, title: string) => {
+    ugcPost.specificContent = {
+      "com.linkedin.ugc.ShareContent": {
+        shareCommentary: { text: fullText },
+        shareMediaCategory: "DOCUMENT",
+        media: [{ status: "READY", media: assetUrn, title: { text: title } }],
+      },
+    };
+  };
 
   if (docUrl) {
-    // PDF document post - renders as a swipeable carousel on LinkedIn.
+    // User-uploaded PDF document.
     try {
       const assetUrn = await uploadDocumentToLinkedIn(accessToken, linkedinId, docUrl);
-      if (assetUrn) {
-        ugcPost.specificContent = {
-          "com.linkedin.ugc.ShareContent": {
-            shareCommentary: { text: fullText },
-            shareMediaCategory: "DOCUMENT",
-            media: [
-              {
-                status: "READY",
-                media: assetUrn,
-                title: { text: post.documentName || "Document" },
-              },
-            ],
-          },
-        };
-      }
+      if (assetUrn) attachDocument(assetUrn, post.documentName || "Document");
     } catch (docErr) {
       console.error("Document upload to LinkedIn failed, posting without document:", docErr);
-      // Continue posting without the document
     }
-  } else if (images.length > 0) {
+  } else if (carousel.length > 1) {
+    // Multiple images → publish as a swipeable PDF carousel. The legacy UGC API does
+    // NOT support true multi-image posts, so render the images into one PDF document.
     try {
-      const assetUrns = (
-        await Promise.all(images.map((u) => uploadImageToLinkedIn(accessToken, linkedinId, u)))
-      ).filter((a): a is string => !!a);
-
-      if (assetUrns.length > 0) {
-        ugcPost.specificContent = {
-          "com.linkedin.ugc.ShareContent": {
-            shareCommentary: { text: fullText },
-            shareMediaCategory: "IMAGE",
-            media: assetUrns.map((asset) => ({ status: "READY", media: asset })),
-          },
-        };
+      const pdfBytes = await imagesToPdf(carousel);
+      if (pdfBytes) {
+        const assetUrn = await uploadDocumentBufferToLinkedIn(accessToken, linkedinId, pdfBytes);
+        if (assetUrn) {
+          attachDocument(assetUrn, cleanInline(post.title) || "Carousel");
+        } else {
+          await attachSingleImage(carousel[0]); // upload failed → at least post the first image
+        }
+      } else {
+        await attachSingleImage(carousel[0]); // PDF build failed → first image
       }
+    } catch (carErr) {
+      console.error("Carousel PDF post failed, falling back to a single image:", carErr);
+      try {
+        await attachSingleImage(carousel[0]);
+      } catch (fallbackErr) {
+        console.error("Single-image fallback also failed:", fallbackErr);
+      }
+    }
+  } else if (singleImage) {
+    try {
+      await attachSingleImage(singleImage);
     } catch (imgErr) {
-      console.error("Image upload to LinkedIn failed, posting without image(s):", imgErr);
-      // Continue posting without image(s)
+      console.error("Image upload to LinkedIn failed, posting without image:", imgErr);
     }
   }
 
@@ -274,10 +292,11 @@ async function uploadImageToLinkedIn(
   return asset; // e.g. "urn:li:digitalmediaAsset:C5422AQG..."
 }
 
-async function uploadDocumentToLinkedIn(
+/** Register a document upload and PUT the given PDF bytes. Returns the asset URN. */
+async function uploadDocumentBufferToLinkedIn(
   accessToken: string,
   linkedinId: string,
-  documentUrl: string
+  pdfBytes: ArrayBuffer | Uint8Array
 ): Promise<string | null> {
   // Step 1: Register a document upload with LinkedIn
   const registerRes = await fetch(
@@ -317,21 +336,14 @@ async function uploadDocumentToLinkedIn(
     return null;
   }
 
-  // Step 2: Fetch the PDF from the Blob URL and upload the binary to LinkedIn
-  const docRes = await fetch(documentUrl);
-  if (!docRes.ok) {
-    console.error("Failed to fetch PDF from Blob URL:", documentUrl);
-    return null;
-  }
-  const docBuffer = await docRes.arrayBuffer();
-
+  // Step 2: Upload the PDF binary to LinkedIn
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/pdf",
     },
-    body: docBuffer,
+    body: pdfBytes as BodyInit,
   });
 
   if (!uploadRes.ok) {
@@ -340,4 +352,19 @@ async function uploadDocumentToLinkedIn(
   }
 
   return asset; // e.g. "urn:li:digitalmediaAsset:..."
+}
+
+/** Fetch a PDF from a Blob URL and upload it as a LinkedIn document. */
+async function uploadDocumentToLinkedIn(
+  accessToken: string,
+  linkedinId: string,
+  documentUrl: string
+): Promise<string | null> {
+  const docRes = await fetch(documentUrl);
+  if (!docRes.ok) {
+    console.error("Failed to fetch PDF from Blob URL:", documentUrl);
+    return null;
+  }
+  const docBuffer = await docRes.arrayBuffer();
+  return uploadDocumentBufferToLinkedIn(accessToken, linkedinId, docBuffer);
 }
