@@ -19,6 +19,11 @@ import {
   Zap,
   Sparkles,
   AlertCircle,
+  Send,
+  ShieldCheck,
+  CreditCard,
+  Clock,
+  RefreshCw,
 } from "lucide-react";
 import Footer from "@/components/Footer";
 
@@ -37,19 +42,29 @@ const navLinks = [
 const steps = [
   {
     n: "01",
+    icon: Linkedin,
     title: "Connect your LinkedIn",
     desc: "Sign in securely. We read your profile, headline, and experience to learn your authentic voice.",
   },
   {
     n: "02",
+    icon: Sparkles,
     title: "Generate your strategy",
     desc: "AI builds a personalized content plan - themes, pillars, and post types. No prompts to write.",
   },
   {
     n: "03",
+    icon: Send,
     title: "Publish & grow",
     desc: "Review the drafts, add an image in one click, and publish straight to LinkedIn.",
   },
+];
+
+const stats = [
+  { value: "30", label: "AI posts every month" },
+  { value: "~5 min", label: "to a full month of content" },
+  { value: "0", label: "prompts to write" },
+  { value: "100%", label: "your authentic voice" },
 ];
 
 const features = [
@@ -146,9 +161,24 @@ const faqs = [
     q: "Do I need to write prompts or instructions?",
     a: "No. Unlike other AI tools, Kruti.io doesn't need prompts. It builds your content strategy automatically from your LinkedIn profile and industry. Just click generate.",
   },
+  {
+    q: "What happens after the 7-day free trial?",
+    a: "After the trial it's one simple plan at ₹999/month (or $19/month for international users) - everything included, no tiers or add-ons. You can cancel anytime from your account settings with no lock-in.",
+  },
+  {
+    q: "How does billing work and can I cancel anytime?",
+    a: "Payments are processed securely by Razorpay and billed monthly. You can cancel or manage your subscription anytime from your account settings - you keep access until the end of your billing cycle.",
+  },
 ];
 
 const trust = ["Free to start", "No credit card", "Cancel anytime", "Official LinkedIn API"];
+
+const pricingTrust = [
+  { icon: Clock, label: "7-day free trial" },
+  { icon: CreditCard, label: "No credit card to start" },
+  { icon: RefreshCw, label: "Cancel anytime" },
+  { icon: ShieldCheck, label: "Secure payments via Razorpay" },
+];
 
 const mockPosts = [
   { title: "3 lessons from scaling our team 5 → 50", type: "Story", status: "Ready", dot: "bg-blue-500" },
@@ -412,19 +442,48 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
         </div>
       </section>
 
+      {/* ── Stats band ───────────────────────────────────────────────────── */}
+      <section aria-label="Key metrics" className="border-y border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.02]">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 px-5 sm:px-8 lg:grid-cols-4">
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              className={`px-4 py-8 text-center sm:py-10 ${
+                i % 2 === 0 ? "border-r border-slate-100 dark:border-white/10" : ""
+              } ${i < 2 ? "border-b border-slate-100 dark:border-white/10 lg:border-b-0" : ""} ${
+                i === 2 ? "lg:border-r lg:border-slate-100 lg:dark:border-white/10" : ""
+              }`}
+            >
+              <div className="font-display text-3xl font-bold text-blue-600 dark:text-blue-400 sm:text-4xl">
+                {s.value}
+              </div>
+              <div className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ── How it works ─────────────────────────────────────────────────── */}
       <Section id="how" className="border-t border-slate-200 py-20 dark:border-white/10 sm:py-28">
         <Eyebrow>How it works</Eyebrow>
         <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight sm:text-4xl">
           From zero to 30 posts in three steps
         </h2>
-        <div className="mt-12 grid gap-8 sm:grid-cols-3">
+        <div className="relative mt-14 grid gap-10 sm:grid-cols-3 sm:gap-8">
+          {/* connecting line behind the step icons (desktop) */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 top-7 hidden h-px bg-gradient-to-r from-transparent via-blue-200 to-transparent dark:via-blue-500/30 sm:block"
+          />
           {steps.map((s) => (
-            <div key={s.n}>
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 font-display text-sm font-bold text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                {s.n}
-              </span>
-              <h3 className="mt-4 font-display text-lg font-semibold">{s.title}</h3>
+            <div key={s.n} className="relative">
+              <div className="flex items-center gap-3">
+                <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 dark:bg-blue-500">
+                  <s.icon className="h-6 w-6" />
+                </span>
+                <span className="font-display text-2xl font-bold text-slate-200 dark:text-white/15">{s.n}</span>
+              </div>
+              <h3 className="mt-5 font-display text-lg font-semibold">{s.title}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">{s.desc}</p>
             </div>
           ))}
@@ -563,16 +622,65 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
             </ul>
           </div>
         </div>
+
+        {/* Trust row */}
+        <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          {pricingTrust.map((t) => (
+            <span
+              key={t.label}
+              className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"
+            >
+              <t.icon className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+              {t.label}
+            </span>
+          ))}
+        </div>
       </Section>
 
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
       <Section id="faq" className="border-t border-slate-200 py-20 dark:border-white/10 sm:py-28">
-        <div className="mx-auto max-w-3xl">
-          <div className="text-center">
+        {/* SEO: FAQPage structured data for Google rich results */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: faqs.map((f) => ({
+                "@type": "Question",
+                name: f.q,
+                acceptedAnswer: { "@type": "Answer", text: f.a },
+              })),
+            }),
+          }}
+        />
+        <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
+          {/* Left: heading + CTA panel */}
+          <div className="lg:sticky lg:top-28 lg:self-start">
             <Eyebrow>FAQ</Eyebrow>
-            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">Questions, answered</h2>
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              Questions, answered
+            </h2>
+            <p className="mt-4 text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">
+              Everything you need to know about Kruti.io - how it works, your account safety, and billing.
+            </p>
+            <div className="mt-7 rounded-2xl border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-white/[0.03]">
+              <p className="font-display text-base font-semibold">Still have questions?</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                Start your 7-day free trial - no credit card needed - and see it work for yourself.
+              </p>
+              <button
+                onClick={handleSignIn}
+                className="group mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
+              >
+                <Linkedin className="h-4 w-4" />
+                Start creating for free
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </button>
+            </div>
           </div>
-          <div className="mt-10 border-t border-slate-200 dark:border-white/10">
+          {/* Right: accordion */}
+          <div className="border-t border-slate-200 dark:border-white/10">
             {faqs.map((f) => (
               <FAQItem key={f.q} q={f.q} a={f.a} />
             ))}
