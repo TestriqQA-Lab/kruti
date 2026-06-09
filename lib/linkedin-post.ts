@@ -116,25 +116,29 @@ export async function postToLinkedIn(
         (u): u is string => !!u && u.startsWith("https://"),
       ),
     ),
-  ).slice(0, 9); // LinkedIn caps a multi-image post at 9
+  ).slice(0, 20); // LinkedIn allows up to 20 images in a multi-image post
 
-  if (imageUrls.length > 0) {
+  // 2+ images → a REAL swipeable carousel via the versioned Posts API.
+  // (The legacy /v2/ugcPosts endpoint only ever renders ONE image, which is
+  // why carousels were posting a single slide.)
+  if (imageUrls.length >= 2) {
+    return postImagesToLinkedIn(accessToken, linkedinId, fullText, imageUrls);
+  }
+
+  // Single image → legacy single-image UGC post (simple, proven path).
+  if (imageUrls.length === 1) {
     try {
-      // Upload each image, keep only the ones that succeeded (in order).
-      const assets: string[] = [];
-      for (const url of imageUrls) {
-        const assetUrn = await uploadImageToLinkedIn(accessToken, linkedinId, url);
-        if (assetUrn) assets.push(assetUrn);
-      }
-      if (assets.length > 0) {
+      const assetUrn = await uploadImageToLinkedIn(
+        accessToken,
+        linkedinId,
+        imageUrls[0],
+      );
+      if (assetUrn) {
         ugcPost.specificContent = {
           "com.linkedin.ugc.ShareContent": {
             shareCommentary: { text: fullText },
             shareMediaCategory: "IMAGE",
-            media: assets.map((assetUrn) => ({
-              status: "READY",
-              media: assetUrn,
-            })),
+            media: [{ status: "READY", media: assetUrn }],
           },
         };
       }
@@ -358,5 +362,122 @@ async function postDocumentToLinkedIn(
   } catch (err) {
     console.error("LinkedIn document post exception:", err);
     return { success: false, error: "Document post failed unexpectedly." };
+  }
+}
+
+// Publish 2+ images as a real swipeable multi-image (carousel) post using the
+// versioned Images + Posts API. The legacy /v2/ugcPosts endpoint only renders
+// one image, so multi-image carousels MUST go through this path.
+async function postImagesToLinkedIn(
+  accessToken: string,
+  linkedinId: string,
+  text: string,
+  imageUrls: string[],
+): Promise<LinkedInPostResult> {
+  const VERSION = "202401";
+  const owner = `urn:li:person:${linkedinId}`;
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+    "X-Restli-Protocol-Version": "2.0.0",
+    "LinkedIn-Version": VERSION,
+  };
+
+  try {
+    // 1. Upload each image via the versioned Images API → collect image URNs.
+    const imageUrns: string[] = [];
+    for (const url of imageUrls) {
+      const initRes = await fetch(
+        "https://api.linkedin.com/rest/images?action=initializeUpload",
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ initializeUploadRequest: { owner } }),
+        },
+      );
+      if (!initRes.ok) {
+        const t = await initRes.text();
+        console.error("LinkedIn image init failed:", initRes.status, t);
+        if (initRes.status === 401)
+          return {
+            success: false,
+            error: "LinkedIn token was revoked. Please sign out and sign in again.",
+            requiresReauth: true,
+          };
+        continue;
+      }
+      const initData = await initRes.json();
+      const uploadUrl = initData.value?.uploadUrl;
+      const imageUrn = initData.value?.image;
+      if (!uploadUrl || !imageUrn) continue;
+
+      const imgRes = await fetch(url);
+      if (!imgRes.ok) continue;
+      const buf = Buffer.from(await imgRes.arrayBuffer());
+      const putRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: buf,
+      });
+      if (!putRes.ok) {
+        console.error("LinkedIn image PUT failed:", await putRes.text());
+        continue;
+      }
+      imageUrns.push(imageUrn);
+    }
+
+    if (imageUrns.length === 0)
+      return { success: false, error: "Failed to upload images to LinkedIn." };
+
+    // 2. Build the content — multiImage for 2+, single media for 1.
+    const content =
+      imageUrns.length === 1
+        ? { media: { id: imageUrns[0], altText: "Image" } }
+        : {
+            multiImage: {
+              images: imageUrns.map((id, i) => ({
+                id,
+                altText: `Slide ${i + 1}`,
+              })),
+            },
+          };
+
+    // 3. Create the post.
+    const postRes = await fetch("https://api.linkedin.com/rest/posts", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        author: owner,
+        commentary: escapeLinkedInText(text),
+        visibility: "PUBLIC",
+        distribution: {
+          feedDistribution: "MAIN_FEED",
+          targetEntities: [],
+          thirdPartyDistributionChannels: [],
+        },
+        content,
+        lifecycleState: "PUBLISHED",
+        isReshareDisabledByAuthor: false,
+      }),
+    });
+    if (!postRes.ok) {
+      const t = await postRes.text();
+      console.error("LinkedIn image post failed:", postRes.status, t);
+      if (postRes.status === 401)
+        return {
+          success: false,
+          error: "LinkedIn token was revoked. Please sign out and sign in again.",
+          requiresReauth: true,
+        };
+      return { success: false, error: "Failed to publish the carousel to LinkedIn." };
+    }
+    const postId =
+      postRes.headers.get("x-restli-id") ||
+      postRes.headers.get("x-linkedin-id") ||
+      undefined;
+    return { success: true, linkedinPostId: postId };
+  } catch (err) {
+    console.error("LinkedIn image post exception:", err);
+    return { success: false, error: "Carousel post failed unexpectedly." };
   }
 }
