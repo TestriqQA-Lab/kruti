@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import {
   Linkedin,
   ArrowRight,
   ArrowUpRight,
+  ArrowUp,
   Check,
   X,
   Menu,
@@ -306,6 +307,31 @@ function ProductPanel() {
         </span>
       </div>
     </div>
+  );
+}
+
+function ScrollToTopButton() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // Show once the user has scrolled past the hero area.
+    const onScroll = () => setVisible(window.scrollY > 400);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <button
+      type="button"
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      aria-label="Scroll back to top"
+      className={`fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 ${
+        visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
+      }`}
+    >
+      <ArrowUp className="h-5 w-5" />
+    </button>
   );
 }
 
@@ -714,6 +740,8 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       </Section>
 
       <Footer />
+
+      <ScrollToTopButton />
     </div>
   );
 }
