@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   if (payload.created_at) {
     const ageMs = Date.now() - payload.created_at * 1000;
     if (ageMs > 5 * 60 * 1000) {
-      console.warn("Razorpay webhook rejected — too old:", ageMs, "ms");
+      console.warn("Razorpay webhook rejected - too old:", ageMs, "ms");
       return NextResponse.json({ error: "Webhook expired" }, { status: 400 });
     }
   }

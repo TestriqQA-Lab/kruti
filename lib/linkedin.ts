@@ -76,7 +76,7 @@ export async function syncLinkedInProfile(
   }
 }
 
-/** Safe JSON.parse with fallback — prevents crashes from corrupt DB data */
+/** Safe JSON.parse with fallback - prevents crashes from corrupt DB data */
 function safeJsonParse<T>(json: string | null | undefined, fallback: T): T {
   if (!json) return fallback;
   try { return JSON.parse(json); } catch { return fallback; }

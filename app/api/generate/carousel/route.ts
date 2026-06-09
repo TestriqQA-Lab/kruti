@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 
   if (images.length === 0) {
     return NextResponse.json(
-      { error: lastImageGenError || "Carousel generation failed — no images were produced." },
+      { error: lastImageGenError || "Carousel generation failed - no images were produced." },
       { status: 500 }
     );
   }

@@ -55,7 +55,7 @@ export async function runAutoPost(): Promise<{ posted: number; failed: number; s
   });
   if (stalePosts > 0) {
     skippedStale = stalePosts;
-    console.warn(`[Cron:auto-post] ⚠️ ${stalePosts} post(s) skipped — scheduled more than 72 hours ago`);
+    console.warn(`[Cron:auto-post] ⚠️ ${stalePosts} post(s) skipped - scheduled more than 72 hours ago`);
   }
 
   for (const post of duePosts) {

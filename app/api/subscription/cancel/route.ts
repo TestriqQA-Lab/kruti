@@ -44,7 +44,7 @@ export async function POST() {
     }
   }
 
-  // Mark as cancel_pending — actual cancellation happens via Razorpay webhook
+  // Mark as cancel_pending - actual cancellation happens via Razorpay webhook
   // when the current billing cycle ends. User retains access until then.
   await prisma.subscription.update({
     where: { userId: session.user.id },

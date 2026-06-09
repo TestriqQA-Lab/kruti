@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendNewsletterEmail, type NewsletterContent } from "@/lib/email";
 
-// POST /api/newsletter/:id/send — send newsletter immediately
+// POST /api/newsletter/:id/send - send newsletter immediately
 export async function POST(
   _req: NextRequest,
   { params }: { params: { id: string } }

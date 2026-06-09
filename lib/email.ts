@@ -178,7 +178,7 @@ export async function sendTrialReminderEmail({
   subscribeUrl: string;
 }): Promise<{ success: boolean; error?: string }> {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === "re_REPLACE_ME") {
-    console.log(`[Email] Trial reminder (${daysRemaining}d) skipped — RESEND_API_KEY not configured`);
+    console.log(`[Email] Trial reminder (${daysRemaining}d) skipped - RESEND_API_KEY not configured`);
     return { success: true };
   }
 
@@ -219,7 +219,7 @@ export async function sendNewsletterEmail({
   content: NewsletterContent;
 }): Promise<{ success: boolean; error?: string }> {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === "re_REPLACE_ME") {
-    console.log("[Email] RESEND_API_KEY not configured — skipping email send");
+    console.log("[Email] RESEND_API_KEY not configured - skipping email send");
     return { success: true }; // Silently succeed so status still updates
   }
 

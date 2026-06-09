@@ -3,6 +3,6 @@
 // This file is intentionally left as a no-op.
 
 export async function register() {
-  // No-op on Vercel — cron jobs run as separate HTTP invocations
+  // No-op on Vercel - cron jobs run as separate HTTP invocations
 }
 

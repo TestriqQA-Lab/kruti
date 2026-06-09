@@ -165,7 +165,7 @@ export default function LinkedInPostPreview({
           </div>
         )}
 
-        {/* Post media — PDF document, else carousel slider, else single image */}
+        {/* Post media - PDF document, else carousel slider, else single image */}
         {documentName ? (
           <div className="mx-4 mb-3 rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden">
             <div className="aspect-[1.91/1] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-white/[0.06] dark:to-white/[0.02] flex items-center justify-center">

@@ -43,7 +43,7 @@ const steps = [
   {
     n: "02",
     title: "Generate your strategy",
-    desc: "AI builds a personalized content plan — themes, pillars, and post types. No prompts to write.",
+    desc: "AI builds a personalized content plan - themes, pillars, and post types. No prompts to write.",
   },
   {
     n: "03",
@@ -56,12 +56,12 @@ const features = [
   {
     icon: Target,
     title: "Personalized strategy",
-    desc: "A data-driven roadmap built around your expertise, industry, and audience — so every post has a purpose.",
+    desc: "A data-driven roadmap built around your expertise, industry, and audience - so every post has a purpose.",
   },
   {
     icon: FileText,
     title: "30 ready-to-publish posts",
-    desc: "Thought leadership, tips, stories, questions, and listicles — written in your voice, every month.",
+    desc: "Thought leadership, tips, stories, questions, and listicles - written in your voice, every month.",
   },
   {
     icon: ImageIcon,
@@ -76,7 +76,7 @@ const features = [
   {
     icon: Newspaper,
     title: "Newsletter drafts",
-    desc: "Full LinkedIn newsletter editions — hooks, sections, insights, and CTAs — ready to send.",
+    desc: "Full LinkedIn newsletter editions - hooks, sections, insights, and CTAs - ready to send.",
   },
   {
     icon: Zap,
@@ -96,7 +96,7 @@ const withKruti = [
   "30 posts generated in under 5 minutes",
   "Fresh themes and ideas every single batch",
   "Consistent daily posting on autopilot",
-  "Content that sounds like you — it learns your voice",
+  "Content that sounds like you - it learns your voice",
 ];
 
 const testimonials = [
@@ -104,7 +104,7 @@ const testimonials = [
     name: "Priya Sharma",
     role: "Marketing Director, SaaS",
     initials: "PS",
-    text: "I went from posting once a month to 5x a week. Kruti.io generates content that actually sounds like me — my network noticed the difference immediately.",
+    text: "I went from posting once a month to 5x a week. Kruti.io generates content that actually sounds like me - my network noticed the difference immediately.",
   },
   {
     name: "Rahul Menon",
@@ -132,11 +132,11 @@ const pricingIncludes = [
 const faqs = [
   {
     q: "Is my LinkedIn account safe? Will I get banned?",
-    a: "Absolutely safe. Kruti.io uses LinkedIn's official API and OAuth 2.0 — the same authorized method used by major platforms like Hootsuite and Buffer. We never store your password, never use scrapers or automation, and never violate LinkedIn's terms. Your account is never at risk because we only publish content you explicitly approve.",
+    a: "Absolutely safe. Kruti.io uses LinkedIn's official API and OAuth 2.0 - the same authorized method used by major platforms like Hootsuite and Buffer. We never store your password, never use scrapers or automation, and never violate LinkedIn's terms. Your account is never at risk because we only publish content you explicitly approve.",
   },
   {
     q: "Will the AI-generated posts sound like me?",
-    a: "Yes. Kruti.io reads your LinkedIn profile — your headline, about section, experience, and activity — to understand your tone, expertise, and audience. Every post matches your authentic professional voice, not generic AI-speak.",
+    a: "Yes. Kruti.io reads your LinkedIn profile - your headline, about section, experience, and activity - to understand your tone, expertise, and audience. Every post matches your authentic professional voice, not generic AI-speak.",
   },
   {
     q: "Can I edit posts before publishing?",
@@ -270,7 +270,7 @@ function ProductPanel() {
         ))}
       </div>
       <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-400 dark:border-white/10">
-        <span>This week · Mon–Fri · 9:00 AM</span>
+        <span>This week · Mon-Fri · 9:00 AM</span>
         <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
           <Check className="h-3.5 w-3.5" /> Auto-publishing on
         </span>
@@ -378,7 +378,7 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
               <span className="text-blue-600 dark:text-blue-400">Start growing your brand.</span>
             </h1>
             <p className="animate-fade-up [animation-delay:140ms] mt-6 max-w-xl text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-              Kruti.io turns your LinkedIn profile into a content engine — generating 30 strategic
+              Kruti.io turns your LinkedIn profile into a content engine - generating 30 strategic
               posts, professional images, and newsletters every month, all in your authentic voice.
             </p>
             <div className="animate-fade-up [animation-delay:200ms] mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">

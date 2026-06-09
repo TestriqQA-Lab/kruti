@@ -13,7 +13,7 @@ const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 export function checkSiteGate(req: NextRequest): NextResponse | null {
   const sitePassword = process.env.SITE_PASSWORD;
 
-  // Gate disabled — allow everything
+  // Gate disabled - allow everything
   if (!sitePassword) return null;
 
   const { pathname } = req.nextUrl;

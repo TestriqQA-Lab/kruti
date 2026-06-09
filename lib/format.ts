@@ -1,5 +1,5 @@
 // Utilities to clean & format AI-generated post content for LinkedIn.
-// LinkedIn renders plain text only — markdown markers like ** or __ show up
+// LinkedIn renders plain text only - markdown markers like ** or __ show up
 // literally, so they are stripped. List items get one blank line between them.
 
 /** Strip markdown emphasis / heading / inline-code markers. */
@@ -9,7 +9,8 @@ export function stripMarkdown(input: string): string {
     .replace(/\*\*([\s\S]*?)\*\*/g, "$1") // **bold**
     .replace(/__([\s\S]*?)__/g, "$1") // __bold__
     .replace(/`{1,3}([^`]+?)`{1,3}/g, "$1") // `code`
-    .replace(/^\s{0,3}#{1,6}\s+/gm, ""); // ## heading
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "") // ## heading
+    .replace(/[\u2014\u2013\u2015]/g, "-"); // em / en / bar (long) dashes -> a normal hyphen
 }
 
 /** Clean a single-line value such as the hook/title (no list handling). */

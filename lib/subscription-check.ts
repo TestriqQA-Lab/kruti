@@ -63,7 +63,7 @@ export async function ensureLifetimeSubscription(userId: string): Promise<boolea
     where: { userId },
   });
 
-  // Already has an active lifetime subscription — nothing to do
+  // Already has an active lifetime subscription - nothing to do
   if (existing?.status === "active" && existing.currentPeriodEnd &&
       existing.currentPeriodEnd >= new Date("2090-01-01")) {
     return false;
@@ -101,7 +101,7 @@ export async function checkActiveSubscription(userId: string): Promise<{
   allowed: boolean;
   reason?: string;
 }> {
-  // Super admins get lifetime access — bypass all subscription checks
+  // Super admins get lifetime access - bypass all subscription checks
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { role: true, email: true },
@@ -110,7 +110,7 @@ export async function checkActiveSubscription(userId: string): Promise<{
     return { allowed: true };
   }
 
-  // Lifetime free email domains — bypass all subscription checks
+  // Lifetime free email domains - bypass all subscription checks
   if (isLifetimeFreeEmail(user?.email)) {
     // Ensure they have an active subscription record (auto-fix if somehow missing/expired)
     await ensureLifetimeSubscription(userId);

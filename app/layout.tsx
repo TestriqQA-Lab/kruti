@@ -14,7 +14,7 @@ const display = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Kruti.io — AI-Powered LinkedIn Content Platform",
+  title: "Kruti.io - AI-Powered LinkedIn Content Platform",
   description: "Kruti.io helps professionals create, schedule, and publish LinkedIn content using AI. Powered by Google Gemini.",
 };
 

@@ -29,7 +29,7 @@ export default function Footer() {
           </nav>
         </div>
         <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">
-          &copy; 2024&ndash;{new Date().getFullYear()} Cinute Digital Pvt. Ltd. All rights reserved.
+          &copy; 2024-{new Date().getFullYear()} Cinute Digital Pvt. Ltd. All rights reserved.
         </p>
       </div>
     </footer>

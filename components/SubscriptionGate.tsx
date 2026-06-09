@@ -71,7 +71,7 @@ const PLANS = [
       { icon: Calendar, text: "Auto-scheduling & LinkedIn auto-posting" },
       { icon: Image, text: "AI image generation for every post" },
       { icon: BarChart2, text: "Personalized content strategy" },
-      { icon: Clock, text: "Human Mode \u2014 sounds like you" },
+      { icon: Clock, text: "Human Mode - sounds like you" },
     ],
     cta: "Subscribe Now",
   },
@@ -115,7 +115,7 @@ export default function SubscriptionGate({ daysLeft, trialExpired }: Subscriptio
       });
       const data = await res.json();
 
-      // DEV bypass — no Razorpay keys, auto-activated
+      // DEV bypass - no Razorpay keys, auto-activated
       if (data.dev && data.redirectUrl) {
         await update();
         window.location.href = data.redirectUrl;
@@ -157,7 +157,7 @@ export default function SubscriptionGate({ daysLeft, trialExpired }: Subscriptio
         key: data.keyId,
         subscription_id: data.subscriptionId,
         name: "LinkedIn Content Platform",
-        description: `Content Pro \u2014 ${PRICE[currency].symbol}${PRICE[currency].amount}/month`,
+        description: `Content Pro - ${PRICE[currency].symbol}${PRICE[currency].amount}/month`,
         handler: async (response: {
           razorpay_subscription_id: string;
           razorpay_payment_id: string;
@@ -393,7 +393,7 @@ export default function SubscriptionGate({ daysLeft, trialExpired }: Subscriptio
                         Processing...
                       </>
                     ) : (
-                      `${plan.cta} \u2014 ${PRICE[currency].symbol}${price}/mo`
+                      `${plan.cta} - ${PRICE[currency].symbol}${price}/mo`
                     )}
                   </button>
                 ) : (

@@ -87,6 +87,6 @@ export async function POST(req: NextRequest) {
     imageUrl,
     remaining,
     limit: IMAGE_GEN_LIMIT_PER_POST,
-    ...(imageUrl ? {} : { error: lastImageGenError || "Image generation failed — all models returned no image" }),
+    ...(imageUrl ? {} : { error: lastImageGenError || "Image generation failed - all models returned no image" }),
   });
 }

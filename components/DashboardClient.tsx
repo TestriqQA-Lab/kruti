@@ -37,7 +37,7 @@ interface Props {
   recentPlan: { id: string; strategy: string; weekStart: Date } | null;
   stats: { totalPosts: number; readyPosts: number; draftPosts: number; publishedPosts: number; newsletters: number };
   upcomingPosts: Post[];
-  nextStartDate: string; // ISO date string — where the next batch starts
+  nextStartDate: string; // ISO date string - where the next batch starts
   postsRemaining: number; // posts remaining in billing cycle
   postsLimit: number; // total posts allowed per cycle (30)
   isTrialExpired: boolean; // whether user's trial has ended
@@ -89,7 +89,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
     try {
       setProgress(["Analyzing your profile and creating strategy..."]);
 
-      // Don't send weekStart — let the API auto-compute from last scheduled post
+      // Don't send weekStart - let the API auto-compute from last scheduled post
       const stratRes = await fetch("/api/generate/strategy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -229,7 +229,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
           ) : (
             <div className="text-right">
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {formatShortDate(batchStart)} &ndash; {formatShortDate(batchEnd)}
+                {formatShortDate(batchStart)} - {formatShortDate(batchEnd)}
               </p>
               <p className="text-xs text-slate-400 dark:text-slate-500">
                 {postsRemaining} of {postsLimit} posts remaining

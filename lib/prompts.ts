@@ -96,7 +96,7 @@ PREVIOUS WEEKS CONTENT HISTORY (most recent first):
 ${previousWeeks
   .map(
     (w, i) => `
-Week ${i + 1} — ${w.weekStart}:
+Week ${i + 1} - ${w.weekStart}:
   Theme: "${w.weekTheme}"
   Focus: "${w.weekFocus}"
   Posts: ${w.postTitles.map((t) => `"${t}"`).join(", ")}
@@ -106,7 +106,7 @@ Week ${i + 1} — ${w.weekStart}:
 
 IMPORTANT CONTINUITY RULES:
 - Do NOT repeat the same weekly theme or focus from previous weeks
-- Build upon the narrative arc — this week should feel like a natural progression
+- Build upon the narrative arc - this week should feel like a natural progression
 - Cover different angles, sub-topics, or fresh perspectives within the person's expertise
 - If previous weeks were heavy on one post type, vary the mix this week
 - Reference or build upon ideas from previous weeks to create a cohesive content journey
@@ -123,8 +123,8 @@ ${NO_EMOJI_RULES}
 
 Generate a content strategy as a JSON object with this EXACT structure:
 {
-  "weekTheme": "string (overarching theme — must be DIFFERENT from previous batches)",
-  "weekFocus": "string (specific angle or narrative arc — must be a FRESH perspective)",
+  "weekTheme": "string (overarching theme - must be DIFFERENT from previous batches)",
+  "weekFocus": "string (specific angle or narrative arc - must be a FRESH perspective)",
   "pillars": [
     {
       "name": "string (content pillar name)",
@@ -187,7 +187,7 @@ Generate exactly ${postCount} posts as a JSON array. Each post must follow this 
     "body": "string (full post body, max 1300 characters, use line breaks for readability)",
     "hashtags": ["string", "string", "string", "string", "string"],
     "postType": "${allowedTypes.join("|")}",
-    "imagePrompt": "string (a short 1-2 sentence visual concept — describe the SCENE or METAPHOR, not text to display. Example: 'A lighthouse beam cutting through fog at dawn, symbolizing guidance' NOT 'An image showing the words Leadership Matters')",
+    "imagePrompt": "string (a short 1-2 sentence visual concept - describe the SCENE or METAPHOR, not text to display. Example: 'A lighthouse beam cutting through fog at dawn, symbolizing guidance' NOT 'An image showing the words Leadership Matters')",
     "bestTimeToPost": "string (e.g. Tuesday 9am)",
     "callToAction": "string (the specific CTA embedded in this post)"
   }
@@ -199,7 +199,7 @@ Rules for each post:
 - Include a strong, specific call-to-action in each post body
 - Do not use bullet points starting with dashes - use numbered lists or plain paragraphs
 - Hashtags must be relevant, lowercase, no spaces (e.g. productmanagement, leadership)
-- Image prompts must describe a scene or visual metaphor only — NEVER describe text or words that should appear in the image
+- Image prompts must describe a scene or visual metaphor only - NEVER describe text or words that should appear in the image
 
 Return ONLY the JSON array. No markdown. No explanation. No emojis.`;
 }
@@ -231,7 +231,7 @@ Generate the post as a JSON object:
   "title": "string (compelling opening hook, max 150 chars)",
   "body": "string (full post body, max 1300 characters, use line breaks for readability)",
   "hashtags": ["string", "string", "string", "string", "string"],
-  "imagePrompt": "string (short visual concept — describe a scene or metaphor, NO text/words to render)"
+  "imagePrompt": "string (short visual concept - describe a scene or metaphor, NO text/words to render)"
 }
 
 Return ONLY valid JSON. No markdown. No explanation. No emojis.`;
@@ -245,7 +245,7 @@ const VARIANT_STYLES: Record<string, string> = {
 - Use confident, assertive language throughout
 - Short, punchy paragraphs (1-2 sentences max)
 - End with a direct challenge or provocative question
-- Tone: commanding, no hedging, no "I think" — state it as fact`,
+- Tone: commanding, no hedging, no "I think" - state it as fact`,
 
   "Personal Story": `STYLE: Personal Story
 - Open with a first-person anecdote or a specific moment in time ("Last Tuesday, I...")
@@ -258,7 +258,7 @@ const VARIANT_STYLES: Record<string, string> = {
 - Lead with the specific problem this solves
 - Use numbered steps or a clear framework
 - Include concrete examples, numbers, or tools
-- Every sentence should be actionable — no fluff
+- Every sentence should be actionable - no fluff
 - End with a quick-win the reader can apply today`,
 };
 
@@ -293,7 +293,7 @@ Generate the post as a JSON object:
   "title": "string (compelling opening hook matching the style above, max 150 chars)",
   "body": "string (full post body, max 1300 characters, use line breaks for readability)",
   "hashtags": ["string", "string", "string", "string", "string"],
-  "imagePrompt": "string (short visual concept — describe a scene or metaphor, NO text/words to render)"
+  "imagePrompt": "string (short visual concept - describe a scene or metaphor, NO text/words to render)"
 }
 
 Return ONLY valid JSON. No markdown. No explanation. No emojis.`;
@@ -308,21 +308,21 @@ const REPURPOSE_FORMATS: Record<string, { instructions: string; jsonShape: strin
 - Each tweet must be under 280 characters
 - First tweet must be a strong hook that stands alone
 - Number each tweet (1/N format)
-- Maintain thread coherence — each tweet should flow naturally to the next
+- Maintain thread coherence - each tweet should flow naturally to the next
 - Last tweet should have a CTA or key takeaway
 - Include 1-2 relevant hashtags only in the last tweet`,
-    jsonShape: `{ "tweets": ["string (tweet 1 — max 280 chars)", "string (tweet 2)", "..."] }`,
+    jsonShape: `{ "tweets": ["string (tweet 1 - max 280 chars)", "string (tweet 2)", "..."] }`,
   },
 
   "blog-post": {
     instructions: `FORMAT: Blog Post
 - Expand the LinkedIn post into a 600-800 word article
-- Include a compelling title (H1) and 2-3 subheadings (H2 — prefix with ##)
+- Include a compelling title (H1) and 2-3 subheadings (H2 - prefix with ##)
 - Write an engaging introduction paragraph (2-3 sentences)
 - Develop each section with depth, examples, and practical insights
 - Write a conclusion with a clear takeaway or CTA
 - Use SEO-friendly language and natural keyword placement
-- Do NOT use bullet points — use flowing paragraphs`,
+- Do NOT use bullet points - use flowing paragraphs`,
     jsonShape: `{ "title": "string (SEO-friendly blog title)", "content": "string (full article with ## for H2 headings)" }`,
   },
 
@@ -332,7 +332,7 @@ const REPURPOSE_FORMATS: Record<string, { instructions: string; jsonShape: strin
 - Create a preview text (max 90 chars, complements the subject)
 - Write the body as 2-3 paragraphs suitable for email
 - Include a clear CTA (call-to-action) with specific action text
-- Tone should be slightly more personal than LinkedIn — like writing to a subscriber
+- Tone should be slightly more personal than LinkedIn - like writing to a subscriber
 - Keep total body under 300 words`,
     jsonShape: `{ "subjectLine": "string (max 50 chars)", "previewText": "string (max 90 chars)", "body": "string (2-3 paragraphs)", "cta": "string (call-to-action text)" }`,
   },

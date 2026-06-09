@@ -66,7 +66,7 @@ export function getNextWeekdaySlots(
   while (slots.length < count) {
     const dayOfWeek = current.getDay(); // 0=Sun, 6=Sat
     if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      // Weekday — create a slot
+      // Weekday - create a slot
       const year = current.getFullYear();
       const month = String(current.getMonth() + 1).padStart(2, "0");
       const day = String(current.getDate()).padStart(2, "0");

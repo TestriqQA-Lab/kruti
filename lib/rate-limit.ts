@@ -73,12 +73,12 @@ export function checkRateLimit(
 
 // Preset configs for different endpoint types
 export const RATE_LIMITS = {
-  /** AI generation endpoints (Gemini calls) — 10 requests per 5 minutes */
+  /** AI generation endpoints (Gemini calls) - 10 requests per 5 minutes */
   generation: { maxRequests: 10, windowSecs: 300 } as RateLimitConfig,
-  /** Image generation — 5 requests per 5 minutes */
+  /** Image generation - 5 requests per 5 minutes */
   imageGeneration: { maxRequests: 5, windowSecs: 300 } as RateLimitConfig,
-  /** LinkedIn posting — 5 per hour */
+  /** LinkedIn posting - 5 per hour */
   linkedinPost: { maxRequests: 5, windowSecs: 3600 } as RateLimitConfig,
-  /** File upload — 10 per 10 minutes */
+  /** File upload - 10 per 10 minutes */
   upload: { maxRequests: 10, windowSecs: 600 } as RateLimitConfig,
 };

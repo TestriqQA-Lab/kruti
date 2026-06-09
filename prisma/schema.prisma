@@ -115,7 +115,7 @@ model Post {
   imagePrompt       String?     @db.Text
   imageGenCount     Int         @default(0) // number of times image was generated for this post
   carouselImages    String?     @db.Text // JSON array of image URLs for a multi-image carousel post
-  imageHistory      String?     @db.Text // JSON string[][] — every generated/uploaded image set, so past results stay reusable
+  imageHistory      String?     @db.Text // JSON string[][] - every generated/uploaded image set, so past results stay reusable
   documentUrl       String?     // uploaded PDF (published as a LinkedIn document / PDF carousel)
   documentName      String?     // original PDF filename, for display
   hashtags          String?     @db.Text // JSON array string

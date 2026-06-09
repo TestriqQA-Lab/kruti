@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
             // Keep existing date, update time
             newScheduledAt = new Date(p.scheduledAt);
           } else {
-            // No existing date — use tomorrow
+            // No existing date - use tomorrow
             newScheduledAt = new Date();
             newScheduledAt.setDate(newScheduledAt.getDate() + 1);
           }

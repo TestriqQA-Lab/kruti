@@ -287,7 +287,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
                 tokenStatus.isExpired ? (
                   <span className="text-xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />
-                    Token expired — sign out &amp; sign in to reconnect
+                    Token expired - sign out &amp; sign in to reconnect
                   </span>
                 ) : tokenStatus.expiresInDays !== null && tokenStatus.expiresInDays <= 14 ? (
                   <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
@@ -492,7 +492,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
           <div>
             <h2 className="font-semibold font-display text-slate-900 dark:text-white">Human Mode (Global Default)</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Makes AI-generated content sound more naturally human — slight variations in style
+              Makes AI-generated content sound more naturally human - slight variations in style
               and phrasing that make posts less detectable as AI-generated.
             </p>
           </div>
@@ -513,8 +513,8 @@ export default function SettingsClient({ user }: { user: User | null }) {
         </div>
         <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
           {humanMode
-            ? "Human Mode is ON — all generated posts will include natural writing variations"
-            : "Human Mode is OFF — clean, polished AI output (can be toggled per-post)"}
+            ? "Human Mode is ON - all generated posts will include natural writing variations"
+            : "Human Mode is OFF - clean, polished AI output (can be toggled per-post)"}
         </p>
       </div>
 
@@ -592,9 +592,9 @@ export default function SettingsClient({ user }: { user: User | null }) {
                     "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
                   )}>
                     {sub.status === "trialing"
-                      ? `Free Trial \u2014 ${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""} left`
+                      ? `Free Trial - ${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""} left`
                       : sub.status === "active"
-                      ? `Active \u2014 ${sub.currency === "USD" ? "$19" : "\u20B9999"}/month`
+                      ? `Active - ${sub.currency === "USD" ? "$19" : "\u20B9999"}/month`
                       : sub.status}
                   </span>
                 </div>
@@ -699,7 +699,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
                     <span className="text-slate-600 dark:text-slate-400 min-w-[90px]">
                       {inv.date
                         ? new Date(inv.date).toLocaleDateString()
-                        : "—"}
+                        : "-"}
                     </span>
                     <span className="text-slate-900 dark:text-white font-medium">
                       {inv.currency === "USD" ? "$" : "₹"}

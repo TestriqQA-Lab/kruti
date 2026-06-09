@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateData: Record<string, any> = {};
 
-  // Preserve values as-is — only set null if explicitly null, not for empty strings
+  // Preserve values as-is - only set null if explicitly null, not for empty strings
   if ("headline" in body) updateData.headline = body.headline ?? null;
   if ("summary" in body) updateData.summary = body.summary ?? null;
   if ("industry" in body) updateData.industry = body.industry ?? null;

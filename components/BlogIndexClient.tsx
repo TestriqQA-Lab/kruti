@@ -256,7 +256,7 @@ export default function BlogIndexClient({ posts }: { posts: BlogCard[] }) {
             <span className="text-blue-600 dark:text-blue-400">LinkedIn presence</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-            Strategy, AI, personal branding, and lead generation — practical playbooks to help you
+            Strategy, AI, personal branding, and lead generation - practical playbooks to help you
             post consistently and build authority.
           </p>
 

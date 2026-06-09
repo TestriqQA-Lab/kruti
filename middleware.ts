@@ -54,7 +54,7 @@ const authMiddleware = withAuth(
         return NextResponse.redirect(new URL("/onboarding", req.url));
       }
 
-      // Super admins bypass all subscription checks — lifetime access
+      // Super admins bypass all subscription checks - lifetime access
       if (token.role === "admin") {
         return NextResponse.next();
       }

@@ -53,7 +53,7 @@ export async function cleanupOldImages(): Promise<{ deleted: number; errors: num
     }
   }
 
-  // Clean up orphaned blobs — blobs in the "generated/" prefix that don't match any post
+  // Clean up orphaned blobs - blobs in the "generated/" prefix that don't match any post
   try {
     // Get all current imageUrl values from the database
     const activePosts = await prisma.post.findMany({

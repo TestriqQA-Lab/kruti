@@ -64,7 +64,7 @@ export default async function AnalyticsPage() {
     }),
   ]);
 
-  // Posts created this week (Mon–Sun)
+  // Posts created this week (Mon-Sun)
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay() + 1);
   startOfWeek.setHours(0, 0, 0, 0);

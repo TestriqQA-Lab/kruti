@@ -27,7 +27,7 @@ export default async function DashboardPage() {
       _count: { _all: true },
     }),
     prisma.newsletter.count({ where: { userId: session.user.id } }),
-    // Upcoming posts across ALL plans — scheduled in the future and not yet posted
+    // Upcoming posts across ALL plans - scheduled in the future and not yet posted
     prisma.post.findMany({
       where: {
         plan: { userId: session.user.id },

@@ -39,11 +39,11 @@ export async function getValidAccessToken(userId: string): Promise<string | null
       return account.access_token;
     }
   } else {
-    // No expires_at recorded — token might still be valid, use it optimistically
+    // No expires_at recorded - token might still be valid, use it optimistically
     return account.access_token;
   }
 
-  // Token is expired or about to expire — try to refresh
+  // Token is expired or about to expire - try to refresh
   const result = await refreshAccessToken(userId);
   if (result.success && result.accessToken) {
     return result.accessToken;
@@ -66,9 +66,9 @@ export async function refreshAccessToken(userId: string): Promise<TokenRefreshRe
   }
 
   if (!account.refresh_token) {
-    // No refresh token available — user must re-login
+    // No refresh token available - user must re-login
     // This is expected for apps without MDP partnership
-    console.log(`[Token] No refresh token for user ${userId} — re-login required`);
+    console.log(`[Token] No refresh token for user ${userId} - re-login required`);
     return {
       success: false,
       error: "No refresh token available. Please sign out and sign in again to reconnect your LinkedIn account.",
@@ -147,7 +147,7 @@ export async function refreshAccessToken(userId: string): Promise<TokenRefreshRe
 }
 
 /**
- * Check token health for a user — used by the proactive scheduler.
+ * Check token health for a user - used by the proactive scheduler.
  * Returns status info without modifying anything.
  */
 export async function getTokenStatus(userId: string): Promise<{

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       data: {
         documentUrl: blob.url,
         documentName: file.name || "document.pdf",
-        // A document post replaces image media on LinkedIn — clear images.
+        // A document post replaces image media on LinkedIn - clear images.
         imageUrl: null,
         carouselImages: null,
       },

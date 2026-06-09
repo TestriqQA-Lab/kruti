@@ -106,7 +106,7 @@ export default function NewsletterClient({ newsletters: initial, currentMonth, c
           <Mail className="w-12 h-12 text-slate-200 dark:text-slate-600 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">No newsletters yet</h3>
           <p className="text-slate-500 dark:text-slate-400 mb-6">
-            Generate your first newsletter — AI creates it from your content pillars and profile.
+            Generate your first newsletter - AI creates it from your content pillars and profile.
           </p>
           <button
             onClick={handleGenerate}

@@ -123,7 +123,7 @@ export default function PostEditorClient({
     post.customSignature !== null ? (post.customSignature || "") : (postSignature || "")
   );
 
-  // Schedule date/time state — display in user's configured timezone
+  // Schedule date/time state - display in user's configured timezone
   const initDate = post.scheduledAt ? new Date(post.scheduledAt) : null;
   const [scheduledDate, setScheduledDate] = useState(
     initDate ? formatInTimeZone(initDate, userTimezone, "yyyy-MM-dd") : ""
@@ -151,7 +151,7 @@ export default function PostEditorClient({
   const [hashtags, setHashtags] = useState<string[]>(
     post.hashtags ? JSON.parse(post.hashtags) : []
   );
-  // Version history — stores previous content before regeneration
+  // Version history - stores previous content before regeneration
   const [previousVersion, setPreviousVersion] = useState<{ title: string; body: string; hashtags: string[] } | null>(null);
 
   // Variant state
@@ -222,7 +222,7 @@ export default function PostEditorClient({
       const updated = await res.json();
       if (updated.title) setTitle(updated.title);
       if (updated.body) setBody(updated.body);
-      toast("Post regenerated — click Undo to restore previous version", "success");
+      toast("Post regenerated - click Undo to restore previous version", "success");
       router.refresh();
     } finally {
       setRegenerating(false);
@@ -235,7 +235,7 @@ export default function PostEditorClient({
     setBody(previousVersion.body);
     setHashtags(previousVersion.hashtags);
     setPreviousVersion(null);
-    toast("Previous version restored — save to keep changes", "info");
+    toast("Previous version restored - save to keep changes", "info");
   }
 
   // Add a newly produced image set to the in-session gallery (server already
@@ -250,8 +250,8 @@ export default function PostEditorClient({
     });
   }
 
-  // Reuse a previous generation (single image or full carousel). This is FREE —
-  // no new generation is consumed — and it persists so the choice survives reload.
+  // Reuse a previous generation (single image or full carousel). This is FREE -
+  // no new generation is consumed - and it persists so the choice survives reload.
   async function restoreGeneration(group: string[]) {
     const isCarousel = group.length > 1;
     setImageUrl(group[0]);
@@ -473,7 +473,7 @@ export default function PostEditorClient({
       if (res.ok && data.documentUrl) {
         setDocumentUrl(data.documentUrl);
         setDocumentName(data.documentName);
-        // A document replaces image media — reflect the server-side clear locally
+        // A document replaces image media - reflect the server-side clear locally
         setImageUrl(null);
         setCarouselImages([]);
         setCarouselIndex(0);
@@ -559,7 +559,7 @@ export default function PostEditorClient({
     setBody(variant.body);
     setHashtags(variant.hashtags);
     setShowVariants(false);
-    toast("Variant applied — review and save", "success");
+    toast("Variant applied - review and save", "success");
   }
 
   async function handleRepurpose() {
@@ -600,7 +600,7 @@ export default function PostEditorClient({
 
   const isPublished = post.postedToLinkedIn;
 
-  // Auto-save hook — only for unpublished posts
+  // Auto-save hook - only for unpublished posts
   const { status: autoSaveStatus, cancelAutoSave, markSaved } = useAutoSave({
     postId: post.id,
     title,
@@ -896,7 +896,7 @@ export default function PostEditorClient({
             />
           </div>
 
-          {/* Actions — hidden for published posts */}
+          {/* Actions - hidden for published posts */}
           {!isPublished && (
             isTrialExpired ? (
               <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-white/[0.06] rounded-xl border border-slate-200 dark:border-white/10">
@@ -1106,7 +1106,7 @@ export default function PostEditorClient({
                 </div>
               )}
 
-              {/* Previously generated images — reuse any past result for free */}
+              {/* Previously generated images - reuse any past result for free */}
               {!isPublished && generations.length > 0 && (
                 <div className="mt-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1.5">
@@ -1129,7 +1129,7 @@ export default function PostEditorClient({
                               ? "border-blue-600"
                               : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/25"
                           )}
-                          title={isCarousel ? `Carousel — ${group.length} images` : "Single image"}
+                          title={isCarousel ? `Carousel - ${group.length} images` : "Single image"}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={group[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -1146,7 +1146,7 @@ export default function PostEditorClient({
                 </div>
               )}
 
-              {/* Upload / Replace buttons — hidden for published posts */}
+              {/* Upload / Replace buttons - hidden for published posts */}
               {!isPublished && (
                 <>
                   <div className="mt-3 flex gap-2">
@@ -1211,7 +1211,7 @@ export default function PostEditorClient({
                     onClick={() => docInputRef.current?.click()}
                     disabled={uploadingDoc}
                     className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] disabled:opacity-70 transition-colors dark:text-slate-300"
-                    title="Upload a PDF — published as a LinkedIn document (swipeable PDF carousel)"
+                    title="Upload a PDF - published as a LinkedIn document (swipeable PDF carousel)"
                   >
                     {uploadingDoc ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1280,7 +1280,7 @@ export default function PostEditorClient({
               {isWeekend && (
                 <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
-                  Weekend selected — posts may get less engagement
+                  Weekend selected - posts may get less engagement
                 </p>
               )}
             </div>
@@ -1455,7 +1455,7 @@ export default function PostEditorClient({
             )}
             <p className="text-xs text-center text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1">
               <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
-              Posted via LinkedIn&apos;s official API — safe &amp; compliant
+              Posted via LinkedIn&apos;s official API - safe &amp; compliant
             </p>
             <div className="flex gap-3">
               <button

@@ -132,7 +132,7 @@ export default function RepurposeModal({
               Repurpose Content
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Your post adapted for 3 platforms — copy and use anywhere
+              Your post adapted for 3 platforms - copy and use anywhere
             </p>
           </div>
           <button

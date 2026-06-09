@@ -80,7 +80,7 @@ const CONTENT_STYLES = [
   "Social Proof / Results",
 ];
 
-// Deterministic target-audience generation — maps the user's first-3-step
+// Deterministic target-audience generation - maps the user's first-3-step
 // onboarding answers to a natural-language audience description (no AI/API call).
 const GOAL_AUDIENCE: Record<string, string> = {
   "Lead Generation": "potential clients and buyers actively looking for solutions",
@@ -167,7 +167,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
         step, headline, industry, summary, positioning,
         contentGoals, contentStyles, targetAudience,
       }));
-    } catch { /* storage full — ignore */ }
+    } catch { /* storage full - ignore */ }
   }, [step, headline, industry, summary, positioning, contentGoals, contentStyles, targetAudience]);
 
   useEffect(() => {
@@ -193,7 +193,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
   }
 
   // Build the target audience from the user's first-3-step answers (headline,
-  // industry, positioning, goals) — fully client-side, no AI/API call.
+  // industry, positioning, goals) - fully client-side, no AI/API call.
   function handleGenerateAudience() {
     if (!industry.trim() && !positioning && contentGoals.length === 0) {
       toast("Complete the earlier steps first so we can tailor your audience.", "error");
@@ -208,17 +208,17 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
       .map((g) => GOAL_AUDIENCE[g])
       .filter(Boolean)
       .slice(0, 2);
-    const goalPart = goalDescs.length ? ` — especially ${goalDescs.join(", and ")}` : "";
+    const goalPart = goalDescs.length ? ` - especially ${goalDescs.join(", and ")}` : "";
 
     const value = POSITIONING_VALUE[positioning] || "clear, relevant, high-quality content";
 
-    let text = `${who}${goalPart} — who value ${value}.`;
+    let text = `${who}${goalPart} - who value ${value}.`;
     // Respect the 300-char field limit; drop the goal detail first if it overflows.
     if (text.length > 300) text = `${who} who value ${value}.`;
     text = text.slice(0, 300);
 
     setTargetAudience(text);
-    toast("Target audience drafted from your profile — tweak it as you like", "success");
+    toast("Target audience drafted from your profile - tweak it as you like", "success");
   }
 
   async function handleSubmit() {
@@ -442,7 +442,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-bold font-display text-slate-900 dark:text-white">Goals & Content Style</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Select all that apply — we&apos;ll personalize your content strategy</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Select all that apply - we&apos;ll personalize your content strategy</p>
               </div>
 
               <div>
@@ -490,7 +490,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
             <div className="space-y-5">
               <div>
                 <h2 className="text-xl font-bold font-display text-slate-900 dark:text-white">Who are you writing for?</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Describe your ideal LinkedIn audience — this powers the AI strategy</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Describe your ideal LinkedIn audience - this powers the AI strategy</p>
               </div>
 
               <div>

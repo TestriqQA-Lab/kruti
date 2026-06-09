@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     const planId = getPlanId(currency);
     console.log(`[Checkout] Creating subscription with planId=${planId}, customerId=${customerId}, currency=${currency}`);
 
-    // customer_id is NOT a valid input to subscriptions.create — Razorpay links the
+    // customer_id is NOT a valid input to subscriptions.create - Razorpay links the
     // customer when the payer authorises in the checkout modal (it is auto-populated
     // on the subscription afterwards). total_count 120 (10y) is within Razorpay's
     // monthly cap of 1200, so it is fine as-is.

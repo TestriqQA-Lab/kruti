@@ -13,7 +13,7 @@ export interface LinkedInPostResult {
 export async function postToLinkedIn(
   userId: string,
   post: {
-    title?: string | null;   // Hook / opening line — prepended with line breaks
+    title?: string | null;   // Hook / opening line - prepended with line breaks
     body: string;
     hashtags: string | null;
     imageUrl: string | null;
@@ -33,7 +33,7 @@ export async function postToLinkedIn(
     };
   }
 
-  // Get LinkedIn user ID — prefer user.linkedinId, fall back to account.providerAccountId
+  // Get LinkedIn user ID - prefer user.linkedinId, fall back to account.providerAccountId
   const account = await prisma.account.findFirst({
     where: { userId, provider: "linkedin" },
   });
@@ -58,7 +58,7 @@ export async function postToLinkedIn(
   const hashtags = post.hashtags ? (JSON.parse(post.hashtags) as string[]) : [];
   const parts: string[] = [];
 
-  // Hook / opening line — directly above the body (no blank line in between)
+  // Hook / opening line - directly above the body (no blank line in between)
   const hook = cleanInline(post.title);
   if (hook) {
     parts.push(hook);
@@ -123,7 +123,7 @@ export async function postToLinkedIn(
       : [];
 
   if (docUrl) {
-    // PDF document post — renders as a swipeable carousel on LinkedIn.
+    // PDF document post - renders as a swipeable carousel on LinkedIn.
     try {
       const assetUrn = await uploadDocumentToLinkedIn(accessToken, linkedinId, docUrl);
       if (assetUrn) {

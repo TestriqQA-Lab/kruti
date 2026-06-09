@@ -145,7 +145,7 @@ export default function AnalyticsClient({
         </div>
       )}
 
-      {/* Funnel + Post Types — 2 column grid */}
+      {/* Funnel + Post Types - 2 column grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Publishing Funnel */}
         <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-5">
@@ -232,7 +232,7 @@ export default function AnalyticsClient({
 
               return (
                 <div key={week.weekLabel} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                  {/* Bar column — stacked from bottom */}
+                  {/* Bar column - stacked from bottom */}
                   <div className="w-full flex items-end justify-center gap-[2px] h-36">
                     {/* Created bar */}
                     <div

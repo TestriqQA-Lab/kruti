@@ -23,7 +23,7 @@ interface Post {
   weekLabel: string;
 }
 
-// Schedule picker for individual posts — click to open picker popover
+// Schedule picker for individual posts - click to open picker popover
 function InlineSchedule({ post, onUpdate }: { post: Post; onUpdate: (id: string, scheduledAt: string) => void }) {
   const initDate = post.scheduledAt ? new Date(post.scheduledAt) : null;
   const [date, setDate] = useState(initDate ? initDate.toISOString().slice(0, 10) : "");
@@ -110,7 +110,7 @@ function InlineSchedule({ post, onUpdate }: { post: Post; onUpdate: (id: string,
               {isWeekend && (
                 <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
-                  Weekend — posts may get less engagement
+                  Weekend - posts may get less engagement
                 </p>
               )}
             </div>
@@ -152,7 +152,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkSuccess, setBulkSuccess] = useState<string | null>(null);
 
-  // Schedule modal (time-only — each post keeps its own date)
+  // Schedule modal (time-only - each post keeps its own date)
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleTime, setScheduleTime] = useState("09:00");
 
@@ -305,7 +305,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Image generation failed");
-      showFeedback(`Generated images for ${data.generated} of ${data.total} post(s)${data.errors ? ` — ${data.errors}` : ""}`);
+      showFeedback(`Generated images for ${data.generated} of ${data.total} post(s)${data.errors ? ` - ${data.errors}` : ""}`);
       clearSelection();
       router.refresh();
     } catch (err) {
@@ -519,7 +519,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
                     )}
                   </button>
 
-                  {/* Post content — clicking navigates to editor */}
+                  {/* Post content - clicking navigates to editor */}
                   <Link
                     href={`/posts/${post.id}`}
                     className="flex items-start gap-4 flex-1 min-w-0"
@@ -579,7 +579,7 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
         )}
       </div>
 
-      {/* Schedule Modal — time only (each post keeps its own date) */}
+      {/* Schedule Modal - time only (each post keeps its own date) */}
       {showScheduleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white dark:bg-white/[0.03] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">

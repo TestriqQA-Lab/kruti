@@ -123,7 +123,7 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   // JWT strategy: allows middleware to read token claims without DB hit
-  // maxAge: 24 hours — forces re-authentication daily for security
+  // maxAge: 24 hours - forces re-authentication daily for security
   session: { strategy: "jwt", maxAge: 24 * 60 * 60 },
 };
 

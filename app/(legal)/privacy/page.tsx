@@ -284,8 +284,8 @@ export default function PrivacyPolicyPage() {
         </h3>
         <p>If you are located in the EU/EEA, you additionally have the right to:</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>Data portability &mdash; receive your data in a structured, machine-readable format</li>
-          <li>Erasure (&ldquo;right to be forgotten&rdquo;) &mdash; request deletion of your data</li>
+          <li>Data portability - receive your data in a structured, machine-readable format</li>
+          <li>Erasure (&ldquo;right to be forgotten&rdquo;) - request deletion of your data</li>
           <li>Restriction of processing</li>
           <li>Object to processing based on legitimate interests</li>
           <li>Lodge a complaint with a supervisory authority</li>

@@ -1,8 +1,8 @@
 // Persistent per-post history of generated/uploaded images so the user can
-// always get a previous result back — even after a reload or after the per-post
+// always get a previous result back - even after a reload or after the per-post
 // generation limit is exhausted. Stored on Post.imageHistory as a JSON string.
 //
-// Shape: string[][] — an array of "generations". Each generation is a list of
+// Shape: string[][] - an array of "generations". Each generation is a list of
 // image URLs: length 1 = a single image / upload, length > 1 = a carousel set.
 
 const MAX_GENERATIONS = 24;

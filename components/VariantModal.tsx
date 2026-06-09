@@ -53,7 +53,7 @@ export default function VariantModal({
               Choose a Variant
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Three different styles generated for this post — pick your favorite
+              Three different styles generated for this post - pick your favorite
             </p>
           </div>
           <button

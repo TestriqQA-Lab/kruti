@@ -25,7 +25,7 @@ export async function GET() {
   }
 
   if (DEV_MODE) {
-    console.log("[Invoices] Razorpay keys not configured — returning empty array");
+    console.log("[Invoices] Razorpay keys not configured - returning empty array");
     return NextResponse.json({ invoices: [] });
   }
 

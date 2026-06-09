@@ -23,7 +23,7 @@ function friendlyImageError(rawMessage: string): string {
     m.includes("exceeded") ||
     m.includes("429")
   ) {
-    return "AI image generation is temporarily unavailable — the monthly image quota has been reached. Please try again later.";
+    return "AI image generation is temporarily unavailable - the monthly image quota has been reached. Please try again later.";
   }
   if (m.includes("safety") || m.includes("blocked") || m.includes("prohibited")) {
     return "The image couldn't be generated for this content. Try editing the post text and generating again.";
@@ -50,7 +50,7 @@ export async function generatePostImage(
 ): Promise<string | null> {
   lastImageGenError = null;
 
-  // ONLY use the imagePrompt (scene/metaphor description) — never pass post
+  // ONLY use the imagePrompt (scene/metaphor description) - never pass post
   // title or body text, as image models will attempt to render any text they see.
   const sceneDescription = imagePrompt || "Professional abstract business concept";
 
@@ -58,7 +58,7 @@ export async function generatePostImage(
 
 Style: Professional, polished, visually compelling. Cinematic composition, natural lighting, professional color grading.
 Industry context: ${industry || "business"}.
-The image must contain ZERO text — no words, letters, numbers, labels, captions, watermarks, or typography of any kind.
+The image must contain ZERO text - no words, letters, numbers, labels, captions, watermarks, or typography of any kind.
 Square format (1:1). High quality, suitable for LinkedIn.`;
 
   console.log(`[Imagen] Scene: ${sceneDescription.slice(0, 80)}...`);
@@ -136,7 +136,7 @@ export async function generateCarouselImages(
   const base = basePrompt || "Professional abstract business concept";
   const prompts = Array.from(
     { length: count },
-    (_, i) => `${base} — ${CAROUSEL_VARIATIONS[i % CAROUSEL_VARIATIONS.length]}`
+    (_, i) => `${base} - ${CAROUSEL_VARIATIONS[i % CAROUSEL_VARIATIONS.length]}`
   );
   const results = await Promise.all(
     prompts.map((p, i) => generatePostImage(p, `${postId}-c${i}`, industry))
@@ -152,7 +152,7 @@ export function buildImagePrompt(
   industry: string
 ): string {
   // This is a fallback when no imagePrompt exists on the post.
-  // Describes a visual concept — no actual post text is included.
+  // Describes a visual concept - no actual post text is included.
   return `Professional abstract visual metaphor representing the concept of ${postType} content in the ${industry} industry.
 Clean, modern composition with symbolic imagery. No text, no words, no letters, no numbers anywhere in the image.
 Square format (1:1). High quality, suitable for LinkedIn.`;

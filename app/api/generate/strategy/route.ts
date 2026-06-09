@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       }
       weekStart = nextDay;
     } else {
-      // No posts yet — start from today
+      // No posts yet - start from today
       weekStart = new Date();
     }
   }

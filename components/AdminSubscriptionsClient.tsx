@@ -117,7 +117,7 @@ export default function AdminSubscriptionsClient({
   };
 
   const formatDate = (d: string | Date | null) => {
-    if (!d) return "—";
+    if (!d) return "-";
     return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
@@ -231,7 +231,7 @@ export default function AdminSubscriptionsClient({
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs text-gray-400 font-mono">
-                        {sub.razorpaySubscriptionId ? sub.razorpaySubscriptionId.slice(0, 14) + "\u2026" : "\u2014"}
+                        {sub.razorpaySubscriptionId ? sub.razorpaySubscriptionId.slice(0, 14) + "\u2026" : "-"}
                       </span>
                       {sub.currency && (
                         <span className="ml-1 text-[10px] text-gray-400 dark:text-gray-500">{sub.currency}</span>

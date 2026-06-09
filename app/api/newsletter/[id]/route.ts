@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// PATCH /api/newsletter/:id — schedule or update status
+// PATCH /api/newsletter/:id - schedule or update status
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }

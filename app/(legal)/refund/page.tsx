@@ -158,7 +158,7 @@ export default function RefundPolicyPage() {
             Our team will review your request and respond within <strong>3 business days</strong>.
           </li>
           <li>
-            Approved refunds will be processed within <strong>5&ndash;7 business days</strong> and
+            Approved refunds will be processed within <strong>5-7 business days</strong> and
             credited to your original payment method via Razorpay.
           </li>
         </ol>
@@ -176,7 +176,7 @@ export default function RefundPolicyPage() {
           </li>
           <li>
             Razorpay&rsquo;s refund processing timelines may vary. Typically, refunds appear
-            within 5&ndash;10 business days depending on your bank or payment provider.
+            within 5-10 business days depending on your bank or payment provider.
           </li>
           <li>
             For international refunds (USD payments), currency conversion rates and any

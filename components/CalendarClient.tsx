@@ -275,7 +275,7 @@ export default function CalendarClient({ posts: initialPosts, userTimezone = "As
                             "block text-xs px-1.5 py-1 rounded truncate border hover:opacity-80 transition-opacity",
                             getPostTypeColor(post.postType)
                           )}
-                          title={`${post.title} — drag to reschedule`}
+                          title={`${post.title} - drag to reschedule`}
                           draggable={false}
                         >
                           {post.postedToLinkedIn && (

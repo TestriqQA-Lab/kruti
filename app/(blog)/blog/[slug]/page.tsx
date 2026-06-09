@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) return { title: "Post Not Found" };
 
   return {
-    title: `${post.title} — Kruti.io Blog`,
+    title: `${post.title} - Kruti.io Blog`,
     description: post.description,
     keywords: post.keywords.join(", "),
     authors: [{ name: post.author }],
