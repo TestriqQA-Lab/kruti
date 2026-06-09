@@ -194,12 +194,9 @@ const mockPosts = [
 
 function Brand() {
   return (
-    <a href="#overview" className="flex flex-col items-start leading-none">
+    <a href="#overview" className="flex items-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="Kruti.io" className="h-16 w-auto" />
-      <span className="mt-1 pl-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400 sm:text-[11px]">
-        Generate. Schedule. Forget.
-      </span>
+      <img src="/logo.png" alt="Kruti.io" className="h-20 w-auto" />
     </a>
   );
 }
