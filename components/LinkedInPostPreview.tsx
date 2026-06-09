@@ -11,6 +11,8 @@ import {
   Repeat2,
   Send,
   FileText,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Image from "next/image";
 import { formatPostBody, cleanInline } from "@/lib/format";
@@ -195,18 +197,18 @@ export default function LinkedInPostPreview({
                 <button
                   type="button"
                   onClick={() => setSlide((s) => (s > 0 ? s - 1 : carouselImages.length - 1))}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/65 text-white flex items-center justify-center text-lg leading-none"
+                  className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-slate-800 shadow-lg ring-1 ring-black/10 transition hover:scale-105 hover:bg-white active:scale-95"
                   aria-label="Previous slide"
                 >
-                  &#8249;
+                  <ChevronLeft className="h-5 w-5" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setSlide((s) => (s < carouselImages.length - 1 ? s + 1 : 0))}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/65 text-white flex items-center justify-center text-lg leading-none"
+                  className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-slate-800 shadow-lg ring-1 ring-black/10 transition hover:scale-105 hover:bg-white active:scale-95"
                   aria-label="Next slide"
                 >
-                  &#8250;
+                  <ChevronRight className="h-5 w-5" />
                 </button>
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
                   {carouselImages.map((_, i) => (
