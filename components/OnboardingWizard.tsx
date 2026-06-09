@@ -215,39 +215,34 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
     <div className="min-h-screen bg-[#F6F8FB] dark:bg-[#0A0E14] flex items-center justify-center p-4">
       <div className="bg-white dark:bg-white/[0.03] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-blue-600 px-8 py-6 text-white">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold font-display">Welcome to LinkedIn Content Pro</h1>
-              <p className="text-blue-200 text-sm">Let&apos;s set up your content strategy</p>
-            </div>
-          </div>
+        <div className="px-8 pt-7 pb-6 border-b border-slate-100 dark:border-white/10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Kruti.io" className="h-10 w-auto mb-5" />
+          <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white">Welcome to Kruti.io</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Let&apos;s set up your content strategy</p>
 
           {/* Progress bar */}
-          <div className="w-full bg-white/20 rounded-full h-2">
+          <div className="w-full bg-slate-200 dark:bg-white/10 rounded-full h-2 mt-6">
             <div
-              className="bg-white rounded-full h-2 transition-all duration-500"
+              className="bg-blue-600 rounded-full h-2 transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="flex justify-between mt-2">
+          <div className="flex justify-between mt-3">
             {stepTitles.map((title, i) => {
               const Icon = stepIcons[i];
+              const done = i + 1 < step;
+              const current = i + 1 === step;
               return (
                 <div key={i} className={`flex flex-col items-center gap-1 ${i + 1 <= step ? "opacity-100" : "opacity-40"}`}>
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${i + 1 < step ? "bg-green-400" : i + 1 === step ? "bg-white" : "bg-white/30"}`}>
-                    {i + 1 < step ? (
-                      <CheckCircle className="w-4 h-4 text-green-700" />
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${done ? "bg-green-500" : current ? "bg-blue-600" : "bg-slate-200 dark:bg-white/10"}`}>
+                    {done ? (
+                      <CheckCircle className="w-4 h-4 text-white" />
                     ) : (
-                      <Icon className={`w-3 h-3 ${i + 1 === step ? "text-blue-600" : "text-white"}`} />
+                      <Icon className={`w-3 h-3 ${current ? "text-white" : "text-slate-400 dark:text-slate-500"}`} />
                     )}
                   </div>
-                  <span className="text-xs text-blue-100 hidden sm:block">{title}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">{title}</span>
                 </div>
               );
             })}
