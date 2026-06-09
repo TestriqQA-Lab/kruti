@@ -395,7 +395,7 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section id="overview" className="relative scroll-mt-20 overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 -top-10 -z-10 h-[420px] bg-[radial-gradient(50%_70%_at_50%_0%,rgba(37,99,235,0.10),transparent_70%)]" />
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-2 lg:gap-16">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-12 sm:px-8 sm:py-20 lg:grid-cols-2 lg:gap-16">
           <div>
             <div className="animate-fade-up">
               <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
@@ -464,12 +464,12 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       </section>
 
       {/* ── How it works ─────────────────────────────────────────────────── */}
-      <Section id="how" className="border-t border-slate-200 py-20 dark:border-white/10 sm:py-28">
+      <Section id="how" className="border-t border-slate-200 py-14 dark:border-white/10 sm:py-20">
         <Eyebrow>How it works</Eyebrow>
         <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight sm:text-4xl">
           From zero to 30 posts in three steps
         </h2>
-        <div className="relative mt-14 grid gap-10 sm:grid-cols-3 sm:gap-8">
+        <div className="relative mt-10 grid gap-10 sm:grid-cols-3 sm:gap-8">
           {/* connecting line behind the step icons (desktop) */}
           <div
             aria-hidden="true"
@@ -491,12 +491,12 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       </Section>
 
       {/* ── Features ─────────────────────────────────────────────────────── */}
-      <Section id="features" className="border-t border-slate-200 py-20 dark:border-white/10 sm:py-28">
+      <Section id="features" className="border-t border-slate-200 py-14 dark:border-white/10 sm:py-20">
         <Eyebrow>Everything you need</Eyebrow>
         <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight sm:text-4xl">
           A whole content team, quietly working
         </h2>
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
             <div
               key={f.title}
@@ -513,7 +513,7 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       </Section>
 
       {/* ── Comparison ───────────────────────────────────────────────────── */}
-      <Section className="border-t border-slate-200 py-20 dark:border-white/10 sm:py-28">
+      <Section className="border-t border-slate-200 py-14 dark:border-white/10 sm:py-20">
         <Eyebrow>Sound familiar?</Eyebrow>
         <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight sm:text-4xl">
           The old way, and a calmer way
@@ -549,7 +549,7 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       </Section>
 
       {/* ── Testimonials ─────────────────────────────────────────────────── */}
-      <Section className="border-t border-slate-200 py-20 dark:border-white/10 sm:py-28">
+      <Section className="border-t border-slate-200 py-14 dark:border-white/10 sm:py-20">
         <Eyebrow>Loved by professionals</Eyebrow>
         <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight sm:text-4xl">
           Trusted by founders &amp; marketers
@@ -583,7 +583,7 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       </Section>
 
       {/* ── Pricing ──────────────────────────────────────────────────────── */}
-      <Section id="pricing" className="border-t border-slate-200 py-20 dark:border-white/10 sm:py-28">
+      <Section id="pricing" className="border-t border-slate-200 py-14 dark:border-white/10 sm:py-20">
         <div className="mx-auto max-w-2xl text-center">
           <Eyebrow>Simple pricing</Eyebrow>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
@@ -638,7 +638,7 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       </Section>
 
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
-      <Section id="faq" className="border-t border-slate-200 py-20 dark:border-white/10 sm:py-28">
+      <Section id="faq" className="border-t border-slate-200 py-14 dark:border-white/10 sm:py-20">
         {/* SEO: FAQPage structured data for Google rich results */}
         <script
           type="application/ld+json"
@@ -689,7 +689,7 @@ export default function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
       </Section>
 
       {/* ── Final CTA ────────────────────────────────────────────────────── */}
-      <Section className="py-20 sm:py-24">
+      <Section className="py-14 sm:py-20">
         <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-16 text-center dark:bg-blue-600 sm:px-12">
           <div className="pointer-events-none absolute inset-0 opacity-20 [background:radial-gradient(circle_at_50%_0%,#60a5fa,transparent_60%)]" />
           <h2 className="relative font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
