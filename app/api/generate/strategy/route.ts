@@ -102,9 +102,40 @@ export async function POST(req: NextRequest) {
   const allowedTypes = deriveAllowedPostTypes(user.contentStyles);
   const prompt = buildStrategyPrompt(profileContext, weekStart, previousWeeks, allowedTypes);
 
+  // reuseStrategy = the user is satisfied with the current strategy → copy it
+  // instead of regenerating with AI. The strategy's true age is tracked by an
+  // embedded `generatedAt` (carried forward on every reuse) so it still
+  // auto-refreshes once it is 30+ days old — i.e. the strategy changes monthly
+  // by default even if the user keeps reusing it.
+  const reuseRequested = body.reuseStrategy === true;
+  const latestPlan = previousPlans[0]; // most recent existing plan = current strategy
+  const STRATEGY_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+  let latestStrategy: Record<string, unknown> | null = null;
   try {
-    const raw = await generateText(prompt);
-    const strategy = parseJSON(raw);
+    latestStrategy = latestPlan ? (JSON.parse(latestPlan.strategy) as Record<string, unknown>) : null;
+  } catch {
+    latestStrategy = null;
+  }
+  const generatedAtMs =
+    latestStrategy && typeof latestStrategy.generatedAt === "string"
+      ? new Date(latestStrategy.generatedAt).getTime()
+      : latestPlan
+      ? new Date(latestPlan.createdAt).getTime()
+      : 0;
+  const strategyAgeMs = latestStrategy ? Date.now() - generatedAtMs : Infinity;
+  const canReuse = reuseRequested && !!latestStrategy && strategyAgeMs < STRATEGY_MAX_AGE_MS;
+
+  try {
+    let strategy: Record<string, unknown>;
+    if (canReuse && latestStrategy) {
+      strategy = latestStrategy; // reuse current strategy (carries its original generatedAt)
+    } else {
+      const raw = await generateText(prompt);
+      strategy = parseJSON<Record<string, unknown>>(raw);
+      strategy.generatedAt = new Date().toISOString(); // stamp when this strategy was created
+    }
+    const strategyStr = JSON.stringify(strategy);
 
     // Upsert without relying on a specific ON CONFLICT unique constraint
     // (the shared DB's ContentPlan unique may differ across branches).
@@ -115,13 +146,13 @@ export async function POST(req: NextRequest) {
     const plan = existing
       ? await prisma.contentPlan.update({
           where: { id: existing.id },
-          data: { strategy: JSON.stringify(strategy) },
+          data: { strategy: strategyStr },
         })
       : await prisma.contentPlan.create({
-          data: { userId: user.id, weekStart, strategy: JSON.stringify(strategy) },
+          data: { userId: user.id, weekStart, strategy: strategyStr },
         });
 
-    return NextResponse.json({ plan, strategy });
+    return NextResponse.json({ plan, strategy, reused: canReuse });
   } catch (err) {
     const raw = err instanceof Error ? err.message : String(err);
     console.error("Strategy generation error:", raw);

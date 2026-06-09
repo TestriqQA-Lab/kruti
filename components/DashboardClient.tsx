@@ -56,8 +56,35 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [showStrategyConfirm, setShowStrategyConfirm] = useState(false);
 
   const limitReached = postsRemaining < postsPerBatch;
+
+  // Current strategy's theme (for the confirm dialog). No Date here — keep render hydration-safe.
+  const strategyTheme = recentPlan
+    ? (() => {
+        try {
+          return (JSON.parse(recentPlan.strategy) as { weekTheme?: string }).weekTheme ?? null;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
+  // On "Generate": if there's already a strategy, ask the user whether to keep or change it.
+  function onGenerateClick() {
+    if (limitReached) return;
+    if (recentPlan) {
+      setShowStrategyConfirm(true);
+    } else {
+      handleGenerate(false); // first time — nothing to confirm, build a strategy
+    }
+  }
+
+  function confirmStrategy(reuse: boolean) {
+    setShowStrategyConfirm(false);
+    handleGenerate(reuse);
+  }
 
   // Map day names to JS day numbers for schedule-aware date range
   const dayNameToNum: Record<string, number> = {
@@ -83,7 +110,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   }
 
-  async function handleGenerate() {
+  async function handleGenerate(reuse: boolean) {
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     setGenerating(true);
@@ -91,24 +118,27 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
     setGenerationError(null);
 
     try {
-      setProgress(["Analyzing your profile and creating strategy..."]);
+      setProgress([
+        reuse ? "Using your current content strategy..." : "Building a fresh content strategy...",
+      ]);
 
-      // Don't send weekStart - let the API auto-compute from last scheduled post
+      // reuseStrategy: true keeps the current strategy (unless it's 30+ days old);
+      // false regenerates it. weekStart is auto-computed by the API.
       const stratRes = await fetch("/api/generate/strategy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ reuseStrategy: reuse }),
         signal: abortController.signal,
       });
       if (!stratRes.ok) {
         const errData = await stratRes.json().catch(() => null);
         throw new Error(errData?.error || "Strategy generation failed. Please try again.");
       }
-      const { plan: newPlan, strategy } = await stratRes.json();
+      const { plan: newPlan, strategy, reused } = await stratRes.json();
 
       setProgress((p) => [
         ...p,
-        `Strategy ready: "${strategy.weekTheme ?? "Content theme"}"`,
+        `${reused ? "Using your strategy" : "New strategy ready"}: "${strategy.weekTheme ?? "Content theme"}"`,
       ]);
 
       setProgress((p) => [...p, `Generating ${postsPerBatch} posts for your scheduled days...`]);
@@ -210,7 +240,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
             </Link>
           ) : (
           <button
-            onClick={handleGenerate}
+            onClick={onGenerateClick}
             disabled={generating || limitReached}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-70 shadow-md shadow-blue-200 dark:shadow-blue-900/30"
           >
@@ -297,7 +327,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
               <p className="text-sm text-red-600 dark:text-red-400 mt-1">{generationError}</p>
             </div>
             <button
-              onClick={handleGenerate}
+              onClick={onGenerateClick}
               className="flex items-center gap-1.5 text-sm px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium flex-shrink-0"
             >
               <RefreshCw className="w-4 h-4" />
@@ -423,6 +453,61 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
           </Link>
         ))}
       </div>
+
+      {/* Strategy confirmation dialog — shown when a strategy already exists */}
+      {showStrategyConfirm && recentPlan && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+          onClick={() => setShowStrategyConfirm(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-[#0D131F]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <h2 className="mt-4 text-lg font-bold text-slate-900 dark:text-white">
+              Are you satisfied with the current strategy?
+            </h2>
+            {strategyTheme && (
+              <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+                Current strategy:{" "}
+                <span className="font-medium text-slate-700 dark:text-slate-300">{strategyTheme}</span>
+              </p>
+            )}
+            {Math.floor((Date.now() - new Date(recentPlan.weekStart).getTime()) / 86400000) >= 30 ? (
+              <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                Your strategy is over a month old — we recommend refreshing it.
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                Keep it to generate more posts from the same plan, or change it for a fresh direction.
+              </p>
+            )}
+            <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
+              <button
+                onClick={() => confirmStrategy(true)}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+              >
+                <CheckCircle className="h-4 w-4" /> Yes, generate posts
+              </button>
+              <button
+                onClick={() => confirmStrategy(false)}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.1]"
+              >
+                <RefreshCw className="h-4 w-4" /> No, change strategy
+              </button>
+            </div>
+            <button
+              onClick={() => setShowStrategyConfirm(false)}
+              className="mt-3 w-full text-center text-xs text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-300"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
