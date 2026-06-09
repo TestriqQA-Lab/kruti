@@ -123,8 +123,18 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ plan, strategy });
   } catch (err) {
-    console.error("Strategy generation error:", err);
-    return NextResponse.json({ error: "Failed to generate strategy" }, { status: 500 });
+    const raw = err instanceof Error ? err.message : String(err);
+    console.error("Strategy generation error:", raw);
+    const m = raw.toLowerCase();
+    const friendly =
+      m.includes("spending cap") ||
+      m.includes("resource_exhausted") ||
+      m.includes("quota") ||
+      m.includes("exceeded") ||
+      m.includes("429")
+        ? "AI is temporarily unavailable - the monthly quota has been reached. Please try again later."
+        : "Couldn't generate your content strategy right now. Please try again in a moment.";
+    return NextResponse.json({ error: friendly }, { status: 500 });
   }
 }
 

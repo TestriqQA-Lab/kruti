@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -51,6 +51,10 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  // Avoid SSR/client hydration mismatch for time-of-day-dependent UI: render a
+  // stable value on the server + first client render, then the real one after mount.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const limitReached = postsRemaining < postsPerBatch;
@@ -96,7 +100,10 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
         body: JSON.stringify({}),
         signal: abortController.signal,
       });
-      if (!stratRes.ok) throw new Error("Strategy generation failed");
+      if (!stratRes.ok) {
+        const errData = await stratRes.json().catch(() => null);
+        throw new Error(errData?.error || "Strategy generation failed. Please try again.");
+      }
       const { plan: newPlan, strategy } = await stratRes.json();
 
       setProgress((p) => [
@@ -184,7 +191,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-gray-100">
-            Good {getTimeOfDay()}, {user?.name?.split(" ")[0] ?? "there"}!
+            Good {mounted ? getTimeOfDay() : "day"}, {user?.name?.split(" ")[0] ?? "there"}!
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
             {user?.headline ?? "Ready to build your LinkedIn presence?"}
@@ -319,7 +326,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
           <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-white/10">
             <h2 className="font-semibold text-slate-900 dark:text-gray-100 flex items-center gap-2">
               <Clock className="w-4 h-4 text-slate-400" />
-              {upcomingPosts.length > 0 && upcomingPosts[0].scheduledAt && new Date(upcomingPosts[0].scheduledAt) > new Date()
+              {mounted && upcomingPosts.length > 0 && upcomingPosts[0].scheduledAt && new Date(upcomingPosts[0].scheduledAt) > new Date()
                 ? "Upcoming Posts"
                 : "Recent Posts"}
             </h2>
