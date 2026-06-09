@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronRight, ChevronLeft, CheckCircle, User, Target, Palette, Users, Save } from "lucide-react";
+import { ChevronRight, ChevronLeft, CheckCircle, User, Target, Palette, Users, Save, Sparkles, Loader2 } from "lucide-react";
+import { useToast } from "@/components/Toast";
 
 const INDUSTRIES = [
   "Technology", "Finance", "Healthcare", "Marketing", "Sales",
@@ -90,9 +91,11 @@ interface OnboardingWizardProps {
 
 export default function OnboardingWizard({ user }: OnboardingWizardProps) {
   const { update } = useSession();
+  const { toast } = useToast();
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [generatingAudience, setGeneratingAudience] = useState(false);
   const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
 
   // Form state
@@ -166,6 +169,35 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
     setList(
       list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
     );
+  }
+
+  async function handleGenerateAudience() {
+    setGeneratingAudience(true);
+    try {
+      const res = await fetch("/api/onboarding/generate-audience", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          headline,
+          industry,
+          summary,
+          positioning,
+          contentGoals,
+          contentStyles,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error || !data.targetAudience) {
+        toast(data.error || "Couldn't generate the audience. Please try again.", "error");
+        return;
+      }
+      setTargetAudience(String(data.targetAudience).slice(0, 300));
+      toast("Target audience generated from your profile", "success");
+    } catch {
+      toast("Couldn't generate the audience. Please try again.", "error");
+    } finally {
+      setGeneratingAudience(false);
+    }
   }
 
   async function handleSubmit() {
@@ -441,9 +473,29 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Target Audience Description
-                </label>
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Target Audience Description
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAudience}
+                    disabled={generatingAudience}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {generatingAudience ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Generate from Profile
+                      </>
+                    )}
+                  </button>
+                </div>
                 <textarea
                   value={targetAudience}
                   onChange={(e) => setTargetAudience(e.target.value.slice(0, 300))}
