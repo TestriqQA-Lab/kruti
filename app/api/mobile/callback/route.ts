@@ -401,7 +401,10 @@ export async function GET(req: NextRequest) {
         picture: profile.picture,
       },
       secret: authSecret,
-      maxAge: 24 * 60 * 60,
+      // App session token validity. 24h was too short — users got
+      // "Unauthorized" the next day (token expired). 30 days is a sensible
+      // mobile session; the app re-auths via LinkedIn when it finally expires.
+      maxAge: 30 * 24 * 60 * 60,
     });
 
     console.log("[mobile/callback] Success — scope:", grantedScope);

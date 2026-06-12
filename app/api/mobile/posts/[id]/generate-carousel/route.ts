@@ -91,22 +91,20 @@ Return ONLY a JSON array of ${SLIDE_COUNT} objects: [{"heading","body","imagePro
   const urls: string[] = [];
   for (let i = 0; i < slides.length; i++) {
     const s = slides[i];
-    let bgBuffer: Buffer | null = null;
+    let bgUrl: string | null = null;
     try {
-      const bgUrl = await generatePostImage(
+      bgUrl = await generatePostImage(
         s.imagePrompt || `Abstract professional ${industry} background`,
         `${post.id}-c${i}`,
         industry,
       );
-      if (bgUrl) {
-        const r = await fetch(bgUrl);
-        if (r.ok) bgBuffer = Buffer.from(await r.arrayBuffer());
-      }
     } catch (err) {
       console.warn(`[generate-carousel] slide ${i} bg failed, using brand fill`, err);
     }
 
-    const png = await renderSlide(bgBuffer, {
+    // renderSlide (next/og) fetches the background URL itself and overlays the
+    // text reliably (no fontconfig dependency).
+    const png = await renderSlide(bgUrl, {
       index: i + 1,
       total: SLIDE_COUNT,
       heading: s.heading || `Slide ${i + 1}`,

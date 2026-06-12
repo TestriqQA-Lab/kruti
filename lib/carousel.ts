@@ -1,7 +1,8 @@
-import sharp from "sharp";
+import { ImageResponse } from "next/og";
+import { createElement as h } from "react";
 
 const SIZE = 1080; // square slide, LinkedIn-friendly
-const BRAND = "#5B52C9";
+const BRAND = "#2563EB";
 
 export interface SlideMeta {
   index: number; // 1-based
@@ -10,109 +11,180 @@ export interface SlideMeta {
   body: string;
 }
 
-function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-// Greedy word-wrap by approximate character budget per line.
-function wrapText(text: string, maxChars: number, maxLines: number): string[] {
-  const words = (text || "").trim().split(/\s+/);
-  const lines: string[] = [];
-  let line = "";
-  for (const w of words) {
-    if (!line) {
-      line = w;
-    } else if ((line + " " + w).length <= maxChars) {
-      line += " " + w;
-    } else {
-      lines.push(line);
-      line = w;
+// Satori (used by next/og) needs an explicit font — Vercel's serverless image
+// (sharp/librsvg) has NO fonts, which is why the old SVG text overlay rendered
+// blank ("Fontconfig error"). We fetch a real font once and reuse it.
+let fontCache: ArrayBuffer | null = null;
+async function loadFont(): Promise<ArrayBuffer | null> {
+  if (fontCache) return fontCache;
+  try {
+    const res = await fetch(
+      "https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-700-normal.woff",
+    );
+    if (res.ok) {
+      fontCache = await res.arrayBuffer();
+      return fontCache;
     }
-    if (lines.length === maxLines) break;
+  } catch {
+    /* fall through */
   }
-  if (line && lines.length < maxLines) lines.push(line);
-  return lines;
-}
-
-// Build the SVG overlay: dark scrim for readability + slide number + heading +
-// body + brand mark. Sits on top of the AI background (or solid brand fill).
-function buildSlideSvg({ index, total, heading, body }: SlideMeta): string {
-  const headLines = wrapText(heading.toUpperCase(), 18, 4);
-  const bodyLines = wrapText(body, 40, 4);
-
-  // Vertical layout: headings sit in the lower-middle, body beneath.
-  const headFont = headLines.length > 2 ? 78 : 92;
-  const headLineH = headFont + 14;
-  const bodyFont = 40;
-  const bodyLineH = bodyFont + 12;
-
-  const blockH = headLines.length * headLineH + 24 + bodyLines.length * bodyLineH;
-  let y = SIZE - 150 - blockH; // anchor block above the footer
-  if (y < 360) y = 360;
-
-  const headTspans = headLines
-    .map((l, i) => {
-      const ly = y + i * headLineH;
-      return `<text x="80" y="${ly}" font-family="Arial, Helvetica, sans-serif" font-size="${headFont}" font-weight="800" fill="#FFFFFF">${escapeXml(l)}</text>`;
-    })
-    .join("");
-
-  const bodyStartY = y + headLines.length * headLineH + 24 + bodyFont;
-  const bodyTspans = bodyLines
-    .map((l, i) => {
-      const ly = bodyStartY + i * bodyLineH;
-      return `<text x="80" y="${ly}" font-family="Arial, Helvetica, sans-serif" font-size="${bodyFont}" font-weight="500" fill="#E9E7FB">${escapeXml(l)}</text>`;
-    })
-    .join("");
-
-  return `<svg width="${SIZE}" height="${SIZE}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0B0A1A" stop-opacity="0.30"/>
-      <stop offset="55%" stop-color="#0B0A1A" stop-opacity="0.55"/>
-      <stop offset="100%" stop-color="#0B0A1A" stop-opacity="0.88"/>
-    </linearGradient>
-  </defs>
-  <rect width="${SIZE}" height="${SIZE}" fill="url(#scrim)"/>
-  <!-- slide number badge -->
-  <rect x="80" y="80" width="120" height="56" rx="28" fill="${BRAND}"/>
-  <text x="140" y="118" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="800" fill="#FFFFFF" text-anchor="middle">${index} / ${total}</text>
-  <!-- accent bar -->
-  <rect x="80" y="${y - 54}" width="74" height="10" rx="5" fill="${BRAND}"/>
-  ${headTspans}
-  ${bodyTspans}
-  <!-- brand mark -->
-  <text x="${SIZE - 80}" y="${SIZE - 70}" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="800" fill="#FFFFFF" text-anchor="end">Kruti</text>
-</svg>`;
+  return null;
 }
 
 /**
- * Render one carousel slide: AI background (or solid brand fill if none) with
- * the slide text composited on top. Returns a PNG buffer.
+ * Render one carousel slide: AI background (fetched by src) with the slide
+ * text, a dark scrim, a "N / total" badge and the Kruti brand composited on
+ * top — all via next/og (Satori), which renders text reliably on Vercel.
+ * Returns a PNG buffer.
  */
 export async function renderSlide(
-  bgBuffer: Buffer | null,
+  bgUrl: string | null,
   meta: SlideMeta,
 ): Promise<Buffer> {
-  const base = bgBuffer
-    ? sharp(bgBuffer).resize(SIZE, SIZE, { fit: "cover", position: "centre" })
-    : sharp({
-        create: {
-          width: SIZE,
-          height: SIZE,
-          channels: 4,
-          background: { r: 91, g: 82, b: 201, alpha: 1 },
-        },
-      });
+  const font = await loadFont();
 
-  const svg = buildSlideSvg(meta);
-  return base
-    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
-    .png()
-    .toBuffer();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const children: any[] = [];
+
+  // AI background image (Satori fetches the URL).
+  if (bgUrl) {
+    children.push(
+      h("img", {
+        src: bgUrl,
+        width: SIZE,
+        height: SIZE,
+        style: { position: "absolute", top: 0, left: 0, objectFit: "cover" },
+      }),
+    );
+  }
+
+  // Dark scrim for text readability.
+  children.push(
+    h("div", {
+      style: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: SIZE,
+        height: SIZE,
+        background:
+          "linear-gradient(180deg, rgba(11,10,26,0.25) 0%, rgba(11,10,26,0.55) 55%, rgba(11,10,26,0.9) 100%)",
+      },
+    }),
+  );
+
+  // Slide-number badge (top-left).
+  children.push(
+    h(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          top: 60,
+          left: 64,
+          display: "flex",
+          backgroundColor: BRAND,
+          color: "#FFFFFF",
+          fontSize: 34,
+          padding: "10px 28px",
+          borderRadius: 30,
+        },
+      },
+      `${meta.index} / ${meta.total}`,
+    ),
+  );
+
+  // Heading + body block (bottom-left).
+  children.push(
+    h(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          left: 72,
+          right: 72,
+          bottom: 132,
+          display: "flex",
+          flexDirection: "column",
+        },
+      },
+      h("div", {
+        style: {
+          width: 92,
+          height: 12,
+          backgroundColor: BRAND,
+          borderRadius: 6,
+          marginBottom: 28,
+        },
+      }),
+      h(
+        "div",
+        {
+          style: {
+            color: "#FFFFFF",
+            fontSize: 82,
+            lineHeight: 1.1,
+            letterSpacing: -1,
+          },
+        },
+        meta.heading,
+      ),
+      meta.body
+        ? h(
+            "div",
+            {
+              style: {
+                color: "#E9E7FB",
+                fontSize: 40,
+                marginTop: 24,
+                lineHeight: 1.35,
+              },
+            },
+            meta.body,
+          )
+        : "",
+    ),
+  );
+
+  // Brand mark (bottom-right).
+  children.push(
+    h(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          right: 72,
+          bottom: 60,
+          display: "flex",
+          color: "#FFFFFF",
+          fontSize: 36,
+        },
+      },
+      "Kruti",
+    ),
+  );
+
+  const root = h(
+    "div",
+    {
+      style: {
+        width: SIZE,
+        height: SIZE,
+        display: "flex",
+        position: "relative",
+        backgroundColor: BRAND, // fallback if the AI image fails to load
+      },
+    },
+    ...children,
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const opts: any = { width: SIZE, height: SIZE };
+  if (font) {
+    opts.fonts = [{ name: "Inter", data: font, weight: 700, style: "normal" }];
+  }
+
+  const resp = new ImageResponse(root, opts);
+  const arrayBuf = await resp.arrayBuffer();
+  return Buffer.from(arrayBuf);
 }
