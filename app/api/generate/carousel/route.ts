@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generateCarouselImages, buildImagePrompt, lastImageGenError } from "@/lib/imagen";
+import { generateCarouselImages, generateCarouselFromPlan, buildImagePrompt, lastImageGenError } from "@/lib/imagen";
+import { getCarouselPlan } from "@/lib/image-brief";
 import { appendImageHistory } from "@/lib/image-history";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -50,16 +51,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const basePrompt =
-    post.imagePrompt ||
-    buildImagePrompt(post.title, post.postType, post.plan.user.industry || "business");
+  const industry = post.plan.user.industry || "business";
 
-  const images = await generateCarouselImages(
-    basePrompt,
-    post.id,
-    post.plan.user.industry || "business",
+  // Content-aware: plan a cohesive carousel from THIS post (hook -> key points ->
+  // takeaway), each slide a branded graphic with its own short headline. Fall back
+  // to the legacy generic carousel only if planning fails.
+  const plan = await getCarouselPlan(
+    { title: post.title, body: post.body, postType: post.postType },
+    industry,
     CAROUSEL_COUNT
   );
+
+  let images: string[];
+  let savedPrompt: string;
+  if (plan && plan.slides.length >= 2) {
+    images = await generateCarouselFromPlan(plan, post.id, industry);
+    savedPrompt = plan.slides.map((s) => s.headline).join(" / ");
+  } else {
+    const basePrompt = buildImagePrompt(post.title, post.postType, industry);
+    images = await generateCarouselImages(basePrompt, post.id, industry, CAROUSEL_COUNT);
+    savedPrompt = basePrompt;
+  }
 
   if (images.length === 0) {
     return NextResponse.json(
@@ -73,7 +85,7 @@ export async function POST(req: NextRequest) {
     data: {
       carouselImages: JSON.stringify(images),
       imageUrl: images[0], // first slide doubles as the single-image fallback
-      imagePrompt: basePrompt,
+      imagePrompt: savedPrompt,
       imageGenCount: post.imageGenCount + 1,
       // Keep the whole carousel set in history so it can be restored later
       imageHistory: appendImageHistory(post.imageHistory, images),
