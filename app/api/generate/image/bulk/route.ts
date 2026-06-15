@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generatePostImage, buildImagePrompt } from "@/lib/imagen";
+import { generatePostImage, buildBrandedImagePrompt } from "@/lib/imagen";
+import { getImageBrief } from "@/lib/image-brief";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 
 const IMAGE_GEN_LIMIT_PER_POST = 2;
@@ -51,22 +52,24 @@ export async function POST(req: NextRequest) {
   // Generate sequentially to avoid overloading the image API
   for (const post of posts) {
     try {
-      const imagePrompt =
-        post.imagePrompt ||
-        buildImagePrompt(post.title, post.postType, post.plan.user.industry || "business");
-
-      const imageUrl = await generatePostImage(
-        imagePrompt,
-        post.id,
-        post.plan.user.industry || "business"
+      const industry = post.plan.user.industry || "business";
+      const brief = await getImageBrief(
+        { title: post.title, body: post.body, postType: post.postType },
+        industry
       );
+      const prompt = buildBrandedImagePrompt({
+        headline: brief.headline,
+        visual: brief.visual,
+        palette: brief.palette,
+      });
+      const imageUrl = await generatePostImage(prompt, post.id, industry, true);
 
       if (imageUrl) {
         await prisma.post.update({
           where: { id: post.id },
           data: {
             imageUrl,
-            imagePrompt,
+            imagePrompt: `${brief.headline} - ${brief.visual}`,
             imageGenCount: post.imageGenCount + 1,
           },
         });

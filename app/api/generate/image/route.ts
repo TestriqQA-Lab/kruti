@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generatePostImage, buildImagePrompt, lastImageGenError } from "@/lib/imagen";
+import { generatePostImage, buildBrandedImagePrompt, lastImageGenError } from "@/lib/imagen";
+import { getImageBrief } from "@/lib/image-brief";
 import { appendImageHistory } from "@/lib/image-history";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -54,23 +55,37 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const imagePrompt =
-    customPrompt ||
-    post.imagePrompt ||
-    buildImagePrompt(post.title, post.postType, post.plan.user.industry || "business");
+  const industry = post.plan.user.industry || "business";
 
-  const imageUrl = await generatePostImage(
-    imagePrompt,
-    post.id,
-    post.plan.user.industry || "business"
-  );
+  let imageUrl: string | null;
+  let savedPrompt: string;
+
+  if (customPrompt) {
+    // Explicit user override: respect the literal prompt on the legacy no-text path.
+    imageUrl = await generatePostImage(customPrompt, post.id, industry);
+    savedPrompt = customPrompt;
+  } else {
+    // Content-aware: derive a brief from THIS post, then render a branded graphic
+    // that represents the post and displays a short headline of its key point.
+    const brief = await getImageBrief(
+      { title: post.title, body: post.body, postType: post.postType },
+      industry
+    );
+    const prompt = buildBrandedImagePrompt({
+      headline: brief.headline,
+      visual: brief.visual,
+      palette: brief.palette,
+    });
+    imageUrl = await generatePostImage(prompt, post.id, industry, true);
+    savedPrompt = `${brief.headline} - ${brief.visual}`;
+  }
 
   if (imageUrl) {
     await prisma.post.update({
       where: { id: postId },
       data: {
         imageUrl,
-        imagePrompt,
+        imagePrompt: savedPrompt,
         imageGenCount: post.imageGenCount + 1,
         // Keep every generated image in the per-post history so it stays reusable
         imageHistory: appendImageHistory(post.imageHistory, [imageUrl]),
