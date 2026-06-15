@@ -204,6 +204,104 @@ Rules for each post:
 Return ONLY the JSON array. No markdown. No explanation. No emojis.`;
 }
 
+// ─── Single Image Brief Prompt ────────────────────────────────────────────────
+// Reads a post and designs a content-aware, text-bearing image (quote/title card).
+// Returns JSON: { headline, visual, palette }.
+
+export function buildImageBriefPrompt(
+  title: string,
+  body: string,
+  postType: string,
+  industry: string
+): string {
+  return `You are an art director for premium LinkedIn graphics. Read the LinkedIn post below and design a single square (1:1) feed image that visually represents THIS post's actual subject and message, with one short bold headline rendered on it (like a quote card or title card).
+
+POST TITLE (hook): ${title}
+POST BODY: ${body}
+POST TYPE: ${postType}
+INDUSTRY: ${industry || "business"}
+
+Produce a brief as a JSON object with this EXACT structure:
+{
+  "headline": "string",
+  "visual": "string",
+  "palette": "string"
+}
+
+FIELD DEFINITIONS AND CONSTRAINTS:
+- "headline": The single most important hook or takeaway of THIS specific post, distilled to between 2 and 5 words and at most 28 characters total. Never more than 5 words. This is NOT the title - compress the core idea into your own words, never copy the title verbatim. Prefer short, common words; avoid any word longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates, because they render incorrectly. Short numbers are fine, for example "3 Hiring Mistakes" or "80/20 Rule". If the post body is empty or very short, derive the headline from the title alone and do not invent facts. If postType is "question", make the headline a short, punchy version of the post's core question ending in a single question mark. Use Title Case. No quotation marks, no hashtags, no ending punctuation except that one question mark. This exact text is rendered on the image, so spell every word correctly.
+- "visual": One concrete scene that depicts what THIS post is actually about (the real situation, action, object, person, or environment the post describes) - not a disconnected metaphor. If the post is abstract and has no physical subject, pick ONE specific, recognizable scene that a reader of THIS post would see as illustrating its exact claim - never a generic office, boardroom, handshake, lightbulb, gear, chess piece, rocket, or upward arrow. Choose subjects that do NOT naturally contain text: prefer people, hands, objects, environments, or simplified abstract geometric forms; avoid dashboards, charts with labels, spreadsheets, code editors, slides, documents, signage, or screens full of UI. Commit to ONE visual register and name it explicitly as either "clean editorial photography" or "modern flat vector illustration", and keep the whole scene in that one register. Describe the subject, composition, lighting, and mood, and state where the clear, uncluttered negative space sits (top, bottom, or one side) for the headline. Do NOT describe or reference any text, words, letters, numbers, logos, or signage inside the scene. At most 40 words, one single-line sentence.
+- "palette": A short color direction. Use brand blue #0A66C2 and deep blue #004182 as accents and for one anchor area only, NOT as a full-frame fill. Keep most of the composition in clean neutrals - off-white, soft grey, or near-white #F4F6F8 - so the blue stays premium and the headline area stays high-contrast. Avoid heavy gradients, neon, glow, and fully saturated blue backgrounds. Name the colors and where they go (background, subject, accents). At most 30 words, one single-line sentence.
+
+GUARDRAILS:
+- Use plain hyphens only, never em-dashes or en-dashes.
+- Professional, human tone. No buzzwords.
+- The "headline" is the ONLY text intended for the image. Do not invent any captions, subtext, labels, or secondary lines.
+
+${NO_EMOJI_RULES}
+
+All string values must be single-line plain text with no line breaks and no double-quote characters inside them. Do not include trailing commas. The response must be a single JSON object parseable by JSON.parse with no preprocessing.
+
+Return ONLY valid JSON. No markdown fences. No explanation. No emojis. Use plain hyphens, never em-dashes.`;
+}
+
+// ─── Carousel Slide Plan Prompt ───────────────────────────────────────────────
+// Breaks ONE post into a cohesive multi-slide walkthrough (hook -> points -> CTA).
+// Returns JSON: { palette, slides: [{ headline, visual }] }.
+
+export function buildCarouselPlanPrompt(
+  title: string,
+  body: string,
+  postType: string,
+  industry: string,
+  count: number = 4
+): string {
+  return `You are an expert LinkedIn carousel designer. Turn ONE LinkedIn post into a cohesive image carousel of up to ${count} slides that visually walks the reader through THIS post's actual content.
+
+THE POST:
+Title (hook): ${title}
+Body: ${body}
+Post type: ${postType}
+Industry: ${industry || "business"}
+
+YOUR JOB:
+Read the post above and break ITS real content into slides. Do not invent a generic or unrelated metaphor - every slide must represent something the post actually says.
+
+SLIDE ARC (must follow in this order):
+- The FIRST slide is the HOOK: the single most important highlight or opening idea of the post.
+- Every slide in between is ONE distinct key point from the post, in the SAME ORDER it appears in the body.
+- The LAST slide is the TAKEAWAY or CALL TO ACTION that closes the post.
+
+HOW MANY SLIDES:
+- Produce between 2 and ${count} slides. Use ${count} only if the post genuinely has that many distinct points. If it has fewer, emit fewer (always at least a hook slide and a takeaway slide) rather than padding or repeating. If the body is empty or very short, build a minimal hook and takeaway from the title alone and do not invent facts, stats, or claims that are not in the post.
+
+ONE SHARED LOOK (this is what makes it a cohesive set):
+- Choose ONE palette and ONE visual style for the whole carousel. Build the palette around brand blue #0A66C2 and deep blue #004182 used as accents on a clean neutral base (off-white, soft grey, or near-white #F4F6F8) - never a full-frame saturated blue fill. Avoid heavy gradients, neon, and glow. Describe it once in "palette" and reuse it across every slide.
+- All slides use the SAME headline placement and the SAME compositional grid: the headline sits in the top third of every slide. Vary only the subject and imagery per slide; keep type placement, margins, and visual rhythm identical across all slides.
+- Modern, clean, premium, on-brand. Commit to ONE visual register for the whole set, either "clean editorial photography" or "modern flat vector illustration".
+
+EACH SLIDE NEEDS:
+- "headline": the ONLY text that should appear on that slide. Between 2 and 5 words, never more than 5, and at most 28 characters total. Punchy, spelled exactly, capturing that slide's one idea. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. Use Title Case. No quotation marks, no hashtags, no emojis.
+- "visual": ONE concise single-line sentence describing a concrete scene, subject, or object drawn from the post's content that represents THIS slide's idea. Choose subjects that do not naturally contain text, and prefer people, hands, objects, environments, or simplified abstract forms. Do NOT describe, spell, or reference any text, words, letters, or numbers to render. Do NOT name any color inside "visual" - colors live only in "palette" - so all slides stay on the one shared palette. At most 40 words.
+
+GUARDRAILS:
+- Use plain hyphens only, never em-dashes or en-dashes.
+
+${NO_EMOJI_RULES}
+
+Return a JSON object with this EXACT structure (the "slides" array holds between 2 and ${count} objects):
+{
+  "palette": "string (the one shared palette and visual style, built around #0A66C2 and #004182 as accents on a neutral base, reused by every slide)",
+  "slides": [
+    { "headline": "string (2-5 words, max 28 chars, the ONLY text on this slide)", "visual": "string (one concrete single-line scene from the post, no text or colors described)" }
+  ]
+}
+
+All string values must be single-line plain text with no line breaks and no double-quote characters inside them. Do not include trailing commas. The response must be a single JSON object parseable by JSON.parse with no preprocessing.
+
+Return ONLY valid JSON. No markdown fences. No explanation. No emojis. Use plain hyphens, never em-dashes.`;
+}
+
 // ─── Single Post Regeneration ─────────────────────────────────────────────────
 
 export function buildSinglePostPrompt(
