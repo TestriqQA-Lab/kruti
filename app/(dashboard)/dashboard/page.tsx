@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   const [user, recentPlan, allPostCounts, newsletters, upcomingPosts] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { name: true, headline: true, industry: true, image: true, postingSchedule: true },
+      select: { name: true, headline: true, industry: true, image: true, postingSchedule: true, role: true },
     }),
     // Get most recent week's plan
     prisma.contentPlan.findFirst({
@@ -94,7 +94,9 @@ export default async function DashboardPage() {
   // Compute posts remaining in billing cycle
   const POST_LIMIT = 30;
   let postsRemaining = POST_LIMIT;
-  if (subscription) {
+  if (user?.role === "admin") {
+    postsRemaining = Infinity;
+  } else if (subscription) {
     // Reset counter if it's been more than 30 days since last reset
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     if (!subscription.cyclePostsResetAt || subscription.cyclePostsResetAt < thirtyDaysAgo) {

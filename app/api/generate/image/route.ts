@@ -43,8 +43,9 @@ export async function POST(req: NextRequest) {
   });
   if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
 
-  // Enforce per-post image generation limit
-  if (post.imageGenCount >= IMAGE_GEN_LIMIT_PER_POST) {
+  // Enforce per-post image generation limit (Admins have no limits)
+  const isAdmin = post.plan.user.role === "admin";
+  if (!isAdmin && post.imageGenCount >= IMAGE_GEN_LIMIT_PER_POST) {
     return NextResponse.json(
       {
         error: `Image generation limit reached (${IMAGE_GEN_LIMIT_PER_POST} per post). You can still upload a custom image.`,
@@ -56,6 +57,12 @@ export async function POST(req: NextRequest) {
   }
 
   const industry = post.plan.user.industry || "business";
+  const userVisualProfile = {
+    positioning: post.plan.user.positioning,
+    contentStyles: post.plan.user.contentStyles,
+    industry,
+    name: post.plan.user.name,
+  };
 
   let imageUrl: string | null;
   let savedPrompt: string;
@@ -69,12 +76,14 @@ export async function POST(req: NextRequest) {
     // that represents the post and displays a short headline of its key point.
     const brief = await getImageBrief(
       { title: post.title, body: post.body, postType: post.postType },
-      industry
+      industry,
+      userVisualProfile
     );
     const prompt = buildBrandedImagePrompt({
       headline: brief.headline,
       visual: brief.visual,
       palette: brief.palette,
+      textPosition: brief.textPosition,
     });
     imageUrl = await generatePostImage(prompt, post.id, industry, true);
     savedPrompt = `${brief.headline} - ${brief.visual}`;

@@ -269,8 +269,8 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
                 {formatShortDate(batchStart)} - {formatShortDate(batchEnd)}
               </p>
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                {postsRemaining} of {postsLimit} posts remaining
-                {cycleResetDate && (
+                {postsRemaining === Infinity ? "Unlimited posts remaining" : `${postsRemaining} of ${postsLimit} posts remaining`}
+                {cycleResetDate && postsRemaining !== Infinity && (
                   <> · resets {formatShortDate(new Date(cycleResetDate))}</>
                 )}
               </p>

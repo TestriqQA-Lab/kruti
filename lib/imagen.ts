@@ -53,20 +53,34 @@ export function buildBrandedImagePrompt(brief: {
   headline: string;
   visual: string;
   palette: string;
+  textPosition?: string;
   position?: string;
 }): string {
   const { headline, visual, palette, position } = brief;
 
+  // Map textPosition to a natural placement description
+  const positionMap: Record<string, string> = {
+    "top-center": "centered in the top quarter of the frame",
+    "bottom-center": "centered in the bottom quarter of the frame",
+    "bottom-left": "in the bottom-left area of the frame",
+    "center-left": "vertically centered on the left side of the frame",
+    "overlay-center": "centered in the middle of the frame as an overlay",
+  };
+  const textPlacement = positionMap[brief.textPosition || ""] || "positioned where the composition has the most negative space";
+
   return `The image must display exactly this text and NO other text anywhere:
 ${headline}
-Render only those words (keep a trailing question mark if present) as large, bold, clean sans-serif typography, high contrast, in the top third of the frame with generous margins. Do not render any brackets, quotation marks, or surrounding punctuation - only the words themselves. Spell every word exactly; do not translate, paraphrase, add, or drop a single letter. No other words, letters, numbers, captions, labels, signage, UI, logos, watermarks, or gibberish lettering may appear anywhere. Render all screens, papers, charts, signs, books, and surfaces as completely blank or with abstract non-textual shapes only.
+Render only those words (keep a trailing question mark if present) as medium-large, semi-bold, clean sans-serif typography with high contrast, ${textPlacement}, with generous margins around it. Do not render any brackets, quotation marks, or surrounding punctuation - only the words themselves. Spell every word exactly; do not translate, paraphrase, add, or drop a single letter. No other words, letters, numbers, captions, labels, signage, UI, logos, watermarks, or gibberish lettering may appear anywhere. Render all screens, papers, charts, signs, books, and surfaces as completely blank or with abstract non-textual shapes only.
 
-SCENE (what the image depicts): ${visual}
-${position ? `POSITION: This is ${position} in a cohesive LinkedIn carousel - all slides share ONE identical look, palette, and headline placement.\n` : ""}COLOR PALETTE (follow exactly): ${palette} Use brand blue #0A66C2 and deep blue #004182 as accents on a clean neutral base - never a full-frame saturated blue fill. Keep the headline area high-contrast.
+THE VISUAL SCENE IS THE HERO: ${visual}
+The visual scene must occupy at least 65-70 percent of the total frame area. The headline text is an elegant, understated overlay - not the dominant element. Let the scene breathe and tell the story visually.
+${position ? `POSITION: This is ${position} in a cohesive LinkedIn carousel - all slides share ONE identical look, palette, and headline placement.\n` : ""}COLOR PALETTE (follow these exact colors - do NOT substitute or default to blue/grey): ${palette}
 
-TYPOGRAPHY: Render the headline in a modern geometric sans-serif in the spirit of Inter, Soehne, or Helvetica Neue, heavy weight, tight tracking, against a clean solid or subtly toned panel. Editorial magazine quality, not decorative or handwritten.
+SAFE ZONE: Keep ALL visual elements, subjects, objects, and text fully contained within the frame with at least 8 percent padding from every edge. Nothing should be cropped, cut off, or bleed outside the image boundaries. No part of any person, object, or scene element should be clipped by the frame edges.
 
-STYLE: Modern, clean, premium, professional, on-brand. Avoid glossy 3D-render looks, plastic textures, lens flare, excessive bokeh, posed corporate-handshake stock photos, oversaturated colors, busy backgrounds, and any distorted hands or faces. Favor a restrained editorial style, consistent within the image.
+TYPOGRAPHY: Render the headline in a modern geometric sans-serif in the spirit of Inter, Soehne, or Helvetica Neue, medium to semi-bold weight, comfortable tracking, against a subtle semi-transparent panel or directly over a clear area. The text should complement the scene, not overpower it.
+
+STYLE: Vivid, colorful, premium, professional. Rich colors and visual depth. Avoid washed-out, grey, or monotone looks. Avoid glossy 3D-render looks, plastic textures, lens flare, excessive bokeh, posed corporate-handshake stock photos, busy backgrounds, and any distorted hands or faces. Favor a rich, expressive editorial style that feels alive and engaging.
 
 Square format (1:1). High quality, suitable for a LinkedIn feed. No emojis. Use plain hyphens only, never em-dashes.`;
 }
@@ -188,7 +202,7 @@ export async function generateCarouselImages(
  * slide renders its own short headline. Returns the successful Blob URLs.
  */
 export async function generateCarouselFromPlan(
-  plan: { palette: string; slides: { headline: string; visual: string }[] },
+  plan: { palette: string; slides: { headline: string; visual: string; textPosition?: string }[] },
   postId: string,
   industry?: string
 ): Promise<string[]> {
@@ -201,6 +215,7 @@ export async function generateCarouselFromPlan(
         headline: slide.headline,
         visual: slide.visual,
         palette: plan.palette,
+        textPosition: slide.textPosition,
         position,
       });
       return generatePostImage(prompt, `${postId}-c${i}`, industry, true);

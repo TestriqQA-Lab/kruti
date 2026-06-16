@@ -1,5 +1,5 @@
 import { generateText, parseJSON } from "@/lib/gemini";
-import { buildImageBriefPrompt, buildCarouselPlanPrompt } from "@/lib/prompts";
+import { buildImageBriefPrompt, buildCarouselPlanPrompt, UserVisualProfile } from "@/lib/prompts";
 
 /**
  * Content-aware image briefs.
@@ -13,12 +13,14 @@ import { buildImageBriefPrompt, buildCarouselPlanPrompt } from "@/lib/prompts";
 export interface ImageBrief {
   headline: string; // 2-5 words, <=28 chars, the exact text rendered on the image
   visual: string; // one single-line concrete scene from the post (no text/colors)
-  palette: string; // one single-line color direction (blue accents on a neutral base)
+  palette: string; // one single-line color direction with specific hex colors
+  textPosition: string; // where the headline sits: top-center, bottom-center, bottom-left, center-left, overlay-center
 }
 
 export interface CarouselSlide {
   headline: string;
   visual: string;
+  textPosition?: string;
 }
 
 export interface CarouselPlan {
@@ -27,7 +29,7 @@ export interface CarouselPlan {
 }
 
 const DEFAULT_PALETTE =
-  "Clean near-white #F4F6F8 base with brand blue #0A66C2 and deep blue #004182 as accents on one anchor area; keep the headline zone high-contrast.";
+  "Rich, warm neutrals with a bold accent - deep charcoal #1E293B background, warm ivory #FEFCE8 headline text, and a vibrant accent color for key elements.";
 
 /**
  * Normalise a model-produced headline so it always fits on the image: collapse
@@ -54,10 +56,22 @@ function fallbackBrief(
   post: { title: string; postType: string },
   industry: string
 ): ImageBrief {
+  // Pick a fallback palette based on postType so even fallbacks get variety
+  const fallbackPalettes: Record<string, string> = {
+    "thought-leadership": "Deep indigo #3730A3 background, crisp white text, warm amber #F59E0B accent.",
+    "tips": "Clean white background, teal #0D9488 accent elements, dark charcoal #1E293B text.",
+    "story": "Warm terracotta #C2410C tones, creamy ivory #FFFBEB base, soft brown accents.",
+    "question": "Rich violet #7C3AED background, bright white text, subtle grey highlights.",
+    "listicle": "Fresh sage #4D7C0F accents, clean white base, dark slate #334155 text.",
+  };
+  const textPositions = ["top-center", "bottom-center", "center-left", "bottom-left"];
+  // Use title length as a simple deterministic seed for position variety
+  const posIdx = (post.title || "").length % textPositions.length;
   return {
     headline: headlineFromTitle(post.title),
-    visual: `A clean, modern editorial scene representing ${post.postType} content for ${industry}, with clear, uncluttered negative space in the top third for the headline.`,
-    palette: DEFAULT_PALETTE,
+    visual: `A clean, modern editorial scene representing ${post.postType} content for ${industry}, with vivid colors and clear negative space for the headline.`,
+    palette: fallbackPalettes[post.postType] || DEFAULT_PALETTE,
+    textPosition: textPositions[posIdx],
   };
 }
 
@@ -68,20 +82,24 @@ function fallbackBrief(
  */
 export async function getImageBrief(
   post: { title: string; body: string; postType: string },
-  industry: string
+  industry: string,
+  userProfile?: UserVisualProfile
 ): Promise<ImageBrief> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const raw = await generateText(
-        buildImageBriefPrompt(post.title, post.body, post.postType, industry)
+        buildImageBriefPrompt(post.title, post.body, post.postType, industry, userProfile)
       );
       const parsed = parseJSON<Partial<ImageBrief>>(raw);
       const headline = clampHeadline(parsed.headline || "");
       if (headline && parsed.visual && parsed.palette) {
+        const validPositions = ["top-center", "bottom-center", "bottom-left", "center-left", "overlay-center"];
+        const textPosition = validPositions.includes(parsed.textPosition || "") ? parsed.textPosition! : "top-center";
         return {
           headline,
           visual: String(parsed.visual),
           palette: String(parsed.palette),
+          textPosition,
         };
       }
     } catch (err) {
@@ -98,18 +116,24 @@ export async function getImageBrief(
 export async function getCarouselPlan(
   post: { title: string; body: string; postType: string },
   industry: string,
-  count: number
+  count: number,
+  userProfile?: UserVisualProfile
 ): Promise<CarouselPlan | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const raw = await generateText(
-        buildCarouselPlanPrompt(post.title, post.body, post.postType, industry, count)
+        buildCarouselPlanPrompt(post.title, post.body, post.postType, industry, count, userProfile)
       );
       const parsed = parseJSON<Partial<CarouselPlan>>(raw);
+      const validPositions = ["top-center", "bottom-center", "bottom-left", "center-left", "overlay-center"];
       const slides = Array.isArray(parsed.slides)
         ? parsed.slides
             .filter((s): s is CarouselSlide => !!s && !!s.headline && !!s.visual)
-            .map((s) => ({ headline: clampHeadline(s.headline), visual: String(s.visual) }))
+            .map((s) => ({
+              headline: clampHeadline(s.headline),
+              visual: String(s.visual),
+              textPosition: validPositions.includes(s.textPosition || "") ? s.textPosition : undefined,
+            }))
             .filter((s) => !!s.headline)
             .slice(0, count)
         : [];
