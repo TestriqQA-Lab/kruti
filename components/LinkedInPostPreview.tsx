@@ -224,7 +224,7 @@ export default function LinkedInPostPreview({
             )}
           </div>
         ) : imageUrl ? (
-          <div className="relative w-full aspect-[1.91/1] bg-slate-100 dark:bg-white/[0.06]">
+          <div className="relative w-full aspect-square bg-slate-100 dark:bg-white/[0.06]">
             <Image src={imageUrl} alt="Post image" fill className="object-cover" unoptimized />
           </div>
         ) : null}
