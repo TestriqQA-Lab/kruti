@@ -176,52 +176,71 @@ Week ${i + 1} - ${w.weekStart}:
   )
   .join("\n")}
 
-IMPORTANT CONTINUITY RULES:
-- Do NOT repeat the same weekly theme or focus from previous weeks
-- Build upon the narrative arc - this week should feel like a natural progression
-- Cover different angles, sub-topics, or fresh perspectives within the person's expertise
-- If previous weeks were heavy on one post type, vary the mix this week
-- Reference or build upon ideas from previous weeks to create a cohesive content journey
-- Each week should deepen the audience's understanding of this person's expertise
+CONTINUITY RULES (read the history above carefully before deciding this week):
+- Same overarching journey, new chapter: the weekTheme and weekFocus must be a topic not yet covered and clearly DIFFERENT from every previous week listed (not a reworded version of one already used), but they should advance the same audience relationship rather than reset it.
+- Treat the weeks above as one ongoing arc. This week should read like the natural next chapter, deepening the audience's understanding.
+- Pick a fresh angle, sub-topic, or stage of the journey within this person's expertise that the previous weeks have not yet covered.
+- Look at the post types already used. If recent weeks leaned heavily on one or two types, deliberately rebalance the mix this week so the feed does not feel repetitive.
+- It is good to occasionally reference or build on an idea from a previous week, but never to repeat it.
 `;
   }
 
-  return `You are an expert LinkedIn content strategist. Create a personalized content strategy for the next 5 weekdays starting ${weekLabel}.
+  return `You are one of the most sought-after LinkedIn content strategists in the world. Founders and senior operators pay you to turn their raw expertise into a weekly content plan that builds genuine authority and pipeline. You do not produce generic "post 3x a week about your industry" advice. Every plan you build is engineered around the specific human in front of you - their positioning, their goals, the exact pains their audience feels, and the voice they actually speak in.
+
+Your task: design a sharp, personalized content strategy for the next 5 weekdays starting ${weekLabel}, built end to end around THIS person.
 
 PROFESSIONAL PROFILE:
 ${profileContext}
 ${previousContext}
+BEFORE WRITING (think through these, but output ONLY the final JSON - never print your reasoning):
+1. Positioning first. Read the Content positioning, Headline, Summary and Skills. The whole week must reinforce how this person wants to be seen (for example a Thought Leader earns a point-of-view-led plan, an Industry Expert earns a credibility-and-proof-led plan). Do not drift into generic motivation.
+2. Anchor to goals. Tie weekTheme, weeklyGoal and callToAction directly to this person's stated LinkedIn goals. The week should visibly move them toward those goals, not just "get engagement".
+3. Audience pain over topic dumps. Identify the real, specific problems and desired outcomes of the stated target audience - the things that keep them up at night and the wins they want. Every pillar must map to a real pain or aspiration of THIS audience, expressed in concrete language, never vague filler like "stay relevant" or "grow your career".
+4. Lean on their actual expertise. The pillars must draw on the person's specific Skills, Industry and experience so the week can only have been planned for them - someone in a different field could not reuse it.
+5. Voice and tone are non-negotiable. The tone block must reflect this person's real voice. Honor the VOICE AND TONE direction stated in the profile above, and reconcile it with the Content positioning. The tone.voice and tone.style you set will steer every post that gets written this week, so make them specific and true to this person, not a generic "professional and engaging".
+6. Make the week cohesive. The pillars, post mix and theme should feel like one intentional arc for the week, not five unrelated topics. The weekFocus is the through-line that connects them.
+7. Choose post types from the allowed set only, weighting them toward what best serves this person's positioning and this week's focus.
+
+QUALITY BAR:
+- Specific over generic. Anything you write here could only fit THIS person and THIS audience. If a line would fit any random professional, rewrite it.
+- Concrete pains and outcomes, in the audience's own words.
+- A point of view, not a syllabus. The week should take a stance worth following.
+- No fabrication: do not invent credentials, employers, results, or numbers that are not implied by the profile. Set direction here; the actual facts and stats come later from research.
+
 ${NO_EMOJI_RULES}
 
-Generate a content strategy as a JSON object with this EXACT structure:
+Generate the content strategy as a JSON object with this EXACT structure:
 {
-  "weekTheme": "string (overarching theme - must be DIFFERENT from previous batches)",
-  "weekFocus": "string (specific angle or narrative arc - must be a FRESH perspective)",
+  "weekTheme": "string (the overarching theme for the week, tied to this person's positioning and goals - must be DIFFERENT from any previous week)",
+  "weekFocus": "string (the specific angle or narrative arc that connects the week - a FRESH perspective, not a reworded previous focus)",
   "pillars": [
     {
-      "name": "string (content pillar name)",
-      "description": "string (what this pillar covers)",
-      "percentage": number (% of posts, must sum to 100)
+      "name": "string (content pillar name, grounded in this person's expertise)",
+      "description": "string (what this pillar covers and which specific audience pain or desired outcome it serves)",
+      "percentage": number (percent of posts for this pillar, all pillar percentages must sum to 100)
     }
   ],
   "audience": {
-    "primaryAudience": "string",
-    "painPoints": ["string"],
-    "desiredOutcomes": ["string"]
+    "primaryAudience": "string (the specific target audience for this week)",
+    "painPoints": ["string (a real, concrete problem this audience faces)"],
+    "desiredOutcomes": ["string (a specific outcome this audience wants)"]
   },
   "tone": {
-    "voice": "string (e.g. 'Direct and confident')",
-    "style": "string",
-    "avoid": ["string"]
+    "voice": "string (this person's actual voice, reflecting their positioning and the profile's stated tone, e.g. 'Direct and confident, with hard-won practitioner credibility')",
+    "style": "string (how the posts should read in practice, e.g. 'Plain-spoken, example-led, one strong idea per post')",
+    "avoid": ["string (specific things to avoid that would break this person's voice or credibility)"]
   },
   "postTypes": ${JSON.stringify(allowedTypes)},
   "postMix": {
-    // Specify the percentage or count for each post type used from the postTypes array above. Use the exact string keys.
-    ${allowedTypes.map(t => `"${t}": number`).join(",\n    ")}
+    ${allowedTypes.map((t) => `"${t}": number`).join(",\n    ")}
   },
-  "weeklyGoal": "string (what success looks like this week)",
-  "callToAction": "string (the primary CTA to use this week)"
+  "weeklyGoal": "string (what success looks like this week, tied directly to this person's LinkedIn goals)",
+  "callToAction": "string (the primary call-to-action to carry through the week, serving the weekly goal)"
 }
+
+For "postMix": each value is a percentage (0-100), and all postMix values must sum to 100. Use the exact string keys shown.
+
+All string values must be single-line plain text with no double-quote characters inside them. Do not include trailing commas. The output must parse with JSON.parse.
 
 Return ONLY valid JSON. No markdown fences. No explanation. No emojis.`;
 }
@@ -234,46 +253,146 @@ export function buildPostsPrompt(
   weekFocus: string,
   postTypes: string[],
   strategy: object,
-  humanMode: boolean = false,
+  humanMode: boolean = true,
   postCount: number = 5,
-  allowedTypes: string[] = ["thought-leadership", "tips", "story", "question", "listicle"]
+  allowedTypes: string[] = ["thought-leadership", "tips", "story", "question", "listicle"],
+  researchBrief: string = ""
 ): string {
   const rules = getRules(humanMode);
 
-  return `You are an expert LinkedIn ghostwriter. Create ${postCount} high-quality, original LinkedIn posts for the user's scheduled posting days.
+  const researchBlock = researchBrief.trim()
+    ? `RESEARCH BRIEF (real, current, verified facts gathered for this batch - your source of truth):
+${researchBrief.trim()}
 
-PROFESSIONAL PROFILE:
+HOW TO USE THE RESEARCH BRIEF:
+- Ground the posts in the specific facts, statistics, recent developments, and concrete examples above. This is what separates an expert post from generic filler.
+- Use stats and facts only as they appear in the brief. Do NOT round, inflate, reshape, or "improve" any number.
+- Do NOT invent statistics, studies, dates, company names, or quotes that are not in the brief. If you want to make a point the brief does not support with a number, make it qualitatively instead - never with a fabricated figure.
+- If a heading in the brief says no reliable current data was found, treat that area as having no usable numbers and make the point qualitatively.
+- You do not need to cram every fact in. Pick the few most relevant, surprising, or useful points for this person's audience and build real insight around them.
+- Add this person's own expert interpretation on top of the facts - the "so what" and "what to do about it" that only a practitioner in their field would know.
+- Do not name a specific source or report unless the brief names it. When you reference a finding, paraphrase it in plain language (for example, research from last year found...) rather than inventing a precise citation string.`
+    : `NO RESEARCH BRIEF WAS PROVIDED FOR THIS BATCH:
+- Write from genuine, specific domain expertise in this person's field.
+- Because there is no brief this batch, do not present ANY statistic, percentage, study, or dated claim as sourced. Speak from mechanism, real-world scenarios, and lived practitioner detail only.
+- Do NOT fabricate statistics, studies, percentages, dates, or named sources to sound authoritative. If you cannot cite a real figure, make the point qualitatively with concrete, hard-won detail instead.`;
+
+  return `You are a world-class LinkedIn ghostwriter writing AS the specific person described in the profile below. You are not a generic AI assistant - you are this person's voice. Every post must read like a sharp, credible human expert in their field wrote it in their own tone, for the exact audience they care about. Create ${postCount} original, genuinely valuable LinkedIn posts for their scheduled posting days.
+
+PROFESSIONAL PROFILE (write in THIS person's voice, tone, and positioning - match their tone preferences exactly):
 ${profileContext}
 
 THEME: "${weekTheme}"
 FOCUS: "${weekFocus}"
 POST TYPES TO USE: ${postTypes.slice(0, postCount).join(", ")}
+
+Use the tone.voice, tone.style and tone.avoid fields from the strategy below as hard constraints on how this week's posts read - the avoid list names things you must NOT do.
 STRATEGY CONTEXT: ${JSON.stringify(strategy)}
+
+${researchBlock}
+
+WHAT MAKES THESE POSTS EXPERT-LEVEL (this is the whole point - do not skip):
+- Voice: Write exactly as this person would speak - their tone, their level of formality, their personality from the profile. If the profile specifies tone preferences (professional, conversational, inspirational, educational), honor them precisely. A reader who knows this person should recognize them in the writing.
+- Audience-first: Every post must give the target audience something real - a sharper way to think about a problem they have, a concrete tactic, a non-obvious insight, or a useful reframe. Never write to impress; write to be useful.
+- Specificity over fluff: Use concrete details, real situations, named tools or methods, numbers from the research brief, and precise language. Replace every vague generality ("companies are struggling", "AI is changing everything") with a specific, grounded claim.
+- One idea per post: Each post makes ONE clear point and earns it. No grab-bag of disconnected thoughts.
+- Hook: The first line (title) must make the second line unavoidable. Use a specific number from the brief, a concrete detail, or a sharp claim you will defend. Banned openers: "In today's [x] world", "Let that sink in", "Read that again", "Most people get this wrong", "Unpopular opinion", "I'll be honest", and any standalone rhetorical question.
+- Vary the opening device across the ${postCount} posts. Never reuse the same stock phrase ("here's the thing", "real talk", "let's be honest") more than once in the whole batch.
+- Real CTA: End by asking about the reader's own experience with the specific thing this post covered, or by giving them one concrete thing to try. Banned CTAs: "What's your take", "Curious to hear your thoughts", "Agree?", "Comment below", "Let me know your thoughts", "Drop a comment". A good CTA could not be pasted onto a different post.
+- No motivational filler: Cut platitudes, inspirational-poster lines, and empty positivity. If a sentence would survive on any post in any industry, rewrite it to be specific to this person and topic.
 
 ${rules}
 
 Generate exactly ${postCount} posts as a JSON array. Each post must follow this exact structure:
 [
   {
-    "title": "string (compelling hook - the opening line of the post, max 150 chars)",
-    "body": "string (full post body, max 1300 characters, use line breaks for readability)",
+    "title": "string (scroll-stopping hook - the opening line of the post, specific and concrete, max 150 chars)",
+    "body": "string (full post body, max 1300 characters, one clear idea, grounded in real specifics)",
     "hashtags": ["string", "string", "string", "string", "string"],
     "postType": "${allowedTypes.join("|")}",
     "imagePrompt": "string (a short 1-2 sentence visual concept - describe the SCENE or METAPHOR, not text to display. Example: 'A lighthouse beam cutting through fog at dawn, symbolizing guidance' NOT 'An image showing the words Leadership Matters')",
     "bestTimeToPost": "string (e.g. Tuesday 9am)",
-    "callToAction": "string (the specific CTA embedded in this post)"
+    "callToAction": "string (the specific, natural CTA embedded in this post)"
   }
 ]
 
 Rules for each post:
-- Each post must sound like it was written by the specific person in the profile above
-- Vary the format: some with short paragraphs, some with numbered points, some as narrative
-- Include a strong, specific call-to-action in each post body
-- Do not use bullet points starting with dashes - use numbered lists or plain paragraphs
-- Hashtags must be relevant, lowercase, no spaces (e.g. productmanagement, leadership)
-- Image prompts must describe a scene or visual metaphor only - NEVER describe text or words that should appear in the image
+- Each post must sound like it was written by the specific person in the profile above, in their tone and voice - not by an AI.
+- Build each post on real, specific substance: facts and examples from the research brief where one is provided, plus this person's expert interpretation. Never use a stat or source that is not in the brief.
+- If you quote any phrase from the research brief inside a post, paraphrase it - never reproduce double-quote characters inside any JSON string value.
+- Vary the format: some with short paragraphs, some with numbered points, some as narrative. Match the post type assigned to each.
+- Include a strong, specific, natural call-to-action in each post body - not generic engagement bait.
+- Do not use bullet points starting with dashes - use numbered lists or plain paragraphs.
+- Hashtags must be relevant, lowercase, no spaces (e.g. productmanagement, leadership).
+- Image prompts must describe a scene or visual metaphor only - NEVER describe text or words that should appear in the image.
+
+All string values must be single-line plain text with no double-quote characters inside them. In the "body" field, emit any line breaks as escaped \\n, not as raw newlines. Do not include trailing commas. The output must parse with JSON.parse.
 
 Return ONLY the JSON array. No markdown. No explanation. No emojis.`;
+}
+
+// ─── Research Brief Prompt (Google Search grounding) ──────────────────────────
+// One call per batch, sent to gemini-2.5-flash WITH the Google Search grounding
+// tool enabled (use generateGroundedText, NOT generateText). Returns FREE-FORM
+// TEXT (not JSON) - do NOT route this through parseJSON. The resulting brief is
+// passed into buildPostsPrompt so the writer is grounded in real, current facts.
+
+export function buildResearchPrompt(
+  weekTheme: string,
+  weekFocus: string,
+  pillars: object[],
+  industry: string,
+  targetAudience: string,
+  today: string = new Date().toISOString().slice(0, 10)
+): string {
+  const pillarLines = (pillars as Array<{ name?: string; description?: string }>)
+    .map((p) => `- ${p?.name ?? "Pillar"}: ${p?.description ?? ""}`.trim())
+    .join("\n");
+
+  return `You are a sharp research analyst preparing a fact-pack for an expert LinkedIn writer in the ${industry || "business"} field. Use Google Search to research the topic on the live web, then write a concise RESEARCH BRIEF the writer will use to ground a week of posts in real, current, credible information.
+
+Today's date is ${today}. "Recent" and "current" mean within roughly 18 months of this date. Do not present older information as current.
+
+WHAT THE WRITER IS COVERING THIS WEEK
+Industry: ${industry || "Not specified"}
+Target audience: ${targetAudience || "professionals in this industry"}
+Week theme: "${weekTheme}"
+Week focus / angle: "${weekFocus}"
+Content pillars:
+${pillarLines || "- (none specified)"}
+
+YOUR JOB
+Search the web now for the most relevant, recent, and credible information on this theme, focus, and pillars as they relate to the ${industry || "business"} field and to ${targetAudience || "this audience"}. Then synthesize what you find into a tight brief.
+
+Organize the brief under these headings (use these exact plain-text headings, no markdown styling needed):
+
+KEY FACTS
+- The most important, currently-true facts a knowledgeable expert in this field would cite. Concrete and specific, not generic.
+
+STATISTICS AND DATA
+- Real numbers, percentages, survey results, or benchmarks you found via search. After each, add a rough date or time frame in parentheses (for example "(2024 report)", "(as of early 2025)") and name the source or type of source. Only include numbers you actually found in search results. If you cannot find a credible figure for a point, leave the number out rather than estimating.
+
+RECENT DEVELOPMENTS
+- News, launches, regulatory or market shifts, or notable events from roughly the last 18 months that are relevant to the theme. Include the rough timing of each.
+
+CONCRETE EXAMPLES
+- Real-world examples, named companies, products, people, case studies, or scenarios that the writer can reference specifically (not invented or hypothetical).
+
+COMMON MISCONCEPTIONS
+- Widely-believed but wrong or oversimplified ideas in this area that an expert could correct to sound credible.
+
+EXPERT TALKING POINTS
+- 4 to 8 sharp, non-obvious angles, contrarian takes, or "what most people miss" insights an expert in this field would actually voice on this theme. These are the spine of strong posts.
+
+STRICT RULES
+- Only include facts, numbers, examples, and developments you actually found through search. Do NOT fabricate, estimate, or fill gaps from general knowledge. It is better to write less than to invent anything.
+- Every statistic must have a rough date or time frame and a named source or source type. If you are not confident a figure is real and current, omit it.
+- If search returns little credible material for a heading, write "No reliable current data found" under that heading rather than filling it from general knowledge.
+- Keep the entire brief under 350 words. Favor the 8 to 12 most usable, specific, recent facts over completeness. This is a working fact-pack for a writer, not an essay. No introduction, no conclusion, no filler, no sales language.
+- Stay tightly relevant to the theme, focus, pillars, industry, and audience above. Discard anything tangential.
+- Write in plain text. Use plain hyphens, never em-dashes or en-dashes. Do not use emojis.
+
+Output ONLY the research brief under the headings above. Do not add commentary before or after it.`;
 }
 
 // ─── Single Image Brief Prompt ────────────────────────────────────────────────
