@@ -132,9 +132,11 @@ export default function PostEditorClient({
     initDate ? formatInTimeZone(initDate, userTimezone, "HH:mm") : "09:00"
   );
 
-  const IMAGE_GEN_LIMIT: number = 2;
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "admin";
+  const IMAGE_GEN_LIMIT: number = isAdmin ? Infinity : 2;
   const [imageGenRemaining, setImageGenRemaining] = useState(
-    Math.max(0, IMAGE_GEN_LIMIT - (post.imageGenCount || 0))
+    isAdmin ? Infinity : Math.max(0, IMAGE_GEN_LIMIT - (post.imageGenCount || 0))
   );
   const [saving, setSaving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -1227,9 +1229,11 @@ export default function PostEditorClient({
                     "text-[10px] mt-1 text-center",
                     imageGenRemaining <= 0 ? "text-amber-500 dark:text-amber-400" : "text-slate-400 dark:text-slate-500"
                   )}>
-                    {imageGenRemaining <= 0
-                      ? "AI generation limit reached for this post"
-                      : `${imageGenRemaining} of ${IMAGE_GEN_LIMIT} AI generation${IMAGE_GEN_LIMIT === 1 ? "" : "s"} remaining`}
+                    {imageGenRemaining === Infinity
+                      ? "Unlimited AI generations remaining"
+                      : imageGenRemaining <= 0
+                        ? "AI generation limit reached for this post"
+                        : `${imageGenRemaining} of ${IMAGE_GEN_LIMIT} AI generation${IMAGE_GEN_LIMIT === 1 ? "" : "s"} remaining`}
                   </p>
                 </>
               )}

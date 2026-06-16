@@ -30,6 +30,78 @@ function getRules(humanMode: boolean): string {
     : NO_EMOJI_RULES;
 }
 
+// ─── Visual Profile (for image personalization) ──────────────────────────────
+
+export interface UserVisualProfile {
+  positioning?: string | null;
+  contentStyles?: string | null;
+  industry?: string | null;
+  name?: string | null;
+}
+
+/**
+ * Derives a visual style direction block for image prompts based on the user's
+ * profile. This ensures each user's images feel personal and on-brand.
+ */
+export function deriveVisualStyle(profile: UserVisualProfile): string {
+  const parts: string[] = [];
+
+  // Visual register from positioning
+  const pos = (profile.positioning || "").toLowerCase();
+  if (pos.includes("thought leader")) {
+    parts.push("Visual register: bold editorial photography with striking compositions, strong directional lighting, and confident subjects.");
+  } else if (pos.includes("industry expert") || pos.includes("technical")) {
+    parts.push("Visual register: sharp, technical, detail-oriented imagery with precision and clarity - tools, environments, and close-up details relevant to the field.");
+  } else if (pos.includes("storyteller") || pos.includes("mentor")) {
+    parts.push("Visual register: warm cinematic storytelling scenes with natural lighting, human moments, and emotional depth.");
+  } else if (pos.includes("innovator") || pos.includes("entrepreneur")) {
+    parts.push("Visual register: dynamic, forward-looking compositions with energy, movement, and modern subjects.");
+  } else {
+    parts.push("Visual register: clean, professional editorial photography or modern flat illustration.");
+  }
+
+  // Composition style from content styles
+  let styles: string[] = [];
+  try {
+    styles = profile.contentStyles ? JSON.parse(profile.contentStyles) : [];
+  } catch { /* ignore */ }
+  const stylesJoined = styles.join(" ").toLowerCase();
+
+  if (stylesJoined.includes("narrative") || stylesJoined.includes("story") || stylesJoined.includes("behind the scenes")) {
+    parts.push("Composition style: cinematic narrative scenes that tell a visual story, with depth and atmosphere.");
+  } else if (stylesJoined.includes("how-to") || stylesJoined.includes("tips") || stylesJoined.includes("problem")) {
+    parts.push("Composition style: clean, structured layouts with clear visual hierarchy - organized and instructive.");
+  } else if (stylesJoined.includes("data") || stylesJoined.includes("case study") || stylesJoined.includes("list")) {
+    parts.push("Composition style: infographic-inspired, precise, data-driven visual feel with geometric elements.");
+  } else if (stylesJoined.includes("q&a") || stylesJoined.includes("question") || stylesJoined.includes("predict")) {
+    parts.push("Composition style: thought-provoking, open compositions with visual tension and curiosity.");
+  }
+
+  // Industry-specific visual vocabulary
+  const ind = (profile.industry || "").toLowerCase();
+  if (ind.includes("tech") || ind.includes("software") || ind.includes("it ") || ind.includes("saas")) {
+    parts.push("Industry visuals: circuit patterns, devices, code abstractions, digital interfaces, server rooms, developer workspaces.");
+  } else if (ind.includes("finance") || ind.includes("banking") || ind.includes("invest")) {
+    parts.push("Industry visuals: market trends, currency, financial instruments, trading floors, analytical dashboards.");
+  } else if (ind.includes("health") || ind.includes("medical") || ind.includes("pharma")) {
+    parts.push("Industry visuals: medical environments, lab equipment, wellness imagery, clinical precision.");
+  } else if (ind.includes("educ") || ind.includes("learn") || ind.includes("train")) {
+    parts.push("Industry visuals: learning environments, books, workshops, mentorship moments, knowledge sharing.");
+  } else if (ind.includes("market") || ind.includes("advertis") || ind.includes("brand") || ind.includes("media")) {
+    parts.push("Industry visuals: creative workspaces, campaign elements, brand materials, audience engagement.");
+  } else if (ind.includes("design") || ind.includes("creative") || ind.includes("art")) {
+    parts.push("Industry visuals: creative tools, design workspaces, color swatches, typography specimens, artistic processes.");
+  } else if (ind.includes("consult") || ind.includes("manag") || ind.includes("strateg")) {
+    parts.push("Industry visuals: strategy sessions, whiteboards, collaborative workspaces, decision-making moments.");
+  } else if (ind.includes("real estate") || ind.includes("property") || ind.includes("construction")) {
+    parts.push("Industry visuals: architectural elements, building materials, property spaces, urban landscapes.");
+  } else if (ind) {
+    parts.push(`Industry visuals: use recognizable objects, tools, environments, and scenarios specific to the ${profile.industry} field.`);
+  }
+
+  return parts.length > 0 ? parts.join("\n") : "";
+}
+
 export function deriveAllowedPostTypes(contentStylesStr: string | null | undefined): string[] {
   const defaultTypes = ["thought-leadership", "tips", "story", "question", "listicle"];
   if (!contentStylesStr) return defaultTypes;
@@ -206,37 +278,54 @@ Return ONLY the JSON array. No markdown. No explanation. No emojis.`;
 
 // ─── Single Image Brief Prompt ────────────────────────────────────────────────
 // Reads a post and designs a content-aware, text-bearing image (quote/title card).
-// Returns JSON: { headline, visual, palette }.
+// Returns JSON: { headline, visual, palette, textPosition }.
 
 export function buildImageBriefPrompt(
   title: string,
   body: string,
   postType: string,
-  industry: string
+  industry: string,
+  userProfile?: UserVisualProfile
 ): string {
-  return `You are an art director for premium LinkedIn graphics. Read the LinkedIn post below and design a single square (1:1) feed image that visually represents THIS post's actual subject and message, with one short bold headline rendered on it (like a quote card or title card).
+  const visualStyle = userProfile ? deriveVisualStyle(userProfile) : "";
+  const profileBlock = visualStyle ? `\nUSER VISUAL PROFILE (personalize the image to match this person's brand):\n${visualStyle}\n` : "";
+
+  // Mood-based palette guidance per post type
+  const paletteSuggestions: Record<string, string> = {
+    "thought-leadership": "deep indigo #3730A3, slate charcoal #1E293B, or rich emerald #065F46 with warm neutrals",
+    "tips": "energetic teal #0D9488, coral #F97316, or vibrant amber #D97706 with clean whites",
+    "story": "warm terracotta #C2410C, soft rose #BE185D, or golden ochre #B45309 with creamy neutrals",
+    "question": "curious violet #7C3AED, deep teal #0F766E, or bold magenta #A21CAF with soft greys",
+    "listicle": "fresh sage #4D7C0F, bright cyan #0891B2, or punchy blue #2563EB with crisp whites",
+  };
+  const moodHint = paletteSuggestions[postType] || "a unique, mood-appropriate palette with rich, distinctive colors";
+
+  return `You are an art director for premium LinkedIn graphics. Read the LinkedIn post below and design a single square (1:1) feed image that visually represents THIS post's actual subject and message, with one short headline rendered on it as an elegant text overlay.
 
 POST TITLE (hook): ${title}
 POST BODY: ${body}
 POST TYPE: ${postType}
 INDUSTRY: ${industry || "business"}
-
+${profileBlock}
 Produce a brief as a JSON object with this EXACT structure:
 {
   "headline": "string",
   "visual": "string",
-  "palette": "string"
+  "palette": "string",
+  "textPosition": "string"
 }
 
 FIELD DEFINITIONS AND CONSTRAINTS:
 - "headline": The single most important hook or takeaway of THIS specific post, distilled to between 2 and 5 words and at most 28 characters total. Never more than 5 words. This is NOT the title - compress the core idea into your own words, never copy the title verbatim. Prefer short, common words; avoid any word longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates, because they render incorrectly. Short numbers are fine, for example "3 Hiring Mistakes" or "80/20 Rule". If the post body is empty or very short, derive the headline from the title alone and do not invent facts. If postType is "question", make the headline a short, punchy version of the post's core question ending in a single question mark. Use Title Case. No quotation marks, no hashtags, no ending punctuation except that one question mark. This exact text is rendered on the image, so spell every word correctly.
-- "visual": One concrete scene that depicts what THIS post is actually about (the real situation, action, object, person, or environment the post describes) - not a disconnected metaphor. If the post is abstract and has no physical subject, pick ONE specific, recognizable scene that a reader of THIS post would see as illustrating its exact claim - never a generic office, boardroom, handshake, lightbulb, gear, chess piece, rocket, or upward arrow. Choose subjects that do NOT naturally contain text: prefer people, hands, objects, environments, or simplified abstract geometric forms; avoid dashboards, charts with labels, spreadsheets, code editors, slides, documents, signage, or screens full of UI. Commit to ONE visual register and name it explicitly as either "clean editorial photography" or "modern flat vector illustration", and keep the whole scene in that one register. Describe the subject, composition, lighting, and mood, and state where the clear, uncluttered negative space sits (top, bottom, or one side) for the headline. Do NOT describe or reference any text, words, letters, numbers, logos, or signage inside the scene. At most 40 words, one single-line sentence.
-- "palette": A short color direction. Use brand blue #0A66C2 and deep blue #004182 as accents and for one anchor area only, NOT as a full-frame fill. Keep most of the composition in clean neutrals - off-white, soft grey, or near-white #F4F6F8 - so the blue stays premium and the headline area stays high-contrast. Avoid heavy gradients, neon, glow, and fully saturated blue backgrounds. Name the colors and where they go (background, subject, accents). At most 30 words, one single-line sentence.
+- "visual": One concrete, vivid scene that depicts what THIS post is actually about - the real situation, action, object, person, or environment the post describes. If the post discusses a technical concept, tool, framework, or methodology, depict recognizable domain-specific imagery from the ${industry || "business"} field - actual tools, environments, objects, or scenarios that practitioners would immediately recognize, not a disconnected generic metaphor. Never use a generic office, boardroom, handshake, lightbulb, gear, chess piece, rocket, or upward arrow. Choose subjects that do NOT naturally contain text: prefer people, hands, objects, environments, or simplified abstract geometric forms. Commit to ONE visual register that matches the user's brand personality (clean editorial photography, cinematic storytelling, or modern flat vector illustration). Describe the subject, composition, lighting, and mood in vivid detail with specific colors and textures. State where clear negative space sits for the headline overlay. The visual scene MUST be the hero element - occupying at least 65-70 percent of the frame. Do NOT describe or reference any text, words, letters, numbers, logos, or signage inside the scene. At most 50 words, one single-line sentence.
+- "palette": Choose a UNIQUE, vibrant color palette that emotionally matches THIS specific post's mood and topic. EVERY post should get a DIFFERENT palette - never default to the same colors. Pick from rich, curated color stories: ${moodHint}. Name 2-3 specific hex colors and describe exactly where each goes (background, subject, accents, text panel). Ensure high contrast between the text overlay area and its background. Avoid plain grey-on-white monotony. At most 35 words, one single-line sentence.
+- "textPosition": Choose the BEST placement for the headline based on where the visual subject sits and where negative space naturally falls. Pick exactly one: "top-center", "bottom-center", "bottom-left", "center-left", or "overlay-center". Vary this based on the scene composition - do NOT always pick the same position.
 
 GUARDRAILS:
 - Use plain hyphens only, never em-dashes or en-dashes.
 - Professional, human tone. No buzzwords.
 - The "headline" is the ONLY text intended for the image. Do not invent any captions, subtext, labels, or secondary lines.
+- The visual scene must be vivid, colorful, and visually rich - not a bland neutral-toned stock photo.
 
 ${NO_EMOJI_RULES}
 
@@ -247,23 +336,27 @@ Return ONLY valid JSON. No markdown fences. No explanation. No emojis. Use plain
 
 // ─── Carousel Slide Plan Prompt ───────────────────────────────────────────────
 // Breaks ONE post into a cohesive multi-slide walkthrough (hook -> points -> CTA).
-// Returns JSON: { palette, slides: [{ headline, visual }] }.
+// Returns JSON: { palette, slides: [{ headline, visual, textPosition }] }.
 
 export function buildCarouselPlanPrompt(
   title: string,
   body: string,
   postType: string,
   industry: string,
-  count: number = 4
+  count: number = 4,
+  userProfile?: UserVisualProfile
 ): string {
-  return `You are an expert LinkedIn carousel designer. Turn ONE LinkedIn post into a cohesive image carousel of up to ${count} slides that visually walks the reader through THIS post's actual content.
+  const visualStyle = userProfile ? deriveVisualStyle(userProfile) : "";
+  const profileBlock = visualStyle ? `\nUSER VISUAL PROFILE (personalize the carousel to match this person's brand):\n${visualStyle}\n` : "";
+
+  return `You are an expert LinkedIn carousel designer. Turn ONE LinkedIn post into a cohesive, visually stunning image carousel of up to ${count} slides that walks the reader through THIS post's actual content.
 
 THE POST:
 Title (hook): ${title}
 Body: ${body}
 Post type: ${postType}
 Industry: ${industry || "business"}
-
+${profileBlock}
 YOUR JOB:
 Read the post above and break ITS real content into slides. Do not invent a generic or unrelated metaphor - every slide must represent something the post actually says.
 
@@ -276,13 +369,15 @@ HOW MANY SLIDES:
 - Produce between 2 and ${count} slides. Use ${count} only if the post genuinely has that many distinct points. If it has fewer, emit fewer (always at least a hook slide and a takeaway slide) rather than padding or repeating. If the body is empty or very short, build a minimal hook and takeaway from the title alone and do not invent facts, stats, or claims that are not in the post.
 
 ONE SHARED LOOK (this is what makes it a cohesive set):
-- Choose ONE palette and ONE visual style for the whole carousel. Build the palette around brand blue #0A66C2 and deep blue #004182 used as accents on a clean neutral base (off-white, soft grey, or near-white #F4F6F8) - never a full-frame saturated blue fill. Avoid heavy gradients, neon, and glow. Describe it once in "palette" and reuse it across every slide.
-- All slides use the SAME headline placement and the SAME compositional grid: the headline sits in the top third of every slide. Vary only the subject and imagery per slide; keep type placement, margins, and visual rhythm identical across all slides.
-- Modern, clean, premium, on-brand. Commit to ONE visual register for the whole set, either "clean editorial photography" or "modern flat vector illustration".
+- Choose ONE vibrant, distinctive palette and ONE visual style for the whole carousel. Pick rich, mood-appropriate colors that match the post's topic and energy - do NOT default to the same blue or grey every time. Use 2-3 specific hex colors that create a memorable visual identity for this carousel. Describe it once in "palette" and reuse it across every slide.
+- All slides share the SAME compositional grid and consistent headline placement. Vary only the subject and imagery per slide; keep type placement, margins, and visual rhythm identical across all slides.
+- Modern, clean, premium, on-brand. Commit to ONE visual register for the whole set that matches the user's brand personality.
+- The visual scene must be the hero of each slide - occupying at least 65% of the frame area. Headlines are elegant overlays, not the dominant element.
 
 EACH SLIDE NEEDS:
 - "headline": the ONLY text that should appear on that slide. Between 2 and 5 words, never more than 5, and at most 28 characters total. Punchy, spelled exactly, capturing that slide's one idea. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. Use Title Case. No quotation marks, no hashtags, no emojis.
-- "visual": ONE concise single-line sentence describing a concrete scene, subject, or object drawn from the post's content that represents THIS slide's idea. Choose subjects that do not naturally contain text, and prefer people, hands, objects, environments, or simplified abstract forms. Do NOT describe, spell, or reference any text, words, letters, or numbers to render. Do NOT name any color inside "visual" - colors live only in "palette" - so all slides stay on the one shared palette. At most 40 words.
+- "visual": ONE vivid single-line sentence describing a concrete scene, subject, or object drawn from the post's content that represents THIS slide's idea. If the post discusses technical concepts, depict domain-specific imagery from the ${industry || "business"} field. Choose subjects that do not naturally contain text, and prefer people, hands, objects, environments, or simplified abstract forms. Describe the scene with specific colors, textures, and lighting. Do NOT describe, spell, or reference any text, words, letters, or numbers to render. At most 50 words.
+- "textPosition": choose the best headline placement for this slide's composition: "top-center", "bottom-center", "bottom-left", or "center-left". Keep it consistent across all slides in this carousel.
 
 GUARDRAILS:
 - Use plain hyphens only, never em-dashes or en-dashes.
@@ -291,9 +386,9 @@ ${NO_EMOJI_RULES}
 
 Return a JSON object with this EXACT structure (the "slides" array holds between 2 and ${count} objects):
 {
-  "palette": "string (the one shared palette and visual style, built around #0A66C2 and #004182 as accents on a neutral base, reused by every slide)",
+  "palette": "string (the one shared vibrant palette and visual style, with 2-3 specific hex colors and where they go, reused by every slide)",
   "slides": [
-    { "headline": "string (2-5 words, max 28 chars, the ONLY text on this slide)", "visual": "string (one concrete single-line scene from the post, no text or colors described)" }
+    { "headline": "string (2-5 words, max 28 chars, the ONLY text on this slide)", "visual": "string (one vivid concrete scene from the post with specific details)", "textPosition": "string (top-center, bottom-center, bottom-left, or center-left)" }
   ]
 }
 

@@ -61,8 +61,8 @@ export async function POST(req: NextRequest) {
       subscription.postsGeneratedThisCycle = 0;
     }
 
-    // Check limit
-    if (subscription.postsGeneratedThisCycle + postCount > POST_LIMIT_PER_CYCLE) {
+    // Check limit (Admins have no limits)
+    if (user.role !== "admin" && subscription.postsGeneratedThisCycle + postCount > POST_LIMIT_PER_CYCLE) {
       const remaining = POST_LIMIT_PER_CYCLE - subscription.postsGeneratedThisCycle;
       return NextResponse.json(
         {

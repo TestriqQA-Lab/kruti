@@ -28,15 +28,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Fetch posts that belong to the user and don't already have an image and haven't exceeded gen limit
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+  const isAdmin = user?.role === "admin";
+
+  // Fetch posts that belong to the user and don't already have an image and haven't exceeded gen limit (Admins have no limit)
   const posts = await prisma.post.findMany({
     where: {
       id: { in: postIds },
       plan: { userId: session.user.id },
       imageUrl: null,
-      imageGenCount: { lt: IMAGE_GEN_LIMIT_PER_POST },
+      ...(isAdmin ? {} : { imageGenCount: { lt: IMAGE_GEN_LIMIT_PER_POST } }),
     },
-    include: { plan: { include: { user: { select: { industry: true } } } } },
+    include: { plan: { include: { user: { select: { industry: true, positioning: true, contentStyles: true, name: true } } } } },
   });
 
   if (posts.length === 0) {
@@ -53,14 +59,22 @@ export async function POST(req: NextRequest) {
   for (const post of posts) {
     try {
       const industry = post.plan.user.industry || "business";
+      const userVisualProfile = {
+        positioning: post.plan.user.positioning,
+        contentStyles: post.plan.user.contentStyles,
+        industry,
+        name: post.plan.user.name,
+      };
       const brief = await getImageBrief(
         { title: post.title, body: post.body, postType: post.postType },
-        industry
+        industry,
+        userVisualProfile
       );
       const prompt = buildBrandedImagePrompt({
         headline: brief.headline,
         visual: brief.visual,
         palette: brief.palette,
+        textPosition: brief.textPosition,
       });
       const imageUrl = await generatePostImage(prompt, post.id, industry, true);
 
