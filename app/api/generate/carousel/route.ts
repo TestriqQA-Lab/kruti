@@ -39,8 +39,9 @@ export async function POST(req: NextRequest) {
   });
   if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
 
-  // A carousel generation consumes one of the per-post image generations.
-  if (post.imageGenCount >= IMAGE_GEN_LIMIT_PER_POST) {
+  // A carousel generation consumes one of the per-post image generations (Admins have no limits).
+  const isAdmin = post.plan.user.role === "admin";
+  if (!isAdmin && post.imageGenCount >= IMAGE_GEN_LIMIT_PER_POST) {
     return NextResponse.json(
       {
         error: `Image generation limit reached (${IMAGE_GEN_LIMIT_PER_POST} per post). You can still upload custom images.`,
@@ -52,6 +53,12 @@ export async function POST(req: NextRequest) {
   }
 
   const industry = post.plan.user.industry || "business";
+  const userVisualProfile = {
+    positioning: post.plan.user.positioning,
+    contentStyles: post.plan.user.contentStyles,
+    industry,
+    name: post.plan.user.name,
+  };
 
   // Content-aware: plan a cohesive carousel from THIS post (hook -> key points ->
   // takeaway), each slide a branded graphic with its own short headline. Fall back
@@ -59,7 +66,8 @@ export async function POST(req: NextRequest) {
   const plan = await getCarouselPlan(
     { title: post.title, body: post.body, postType: post.postType },
     industry,
-    CAROUSEL_COUNT
+    CAROUSEL_COUNT,
+    userVisualProfile
   );
 
   let images: string[];
