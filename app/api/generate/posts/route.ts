@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generateText, parseJSON } from "@/lib/gemini";
-import { buildPostsPrompt, deriveAllowedPostTypes } from "@/lib/prompts";
+import { generateText, parseJSON, generateGroundedText } from "@/lib/gemini";
+import { buildPostsPrompt, buildResearchPrompt, deriveAllowedPostTypes } from "@/lib/prompts";
 import { buildProfileContext } from "@/lib/linkedin";
 import { getNextScheduledSlots } from "@/lib/timezone";
 import { checkActiveSubscription } from "@/lib/subscription-check";
@@ -91,6 +91,23 @@ export async function POST(req: NextRequest) {
 
   const allowedTypes = deriveAllowedPostTypes(user.contentStyles);
 
+  // Web-research step: ground the posts in real, current facts before writing.
+  // Best-effort - if grounding fails (quota, network, etc.) we write without a brief.
+  let researchBrief = "";
+  try {
+    const researchPrompt = buildResearchPrompt(
+      strategy.weekTheme ?? "",
+      strategy.weekFocus ?? "",
+      strategy.pillars ?? [],
+      user.industry || "business",
+      user.targetAudience || ""
+    );
+    researchBrief = await generateGroundedText(researchPrompt);
+  } catch (err) {
+    console.error("Research step failed, writing without a brief:", (err as Error).message);
+    researchBrief = "";
+  }
+
   const prompt = buildPostsPrompt(
     profileContext,
     strategy.weekTheme ?? "Professional Growth",
@@ -99,7 +116,8 @@ export async function POST(req: NextRequest) {
     { pillars: strategy.pillars, tone: strategy.tone, postMix: strategy.postMix },
     humanMode,
     postCount,
-    allowedTypes
+    allowedTypes,
+    researchBrief
   );
 
   try {
