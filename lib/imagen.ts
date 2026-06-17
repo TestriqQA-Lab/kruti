@@ -115,12 +115,14 @@ Square format (1:1). High quality, suitable for LinkedIn.`;
 
   console.log(`[Imagen] Prompt: ${prompt.slice(0, 80)}...`);
 
-  // Available image generation models (confirmed working via API test):
-  // - gemini-3.1-flash-image-preview: confirmed working, returns JPEG images via generateContent
-  // - Imagen 4.0 models: only support "predict" (Vertex AI), NOT generateImages via Gemini API
-
+  // Nano Banana Pro - Google's premium image model (much stronger at text
+  // rendering, charts and complex composition than the older flash-image preview;
+  // this is the quality tier the Gemini app itself uses). Try the preview id first,
+  // then the GA id. No flash fallback on purpose, so a Pro access or billing
+  // problem surfaces clearly instead of silently returning low-quality images.
   const imageModels = [
-    "gemini-3.1-flash-image-preview",
+    "gemini-3-pro-image-preview",
+    "gemini-3-pro-image",
   ];
 
   for (const model of imageModels) {
@@ -129,7 +131,11 @@ Square format (1:1). High quality, suitable for LinkedIn.`;
       const response = await getAI().models.generateContent({
         model,
         contents: prompt,
-        config: { responseModalities: ["IMAGE", "TEXT"] },
+        config: {
+          responseModalities: ["IMAGE", "TEXT"],
+          // Square LinkedIn format at high resolution so text and detail stay crisp.
+          imageConfig: { aspectRatio: "1:1", imageSize: "2K" },
+        },
       });
 
       const parts = response.candidates?.[0]?.content?.parts ?? [];
