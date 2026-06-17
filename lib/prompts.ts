@@ -102,41 +102,55 @@ export function deriveVisualStyle(profile: UserVisualProfile): string {
   return parts.length > 0 ? parts.join("\n") : "";
 }
 
+export const ALL_POST_TYPES = ["thought-leadership", "tips", "story", "question", "listicle"];
+
+// Explicit map: each onboarding content style -> the post type(s) it should
+// produce. Keys are lowercased for case-insensitive matching against the stored
+// style labels. This is the ONLY source of which post types are allowed, so the
+// user's onboarding selection is respected strictly - no extra types are added.
+const STYLE_TO_POST_TYPES: Record<string, string[]> = {
+  "problem agitation solution": ["tips"],
+  "narrative / story": ["story"],
+  "list / tips": ["listicle", "tips"],
+  "data-driven insights": ["listicle"],
+  "personal story": ["story"],
+  "case study": ["listicle"],
+  "how-to / tutorial": ["tips"],
+  "motivational": ["thought-leadership"],
+  "contrarian take": ["thought-leadership"],
+  "q&a format": ["question"],
+  "behind the scenes": ["story"],
+  "predictions & trends": ["thought-leadership"],
+  "lessons learned": ["story"],
+  "social proof / results": ["listicle"],
+};
+
+/**
+ * Map the user's selected onboarding content styles to the LinkedIn post types
+ * that may be generated. Returns ONLY the types for the styles the user actually
+ * selected (deduplicated) - nothing extra is ever added. If no styles are stored
+ * or none are recognized, falls back to all types as a safe default.
+ */
 export function deriveAllowedPostTypes(contentStylesStr: string | null | undefined): string[] {
-  const defaultTypes = ["thought-leadership", "tips", "story", "question", "listicle"];
-  if (!contentStylesStr) return defaultTypes;
+  if (!contentStylesStr) return ALL_POST_TYPES;
+
+  let styles: unknown;
   try {
-    const styles = JSON.parse(contentStylesStr);
-    if (!Array.isArray(styles) || styles.length === 0) return defaultTypes;
-
-    const allowed = new Set<string>();
-    
-    // Core safe defaults
-    allowed.add("thought-leadership");
-    
-    const stylesJoined = styles.join(" ").toLowerCase();
-    
-    if (stylesJoined.includes("story") || stylesJoined.includes("behind the scenes") || stylesJoined.includes("lessons learned")) {
-      allowed.add("story");
-    }
-    if (stylesJoined.includes("tips") || stylesJoined.includes("how-to") || stylesJoined.includes("problem agitation solution")) {
-      allowed.add("tips");
-    }
-    if (stylesJoined.includes("list") || stylesJoined.includes("data") || stylesJoined.includes("case study")) {
-      allowed.add("listicle");
-    }
-    if (stylesJoined.includes("q&a") || stylesJoined.includes("question") || stylesJoined.includes("predict")) {
-      allowed.add("question");
-    }
-
-    if (allowed.size === 1) { 
-       // Give them a mix but omit story to be safe if they didn't ask for it
-       return ["thought-leadership", "tips", "question"];
-    }
-    return Array.from(allowed);
+    styles = JSON.parse(contentStylesStr);
   } catch {
-    return defaultTypes;
+    return ALL_POST_TYPES;
   }
+  if (!Array.isArray(styles) || styles.length === 0) return ALL_POST_TYPES;
+
+  const allowed = new Set<string>();
+  for (const style of styles) {
+    const types = STYLE_TO_POST_TYPES[String(style).trim().toLowerCase()];
+    if (types) types.forEach((t) => allowed.add(t));
+  }
+
+  // Only fall back to the full set if nothing mapped (e.g. unrecognized labels),
+  // so we never end up with zero allowed types.
+  return allowed.size > 0 ? Array.from(allowed) : ALL_POST_TYPES;
 }
 
 // ─── Strategy Prompt ─────────────────────────────────────────────────────────

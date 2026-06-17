@@ -153,7 +153,10 @@ export async function POST(req: NextRequest) {
             title: cleanInline(post.title),
             body: formatPostBody(post.body),
             hashtags: JSON.stringify(post.hashtags),
-            postType: post.postType,
+            // Enforce the user's onboarding selection: never save a post type the
+            // model produced outside the allowed set. Coerce any stray type to an
+            // allowed one so the calendar only ever shows selected types.
+            postType: allowedTypes.includes(post.postType) ? post.postType : allowedTypes[0],
             imagePrompt: post.imagePrompt,
             weekNumber: 1,
             scheduledAt,
