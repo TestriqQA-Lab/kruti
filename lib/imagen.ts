@@ -44,10 +44,11 @@ function friendlyImageError(rawMessage: string): string {
 // ─── Branded Image Prompt (content-aware, renders a headline) ─────────────────
 
 /**
- * Build the final image-model prompt for a content-aware, text-bearing graphic.
- * The headline leads (image models weight early tokens for what to render),
- * there is no other text, and industry is NOT injected (it is already baked into
- * the visual/palette by the text-model brief). Pass `position` per carousel slide.
+ * Build the final image-model prompt for a content-aware, branded graphic.
+ * Produces a cohesive DESIGNED graphic (infographic / product visual) with the
+ * headline integrated as a real title and any data or labels rendered as real,
+ * correctly-spelled text - leveraging the Pro image model's strong text and
+ * composition. Pass `position` per carousel slide.
  */
 export function buildBrandedImagePrompt(brief: {
   headline: string;
@@ -58,31 +59,23 @@ export function buildBrandedImagePrompt(brief: {
 }): string {
   const { headline, visual, palette, position } = brief;
 
-  // Map textPosition to a natural placement description so the headline does not
-  // always default to one corner.
-  const positionMap: Record<string, string> = {
-    "top-center": "across the top portion of the image",
-    "bottom-center": "across the bottom portion of the image",
-    "bottom-left": "in the lower-left area of the image",
-    "center-left": "down the left side of the image",
-    "overlay-center": "centered over the image",
-  };
-  const placement = positionMap[brief.textPosition || ""] || "in whichever area has the most open, uncluttered space";
+  return `Design a single, premium, professionally designed square (1:1) graphic for a LinkedIn feed - in the polished style of a high-end marketing visual, infographic, or product showcase. This is a DESIGNED graphic, NOT a stock photo with a caption bar pasted on top.
 
-  return `A rich, vivid, professionally crafted square (1:1) image for a LinkedIn feed.
+WHAT TO SHOW: ${visual}
 
-THE SCENE (the main subject - it fills the entire frame edge to edge): ${visual}
-Render this as a real editorial photograph or a polished modern illustration with natural depth, lighting, texture, and genuinely varied, saturated colours that come from the subject itself. It must look like a distinctive, lively image - NOT a flat solid-colour graphic, NOT a plain coloured background with one shape on it, NOT washed-out grey. Each generated image should feel visually different from the last.
-Colour mood for the overall tone and the small text area: ${palette} Use this only as a tonal hint - let the scene's own real-world colours carry most of the frame, and never flood the image with a single flat colour.
+HEADLINE (the title of the graphic): "${headline}"
+Integrate this as a clean, prominent, well-set title that is part of the design itself - strong, intentional typography, not a translucent sticker or frosted bar floating over a photo.
 
-THE HEADLINE (a small, tasteful caption - NOT the focus): place exactly the words "${headline}" ${placement}, taking up no more than about one fifth of the image. Set it in clean, modern, medium-weight sans-serif type on a subtle semi-transparent panel or a naturally clear part of the scene so it stays readable. Keep the type modest in size so it never dominates or hides the subject - the scene is the hero, the words are just a caption.
+DESIGN IT LIKE A SENIOR DESIGNER WOULD:
+- Make it one cohesive, intentional composition with clear visual hierarchy, balanced layout, and generous spacing.
+- When the topic involves data, growth, results, a product, an app, a UI, a workflow, or a comparison, render it as a polished designed element - a clean chart or graph with realistic labels and numbers, a sleek device or dashboard mockup, tidy icons, or a clear diagram - the way premium LinkedIn carousels and reports look.
+- ALL text in the image (the title plus any labels, numbers, axis values, or captions on charts and mockups) must be real words, correctly spelled, and meaningful to this topic. Never produce scrambled, fake, or nonsense lettering anywhere.
+- Keep every element fully inside the frame with comfortable margins. Nothing important may be cropped or cut off.
 
-ONLY TEXT: the single piece of text anywhere in the image is exactly these words: ${headline}. Spell them exactly (keep a trailing question mark if present) and add no other words, letters, numbers, captions, labels, signage, logos, watermarks, or gibberish lettering; render any incidental screens, papers, or signs as blank.
+COLOR: ${palette} Keep it cohesive, rich, and on-brand - intentional, not washed-out, monotone, or flooded with one flat colour.
 
-FRAMING: keep every subject, object, and the headline fully inside the frame with comfortable margins (about 8 percent padding on all sides). Nothing important may be cropped, cut off, or bleed past the edges.
-${position ? `CAROUSEL: this is ${position}; keep the same visual style, colour mood, and headline placement as the other slides.\n` : ""}STYLE: premium, modern, editorial, full of colour, depth, and life. Avoid flat monotone fills, washed-out greys, cheesy corporate-handshake stock photos, glossy plastic 3D renders, lens flare, busy clutter, and distorted hands or faces.
-
-Square 1:1, high quality, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
+QUALITY BAR: it must look like a senior designer or a top design tool produced it - crisp, high-resolution, modern, premium. Avoid cheap stock-photo-with-a-text-banner looks, gaudy gradients, glossy plastic 3D, lens flare, busy clutter, and distorted hands, faces, or text.
+${position ? `CAROUSEL: this is ${position} - use the SAME design system, colour palette, type, and layout across every slide so the set is cohesive.\n` : ""}Square 1:1, high quality, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
 }
 
 // ─── Image Generation ────────────────────────────────────────────────────────
