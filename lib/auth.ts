@@ -30,6 +30,38 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "linkedin") {
+        // Persist the freshly-issued OAuth tokens on every sign-in. NextAuth's
+        // adapter only writes account tokens when an account is FIRST linked, so
+        // without this an existing user's stored access_token is never updated on
+        // re-login. Because this LinkedIn app receives no refresh_token, once the
+        // saved token is revoked or expires the stale token just stayed in the DB -
+        // so even "sign out / sign in" couldn't recover. updateMany targets the
+        // unique (provider, providerAccountId) row: a no-op for brand-new accounts
+        // (the adapter writes those) and a token refresh for returning users.
+        if (account.access_token && account.providerAccountId) {
+          try {
+            await prisma.account.updateMany({
+              where: {
+                provider: "linkedin",
+                providerAccountId: account.providerAccountId,
+              },
+              data: {
+                access_token: account.access_token,
+                expires_at:
+                  typeof account.expires_at === "number" ? account.expires_at : null,
+                token_type: account.token_type ?? null,
+                scope: account.scope ?? null,
+                id_token: account.id_token ?? null,
+                // LinkedIn only returns a refresh_token for MDP-approved apps; keep
+                // the existing value when none comes back instead of nulling it.
+                ...(account.refresh_token ? { refresh_token: account.refresh_token } : {}),
+              },
+            });
+          } catch (err) {
+            console.error("LinkedIn token persist failed:", err);
+          }
+        }
+
         // Sync LinkedIn profile data
         if (account.access_token) {
           try {
