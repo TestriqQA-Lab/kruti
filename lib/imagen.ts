@@ -1,6 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
 import { put } from "@vercel/blob";
-import { addSafetyMargin } from "./image-edit";
 
 let _ai: GoogleGenAI | null = null;
 function getAI(): GoogleGenAI {
@@ -68,15 +67,15 @@ HEADLINE (the title of the graphic): "${headline}"
 Integrate this as a clean, prominent, well-set title that is part of the design itself - strong, intentional typography, not a translucent sticker or frosted bar floating over a photo.
 
 DESIGN IT LIKE A SENIOR DESIGNER WOULD:
-- Make it one cohesive, intentional composition with clear visual hierarchy, balanced layout, and generous spacing.
+- Make it one cohesive, intentional composition with clear visual hierarchy, balanced layout, and purposeful spacing that fills the whole frame.
 - When the topic involves data, growth, results, a product, an app, a UI, a workflow, or a comparison, render it as a polished designed element - a clean chart or graph with realistic labels and numbers, a sleek device or dashboard mockup, tidy icons, or a clear diagram - the way premium LinkedIn carousels and reports look.
 - ALL text in the image (the title plus any labels, numbers, axis values, or captions on charts and mockups) must be real words, correctly spelled, and meaningful to this topic. Never produce scrambled, fake, or nonsense lettering anywhere.
-- Keep every element fully inside the frame with comfortable margins. Nothing important may be cropped or cut off.
+- FULL-BLEED: the background and the whole design must extend completely to all four edges of the square - NO white, blank, or empty border, frame, padding, or outer margin around the artwork. Keep text and key elements just clear of the very edge so nothing is cut off, but the design itself must fill the entire canvas edge to edge.
 
 COLOR: ${palette} Keep it cohesive, rich, and on-brand - intentional, not washed-out, monotone, or flooded with one flat colour.
 
 QUALITY BAR: it must look like a senior designer or a top design tool produced it - crisp, high-resolution, modern, premium. Avoid cheap stock-photo-with-a-text-banner looks, gaudy gradients, glossy plastic 3D, lens flare, busy clutter, and distorted hands, faces, or text.
-${position ? `CAROUSEL: this is ${position} - use the SAME design system, colour palette, type, and layout across every slide so the set is cohesive.\n` : ""}Square 1:1, high quality, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
+${position ? `CAROUSEL: this is ${position} - use the SAME design system, colour palette, type, and layout across every slide so the set is cohesive.\n` : ""}Square 1:1, filling the entire frame edge to edge with no blank border or margin on any side. High quality, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
 }
 
 // ─── Image Generation ────────────────────────────────────────────────────────
@@ -104,7 +103,7 @@ export async function generatePostImage(
 Style: Professional, polished, visually compelling. Cinematic composition, natural lighting, professional color grading.
 Industry context: ${industry || "business"}.
 The image must contain ZERO text - no words, letters, numbers, labels, captions, watermarks, or typography of any kind.
-Square format (1:1). High quality, suitable for LinkedIn.`;
+Square format (1:1), filling the entire frame edge to edge with no blank border, frame, or margin on any side. High quality, suitable for LinkedIn.`;
   }
 
   console.log(`[Imagen] Prompt: ${prompt.slice(0, 80)}...`);
@@ -135,16 +134,7 @@ Square format (1:1). High quality, suitable for LinkedIn.`;
       const parts = response.candidates?.[0]?.content?.parts ?? [];
       for (const part of parts) {
         if (part.inlineData?.mimeType?.startsWith("image/") && part.inlineData.data) {
-          const rawBuffer = Buffer.from(part.inlineData.data, "base64");
-          // Pad a 1px throwaway border (copied edge pixels) so the editor's
-          // "Crop Images" action - which removes the LinkedIn "CR" AI-content tag by
-          // re-encoding - trims only this margin and never real content.
-          let buffer: Buffer = rawBuffer;
-          try {
-            buffer = await addSafetyMargin(rawBuffer);
-          } catch (e) {
-            console.warn(`[Imagen] safety-margin pad failed, using original:`, (e as Error).message);
-          }
+          const buffer = Buffer.from(part.inlineData.data, "base64");
           const ext = part.inlineData.mimeType === "image/jpeg" ? "jpg" : "png";
           const contentType = part.inlineData.mimeType === "image/jpeg" ? "image/jpeg" : "image/png";
           const filename = `post-${postId}-${Date.now()}.${ext}`;
@@ -244,5 +234,5 @@ export function buildImagePrompt(
   // Describes a visual concept - no actual post text is included.
   return `Professional abstract visual metaphor representing the concept of ${postType} content in the ${industry} industry.
 Clean, modern composition with symbolic imagery. No text, no words, no letters, no numbers anywhere in the image.
-Square format (1:1). High quality, suitable for LinkedIn.`;
+Square format (1:1), filling the entire frame edge to edge with no blank border or margin on any side. High quality, suitable for LinkedIn.`;
 }
