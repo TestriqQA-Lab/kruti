@@ -21,6 +21,7 @@ import {
   Trash2,
   Wand2,
   Repeat2,
+  Crop,
 } from "lucide-react";
 import { cn, getPostTypeColor } from "@/lib/utils";
 import Image from "next/image";
@@ -114,6 +115,7 @@ export default function PostEditorClient({
   });
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [generatingCarousel, setGeneratingCarousel] = useState(false);
+  const [cropping, setCropping] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(post.documentUrl);
   const [documentName, setDocumentName] = useState<string | null>(post.documentName);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -252,6 +254,27 @@ export default function PostEditorClient({
     });
   }
 
+  // After cropping in place, swap the active generation's URLs for the cropped ones
+  // so the gallery thumbnail tracks the cropped result (mirrors the server update).
+  function replaceActiveGeneration(oldGroup: string[], newGroup: string[]) {
+    const next = newGroup.filter((u): u is string => typeof u === "string" && u.length > 0);
+    if (next.length === 0) return;
+    setGenerations((prev) => {
+      const same = (a: string[], b: string[]) =>
+        a.length === b.length && a.every((u, i) => u === b[i]);
+      let replaced = false;
+      const updated = prev.map((g) => {
+        if (!replaced && same(g, oldGroup)) {
+          replaced = true;
+          return next;
+        }
+        return g;
+      });
+      if (!replaced) updated.push(next);
+      return updated.slice(-24);
+    });
+  }
+
   // Reuse a previous generation (single image or full carousel). This is FREE -
   // no new generation is consumed - and it persists so the choice survives reload.
   async function restoreGeneration(group: string[]) {
@@ -339,6 +362,45 @@ export default function PostEditorClient({
       }
     } finally {
       setGeneratingCarousel(false);
+    }
+  }
+
+  // Crop 1px off every side and re-encode (server-side via sharp). This strips the
+  // C2PA / Content-Credentials metadata so the LinkedIn "CR" AI-content tag is gone.
+  // Cropping is free - it never consumes an image generation.
+  async function handleCropImages() {
+    setCropping(true);
+    try {
+      const res = await fetch("/api/images/crop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        toast(data.error || "Couldn't crop the image", "error");
+        return;
+      }
+      if (Array.isArray(data.carouselImages) && data.carouselImages.length > 0) {
+        const cropped: string[] = data.carouselImages;
+        const prevGroup = carouselImages;
+        setCarouselImages(cropped);
+        setCarouselIndex((i) => Math.min(i, cropped.length - 1));
+        setImageUrl(data.imageUrl ?? cropped[0]);
+        replaceActiveGeneration(prevGroup, cropped);
+        toast("Carousel cropped - the LinkedIn AI tag is removed", "success");
+        router.refresh();
+      } else if (data.imageUrl) {
+        const oldUrl = imageUrl;
+        setImageUrl(data.imageUrl);
+        if (oldUrl) replaceActiveGeneration([oldUrl], [data.imageUrl]);
+        toast("Image cropped - the LinkedIn AI tag is removed", "success");
+        router.refresh();
+      }
+    } catch {
+      toast("Couldn't crop the image. Please try again.", "error");
+    } finally {
+      setCropping(false);
     }
   }
 
@@ -1202,6 +1264,21 @@ export default function PostEditorClient({
                       ? "Regenerate Carousel"
                       : "Carousel (4 images)"}
                   </button>
+                  {(imageUrl || carouselImages.length > 0) && (
+                    <button
+                      onClick={handleCropImages}
+                      disabled={cropping}
+                      className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] disabled:opacity-70 transition-colors dark:text-slate-300"
+                      title="Crop 1px off all sides and re-encode to remove the LinkedIn 'CR' AI-content tag (free - does not use a generation)"
+                    >
+                      {cropping ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Crop className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                      )}
+                      {cropping ? "Cropping..." : "Crop Images"}
+                    </button>
+                  )}
                   <input
                     ref={docInputRef}
                     type="file"

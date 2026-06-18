@@ -42,3 +42,34 @@ export function appendImageHistory(raw: string | null | undefined, urls: string[
 
   return JSON.stringify(history.slice(-MAX_GENERATIONS));
 }
+
+/**
+ * Replace the history group that matches `oldGroup` (same URLs in the same order)
+ * with `newGroup`, returning the new JSON. Used after cropping in place so the
+ * gallery thumbnail points at the cropped version and stays selected. If no group
+ * matches, the new group is appended so it is still tracked.
+ */
+export function replaceImageHistoryGroup(
+  raw: string | null | undefined,
+  oldGroup: string[],
+  newGroup: string[]
+): string {
+  const next = newGroup.filter((u): u is string => typeof u === "string" && u.length > 0);
+  const history = parseImageHistory(raw);
+  if (next.length === 0) return JSON.stringify(history.slice(-MAX_GENERATIONS));
+
+  const sameGroup = (a: string[], b: string[]) =>
+    a.length === b.length && a.every((u, i) => u === b[i]);
+
+  let replaced = false;
+  const updated = history.map((g) => {
+    if (!replaced && sameGroup(g, oldGroup)) {
+      replaced = true;
+      return next;
+    }
+    return g;
+  });
+  if (!replaced) updated.push(next);
+
+  return JSON.stringify(updated.slice(-MAX_GENERATIONS));
+}
