@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { put } from "@vercel/blob";
+import { addSafetyMargin } from "./image-edit";
 
 let _ai: GoogleGenAI | null = null;
 function getAI(): GoogleGenAI {
@@ -134,7 +135,16 @@ Square format (1:1). High quality, suitable for LinkedIn.`;
       const parts = response.candidates?.[0]?.content?.parts ?? [];
       for (const part of parts) {
         if (part.inlineData?.mimeType?.startsWith("image/") && part.inlineData.data) {
-          const buffer = Buffer.from(part.inlineData.data, "base64");
+          const rawBuffer = Buffer.from(part.inlineData.data, "base64");
+          // Pad a 1px throwaway border (copied edge pixels) so the editor's
+          // "Crop Images" action - which removes the LinkedIn "CR" AI-content tag by
+          // re-encoding - trims only this margin and never real content.
+          let buffer: Buffer = rawBuffer;
+          try {
+            buffer = await addSafetyMargin(rawBuffer);
+          } catch (e) {
+            console.warn(`[Imagen] safety-margin pad failed, using original:`, (e as Error).message);
+          }
           const ext = part.inlineData.mimeType === "image/jpeg" ? "jpg" : "png";
           const contentType = part.inlineData.mimeType === "image/jpeg" ? "image/jpeg" : "image/png";
           const filename = `post-${postId}-${Date.now()}.${ext}`;
