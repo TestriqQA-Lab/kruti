@@ -48,6 +48,8 @@ export default function AdminSidebar({ user, imagePromptsRevealUntil = null }: A
   const [now, setNow] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [daysInput, setDaysInput] = useState("7");
+  const [error, setError] = useState<string | null>(null);
 
   // Tick for the countdown + auto-expiry. Client-only init avoids hydration mismatch.
   useEffect(() => {
@@ -63,20 +65,27 @@ export default function AdminSidebar({ user, imagePromptsRevealUntil = null }: A
     if (now === null || Number.isNaN(revealMs)) return "Visible";
     const ms = revealMs - now;
     if (ms <= 0) return "Expiring…";
-    const h = Math.floor(ms / 3_600_000);
-    const m = Math.floor((ms % 3_600_000) / 60_000);
-    return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
+    const totalMin = Math.floor(ms / 60_000);
+    const d = Math.floor(totalMin / 1440);
+    const h = Math.floor((totalMin % 1440) / 60);
+    const m = totalMin % 60;
+    if (d > 0) return `${d}d ${h}h left`;
+    if (h > 0) return `${h}h ${m}m left`;
+    return `${m}m left`;
   }
 
-  async function setReveal(action: "enable" | "disable", hours?: 24 | 48) {
+  async function setReveal(action: "enable" | "disable", days?: number) {
     setBusy(true);
+    setError(null);
     try {
       const res = await fetch("/api/admin/settings/image-prompts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(action === "enable" ? { action, hours } : { action }),
+        body: JSON.stringify(action === "enable" ? { action, days } : { action }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        setError(data?.error || "Something went wrong. Please try again.");
         setBusy(false);
         return;
       }
@@ -84,14 +93,29 @@ export default function AdminSidebar({ user, imagePromptsRevealUntil = null }: A
       // Reload so analytics reflects the new privacy state immediately (server-gated).
       window.location.reload();
     } catch {
+      setError("Network error. Please try again.");
       setBusy(false);
     }
   }
 
+  function submitDays() {
+    const n = Number(daysInput);
+    if (!Number.isInteger(n) || n < 1) {
+      setError("Enter a whole number of days (1 or more).");
+      return;
+    }
+    setReveal("enable", n);
+  }
+
   function onToggle() {
     if (busy) return;
-    if (active) setReveal("disable");
-    else setModalOpen(true);
+    if (active) {
+      setReveal("disable");
+    } else {
+      setError(null);
+      setDaysInput("7");
+      setModalOpen(true);
+    }
   }
 
   return (
@@ -232,28 +256,41 @@ export default function AdminSidebar({ user, imagePromptsRevealUntil = null }: A
               </button>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              For how long should user image thumbnails &amp; prompts be visible in analytics? They hide again
-              automatically when the window ends.
+              For how many days should user image thumbnails &amp; prompts be visible in analytics? They hide again
+              automatically when the window ends - or turn the toggle off any time to hide them earlier.
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              {[24, 48].map((h) => (
-                <button
-                  key={h}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => setReveal("enable", h as 24 | 48)}
-                  className="flex flex-col items-center justify-center gap-1 rounded-xl border border-gray-200 dark:border-gray-700 py-4 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:opacity-60 transition-colors"
-                >
-                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{h}h</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{h === 24 ? "1 day" : "2 days"}</span>
-                </button>
-              ))}
+            <label htmlFor="reveal-days" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+              Number of days
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="reveal-days"
+                type="number"
+                min={1}
+                step={1}
+                inputMode="numeric"
+                value={daysInput}
+                autoFocus
+                disabled={busy}
+                onChange={(e) => setDaysInput(e.target.value.replace(/[^0-9]/g, ""))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitDays();
+                }}
+                className="w-24 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 disabled:opacity-60"
+                aria-label="Number of days to show user media"
+              />
+              <span className="text-sm text-gray-500 dark:text-gray-400">day(s)</span>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={submitDays}
+                className="ml-auto px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium disabled:opacity-60 transition-colors flex items-center gap-2"
+              >
+                {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+                {busy ? "Applying…" : "Apply"}
+              </button>
             </div>
-            {busy && (
-              <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-500 dark:text-gray-400">
-                <Loader2 className="w-4 h-4 animate-spin" /> Applying…
-              </div>
-            )}
+            {error && <p className="text-xs text-red-600 dark:text-red-400 mt-3">{error}</p>}
           </div>
         </div>
       )}

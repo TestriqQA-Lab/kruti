@@ -4,7 +4,7 @@ import {
   getImagePromptsRevealUntil,
   setImagePromptsReveal,
   clearImagePromptsReveal,
-  type RevealWindowHours,
+  MAX_REVEAL_DAYS,
 } from "@/lib/app-settings";
 
 async function currentState() {
@@ -30,18 +30,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
-  let hours: 24 | 48 = 24;
+  let days = 1;
   if (action === "enable") {
-    const h = Number(body?.hours);
-    if (h !== 24 && h !== 48) {
-      return NextResponse.json({ error: "hours must be 24 or 48" }, { status: 400 });
+    days = Number(body?.days);
+    if (!Number.isInteger(days) || days < 1 || days > MAX_REVEAL_DAYS) {
+      return NextResponse.json(
+        { error: `Enter a whole number of days between 1 and ${MAX_REVEAL_DAYS}.` },
+        { status: 400 }
+      );
     }
-    hours = h;
   }
 
   try {
     if (action === "disable") await clearImagePromptsReveal();
-    else await setImagePromptsReveal(hours as RevealWindowHours);
+    else await setImagePromptsReveal(days);
     return NextResponse.json(await currentState());
   } catch (e) {
     console.error("[admin settings] image-prompts toggle failed:", (e as Error).message);

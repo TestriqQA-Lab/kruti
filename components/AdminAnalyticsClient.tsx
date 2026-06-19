@@ -68,13 +68,17 @@ export default function AdminAnalyticsClient({
     setPromptsExpired(false);
     const until = report.promptsRevealUntil;
     if (!report.promptsRevealed || !until) return;
-    const ms = Date.parse(until) - Date.now();
-    if (ms <= 0) {
+    const untilMs = Date.parse(until);
+    if (untilMs <= Date.now()) {
       setPromptsExpired(true);
       return;
     }
-    const id = setTimeout(() => setPromptsExpired(true), Math.min(ms, 2_147_483_000));
-    return () => clearTimeout(id);
+    // Interval (not a single setTimeout) so it works for windows longer than the
+    // ~24.8-day setTimeout limit too.
+    const id = setInterval(() => {
+      if (Date.now() >= untilMs) setPromptsExpired(true);
+    }, 30_000);
+    return () => clearInterval(id);
   }, [report.promptsRevealed, report.promptsRevealUntil]);
 
   const showPrompts = (report.promptsRevealed ?? false) && !promptsExpired;
