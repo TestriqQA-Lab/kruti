@@ -9,6 +9,7 @@ import {
   CreditCard,
   FileText,
   Server,
+  LineChart,
   LogOut,
   ArrowLeft,
   Shield,
@@ -21,6 +22,7 @@ const adminNavItems = [
   { href: "/admin/users", label: "Users", icon: Users, exact: false },
   { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard, exact: false },
   { href: "/admin/content", label: "Content Stats", icon: FileText, exact: false },
+  { href: "/admin/analytics", label: "Usage & Cost", icon: LineChart, exact: false },
   { href: "/admin/system", label: "System", icon: Server, exact: false },
 ];
 
