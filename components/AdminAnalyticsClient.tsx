@@ -57,27 +57,38 @@ export default function AdminAnalyticsClient({
   const [metric, setMetric] = useState<Metric>("images");
   const [promptSearch, setPromptSearch] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activePreset, setActivePreset] = useState<"today" | "7d" | "30d" | "month" | null>("30d");
+  const [promptLimit, setPromptLimit] = useState(24);
 
-  const applyRange = useCallback(async (from: string, to: string) => {
-    setLoading(true);
-    setErrMsg(null);
-    try {
-      const res = await fetch(`/api/admin/analytics?from=${from}&to=${to}`);
-      const data = await res.json();
-      if (!res.ok) {
-        setErrMsg(data?.error || "Failed to load analytics");
-        return;
+  const applyRange = useCallback(
+    async (from: string, to: string) => {
+      setLoading(true);
+      setErrMsg(null);
+      try {
+        const res = await fetch(`/api/admin/analytics?from=${from}&to=${to}`);
+        const data = await res.json();
+        if (!res.ok) {
+          setErrMsg(data?.error || "Failed to load analytics");
+          // Keep the controls consistent with the data still on screen.
+          setStart(appliedRange.start);
+          setEnd(appliedRange.end);
+          return;
+        }
+        setReport(data as UsageReport);
+        setStart(data.start);
+        setEnd(data.end);
+        setAppliedRange({ start: data.start, end: data.end });
+        setPromptLimit(24);
+      } catch {
+        setErrMsg("Failed to load analytics. Please try again.");
+        setStart(appliedRange.start);
+        setEnd(appliedRange.end);
+      } finally {
+        setLoading(false);
       }
-      setReport(data as UsageReport);
-      setStart(data.start);
-      setEnd(data.end);
-      setAppliedRange({ start: data.start, end: data.end });
-    } catch {
-      setErrMsg("Failed to load analytics. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [appliedRange]
+  );
 
   const applyPreset = useCallback(
     (preset: "today" | "7d" | "30d" | "month") => {
@@ -87,6 +98,7 @@ export default function AdminAnalyticsClient({
       if (preset === "7d") from = dayKey(now - 6 * DAY);
       else if (preset === "30d") from = dayKey(now - 29 * DAY);
       else if (preset === "month") from = `${today.slice(0, 7)}-01`;
+      setActivePreset(preset);
       setStart(from);
       setEnd(today);
       applyRange(from, today);
@@ -95,8 +107,11 @@ export default function AdminAnalyticsClient({
   );
 
   const t = report.totals;
-  const avgCostPerPost = t.content > 0 ? t.totalCostInr / t.content : 0;
-  const projectedMonthly = t.days > 0 ? (t.totalCostInr / t.days) * 30 : 0;
+  const avgCostPerPost = t.content > 0 ? t.totalCostInr / t.content : null;
+  // Extrapolate from days that actually had spend, not calendar days (a single busy
+  // day or a range padded with empty days would otherwise distort the projection).
+  const activeDays = report.daily.filter((d) => d.totalCostInr > 0).length;
+  const projectedMonthly = activeDays > 0 ? (t.totalCostInr / activeDays) * 30 : 0;
   const totalPostsCohort = t.draft + t.ready + t.published;
 
   const kpis = [
@@ -105,8 +120,8 @@ export default function AdminAnalyticsClient({
     { label: "Total Cost", value: formatInr(t.totalCostInr), icon: IndianRupee, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-900/30" },
     { label: "Image Cost", value: formatInr(t.imageCostInr), icon: ImageIcon, color: "text-violet-600", bg: "bg-violet-50 dark:bg-violet-900/30" },
     { label: "Content Cost", value: formatInr(t.contentCostInr), icon: FileText, color: "text-cyan-600", bg: "bg-cyan-50 dark:bg-cyan-900/30" },
-    { label: "Avg Cost / Post", value: formatInr(avgCostPerPost), icon: Calculator, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-900/30" },
-    { label: "Projected / Month", value: formatInr(projectedMonthly), icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-900/30" },
+    { label: "Avg Cost / Post", value: avgCostPerPost === null ? "—" : formatInr(avgCostPerPost), icon: Calculator, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-900/30" },
+    { label: "Projected / Month", value: activeDays > 0 ? formatInr(projectedMonthly) : "—", icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-900/30", sub: activeDays > 0 ? `from ${activeDays} active day${activeDays === 1 ? "" : "s"}` : "no activity" },
     { label: "Strategies", value: String(t.strategies), icon: Lightbulb, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-900/30" },
   ];
 
@@ -189,7 +204,12 @@ export default function AdminAnalyticsClient({
                 key={key}
                 onClick={() => applyPreset(key)}
                 disabled={loading}
-                className="text-xs font-medium px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-60 transition-colors"
+                className={cn(
+                  "text-xs font-medium px-3 py-1.5 rounded-full border transition-colors disabled:opacity-60",
+                  activePreset === key
+                    ? "border-red-600 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                    : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                )}
               >
                 {label}
               </button>
@@ -202,7 +222,11 @@ export default function AdminAnalyticsClient({
                 type="date"
                 value={start}
                 max={end}
-                onChange={(e) => setStart(e.target.value)}
+                aria-label="Start date"
+                onChange={(e) => {
+                  setStart(e.target.value);
+                  setActivePreset(null);
+                }}
                 className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
               />
             </label>
@@ -212,12 +236,19 @@ export default function AdminAnalyticsClient({
                 type="date"
                 value={end}
                 min={start}
-                onChange={(e) => setEnd(e.target.value)}
+                aria-label="End date"
+                onChange={(e) => {
+                  setEnd(e.target.value);
+                  setActivePreset(null);
+                }}
                 className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
               />
             </label>
             <button
-              onClick={() => applyRange(start, end)}
+              onClick={() => {
+                setActivePreset(null);
+                applyRange(start, end);
+              }}
               disabled={loading}
               className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium disabled:opacity-60 transition-colors"
             >
@@ -251,19 +282,25 @@ export default function AdminAnalyticsClient({
         <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
           <FileText className="w-4 h-4 text-gray-400" /> Posts in range by status
         </h3>
-        <div className="flex w-full h-3 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
-          <div className="bg-gray-400 h-full" style={{ width: pct(t.draft, totalPostsCohort) }} title={`Draft: ${t.draft}`} />
-          <div className="bg-amber-500 h-full" style={{ width: pct(t.ready, totalPostsCohort) }} title={`Ready: ${t.ready}`} />
-          <div className="bg-green-500 h-full" style={{ width: pct(t.published, totalPostsCohort) }} title={`Published: ${t.published}`} />
-        </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 mt-3 text-sm">
-          <StatusLegend color="bg-gray-400" label="Draft" count={t.draft} total={totalPostsCohort} />
-          <StatusLegend color="bg-amber-500" label="Ready" count={t.ready} total={totalPostsCohort} />
-          <StatusLegend color="bg-green-500" label="Published" count={t.published} total={totalPostsCohort} />
-        </div>
-        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-3">
-          Posts grouped by their creation day (IST), split by current status.
-        </p>
+        {totalPostsCohort === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No posts in this range</p>
+        ) : (
+          <>
+            <div className="flex w-full h-3 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+              <div className="bg-gray-400 h-full" style={{ width: pct(t.draft, totalPostsCohort) }} title={`Draft: ${t.draft}`} />
+              <div className="bg-amber-500 h-full" style={{ width: pct(t.ready, totalPostsCohort) }} title={`Ready: ${t.ready}`} />
+              <div className="bg-green-500 h-full" style={{ width: pct(t.published, totalPostsCohort) }} title={`Published: ${t.published}`} />
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mt-3 text-sm">
+              <StatusLegend color="bg-gray-400" label="Draft" count={t.draft} total={totalPostsCohort} />
+              <StatusLegend color="bg-amber-500" label="Ready" count={t.ready} total={totalPostsCohort} />
+              <StatusLegend color="bg-green-500" label="Published" count={t.published} total={totalPostsCohort} />
+            </div>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-3">
+              Posts grouped by their creation day (IST), split by current status.
+            </p>
+          </>
+        )}
       </div>
 
       {/* Daily trend chart */}
@@ -345,12 +382,10 @@ export default function AdminAnalyticsClient({
               </tr>
             </thead>
             <tbody className="tabular-nums">
-              {report.daily.map((d) => {
-                const empty = d.images === 0 && d.content === 0 && d.strategies === 0;
-                return (
+              {report.daily.map((d) => (
                   <tr key={d.date} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/40">
                     <td className="py-2 pr-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">{d.date}</td>
-                    <td className="py-2 px-2 text-right text-gray-700 dark:text-gray-300">{empty && d.images === 0 ? "—" : d.images}</td>
+                    <td className="py-2 px-2 text-right text-gray-700 dark:text-gray-300">{d.images || "—"}</td>
                     <td className="py-2 px-2 text-right text-gray-700 dark:text-gray-300">{d.content || "—"}</td>
                     <td className="py-2 px-2 text-right text-gray-500 dark:text-gray-400">{d.draft || "—"}</td>
                     <td className="py-2 px-2 text-right text-gray-500 dark:text-gray-400">{d.ready || "—"}</td>
@@ -359,8 +394,7 @@ export default function AdminAnalyticsClient({
                     <td className="py-2 px-2 text-right text-gray-600 dark:text-gray-300">{d.contentCostInr ? formatInr(d.contentCostInr) : "—"}</td>
                     <td className="py-2 pl-2 text-right font-medium text-gray-900 dark:text-gray-100">{d.totalCostInr ? formatInr(d.totalCostInr) : "—"}</td>
                   </tr>
-                );
-              })}
+              ))}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-gray-200 dark:border-gray-700 font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-800/50">
@@ -392,6 +426,7 @@ export default function AdminAnalyticsClient({
               value={promptSearch}
               onChange={(e) => setPromptSearch(e.target.value)}
               placeholder="Search prompts..."
+              aria-label="Search image prompts"
               className="pl-8 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 w-56"
             />
           </div>
@@ -401,39 +436,57 @@ export default function AdminAnalyticsClient({
             {report.prompts.length === 0 ? "No images generated in this range" : "No prompts match your search"}
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredPrompts.map((p) => (
-              <div key={p.postId} className="rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
-                <div className="relative aspect-video bg-gray-50 dark:bg-gray-800">
-                  {p.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-gray-300 dark:text-gray-600">
-                      <ImageIcon className="w-6 h-6" />
-                    </div>
-                  )}
-                  <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/55 text-white">
-                    {p.isCarousel ? `Carousel · ${p.images}` : `${p.images} img`}
-                  </span>
-                </div>
-                <div className="p-3 flex flex-col gap-2 flex-1">
-                  <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500">
-                    <span>{p.date}</span>
-                    <span className="capitalize px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{p.postType}</span>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredPrompts.slice(0, promptLimit).map((p) => (
+                <div key={p.postId} className="rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
+                  <div className="relative aspect-video bg-gray-50 dark:bg-gray-800">
+                    {p.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.imageUrl} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-gray-300 dark:text-gray-600">
+                        <ImageIcon className="w-6 h-6" />
+                      </div>
+                    )}
+                    <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/55 text-white">
+                      {p.isCarousel ? `Carousel · ${p.images}` : `${p.images} img`}
+                    </span>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-3 flex-1">{p.prompt}</p>
-                  <button
-                    onClick={() => copyPrompt(p.postId, p.prompt)}
-                    className="self-start flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                  >
-                    {copiedId === p.postId ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
-                    {copiedId === p.postId ? "Copied" : "Copy prompt"}
-                  </button>
+                  <div className="p-3 flex flex-col gap-2 flex-1">
+                    <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500">
+                      <span>{p.date}</span>
+                      <span className="capitalize px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{p.postType}</span>
+                    </div>
+                    {p.prompt ? (
+                      <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-3 flex-1">{p.prompt}</p>
+                    ) : (
+                      <p className="text-xs italic text-gray-400 dark:text-gray-500 flex-1">(no prompt stored)</p>
+                    )}
+                    {p.prompt && (
+                      <button
+                        onClick={() => copyPrompt(p.postId, p.prompt)}
+                        className="self-start flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                      >
+                        {copiedId === p.postId ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                        {copiedId === p.postId ? "Copied" : "Copy prompt"}
+                      </button>
+                    )}
+                  </div>
                 </div>
+              ))}
+            </div>
+            {filteredPrompts.length > promptLimit && (
+              <div className="text-center mt-4">
+                <button
+                  onClick={() => setPromptLimit((n) => n + 24)}
+                  className="text-sm font-medium px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Show more ({filteredPrompts.length - promptLimit} more)
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
         <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-4">
           Prompts are stored latest-only per post; an older image of the same post may have used a different prompt.
@@ -443,14 +496,16 @@ export default function AdminAnalyticsClient({
       {/* Cost basis note */}
       <p className="text-xs text-gray-400 dark:text-gray-500">
         Costs are <span className="font-medium">estimates</span> (activity counts × published Gemini pricing: Nano Banana Pro 2K images and
-        gemini-2.5-flash text), converted to INR. Actual billing lives in the Google Cloud / Gemini console.
+        gemini-2.5-flash text), converted to INR; content cost assumes ~5 posts per generation batch, and cropped images are counted as
+        their original generation. Actual billing lives in the Google Cloud / Gemini console.
       </p>
     </div>
   );
 }
 
 function pct(count: number, total: number): string {
-  return `${total > 0 ? (count / total) * 100 : 0}%`;
+  const v = total > 0 ? (count / total) * 100 : 0;
+  return `${Math.round(v * 100) / 100}%`;
 }
 
 function StatusLegend({ color, label, count, total }: { color: string; label: string; count: number; total: number }) {

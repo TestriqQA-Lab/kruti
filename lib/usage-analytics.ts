@@ -116,7 +116,14 @@ export function classifyImageUrl(url: string): ImageKind {
   return "other";
 }
 
-/** Every model-GENERATED image URL for a post (deduped), with its generation ts. */
+/**
+ * Every model-generated image URL for a post (deduped), with its generation ts.
+ * Counts both "generated" (post-*) and "cropped" (cropped-*) URLs: cropping re-encodes
+ * a prior generation and REPLACES the original post-* URL everywhere it lived
+ * (imageUrl, carouselImages, and imageHistory), so the cropped-* URL is the only
+ * surviving evidence of that paid generation - excluding it would undercount real
+ * image spend for every cropped post. User uploads (upload-*) are excluded.
+ */
 function collectGeneratedImages(post: UsagePostInput): { url: string; ts: number }[] {
   const urls = new Set<string>();
   if (post.imageUrl) urls.add(post.imageUrl);
@@ -132,7 +139,8 @@ function collectGeneratedImages(post: UsagePostInput): { url: string; ts: number
 
   const out: { url: string; ts: number }[] = [];
   for (const url of Array.from(urls)) {
-    if (classifyImageUrl(url) !== "generated") continue; // exclude cropped re-uploads + user uploads
+    const kind = classifyImageUrl(url);
+    if (kind !== "generated" && kind !== "cropped") continue; // exclude user uploads / other
     const ts = tsFromBlobUrl(url);
     if (ts === null) continue;
     out.push({ url, ts });
@@ -196,25 +204,25 @@ export function buildUsageReport(
         ensure(istDayKey(g.ts)).images += 1;
         if (g.ts > latestTs) latestTs = g.ts;
       }
-      if (post.imagePrompt) {
-        let isCarousel = false;
-        try {
-          const arr = post.carouselImages ? JSON.parse(post.carouselImages) : null;
-          isCarousel = Array.isArray(arr) && arr.length > 1;
-        } catch {
-          /* ignore */
-        }
-        prompts.push({
-          postId: post.id,
-          date: istDayKey(latestTs),
-          postType: post.postType,
-          status: post.status,
-          prompt: post.imagePrompt,
-          imageUrl: post.imageUrl,
-          isCarousel,
-          images: gen.length,
-        });
+      // One row per post that generated images in range (even if no prompt was
+      // stored), so the prompt gallery reconciles with the image count.
+      let isCarousel = false;
+      try {
+        const arr = post.carouselImages ? JSON.parse(post.carouselImages) : null;
+        isCarousel = Array.isArray(arr) && arr.length > 1;
+      } catch {
+        /* ignore */
       }
+      prompts.push({
+        postId: post.id,
+        date: istDayKey(latestTs),
+        postType: post.postType,
+        status: post.status,
+        prompt: post.imagePrompt ?? "",
+        imageUrl: post.imageUrl,
+        isCarousel,
+        images: gen.length,
+      });
     }
 
     // Content (posts) created in-range, split by current status.

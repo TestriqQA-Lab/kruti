@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
-import { buildUsageReport, istDayKey } from "@/lib/usage-analytics";
+import { buildUsageReport, istDayKey, istDayStartMs } from "@/lib/usage-analytics";
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_RANGE_DAYS = 366;
@@ -29,13 +29,10 @@ export async function GET(req: NextRequest) {
   if (start > end) [start, end] = [end, start]; // tolerate swapped inputs
 
   // Cap the span so a hostile/typo range can't zero-fill thousands of days.
-  const spanDays =
-    Math.round(
-      (new Date(`${end}T00:00:00Z`).getTime() - new Date(`${start}T00:00:00Z`).getTime()) /
-        (24 * 60 * 60 * 1000)
-    ) + 1;
+  // (All math in IST to stay consistent with the day-key semantics.)
+  const spanDays = Math.round((istDayStartMs(end) - istDayStartMs(start)) / (24 * 60 * 60 * 1000)) + 1;
   if (spanDays > MAX_RANGE_DAYS) {
-    start = istDayKey(new Date(`${end}T00:00:00Z`).getTime() - (MAX_RANGE_DAYS - 1) * 24 * 60 * 60 * 1000);
+    start = istDayKey(istDayStartMs(end) - (MAX_RANGE_DAYS - 1) * 24 * 60 * 60 * 1000);
   }
 
   // Platform-wide (admin) — fetch all posts + plans. Datasets are small (capped
