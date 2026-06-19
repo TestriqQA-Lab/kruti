@@ -73,6 +73,10 @@ export interface UsageReport {
   totals: UsageTotals;
   daily: DailyRecord[];
   prompts: PromptRow[];
+  // Privacy gate - set by the admin route/page, not by buildUsageReport. When the
+  // reveal toggle is off, `prompts` is emptied and promptsRevealed is false.
+  promptsRevealed?: boolean;
+  promptsRevealUntil?: string | null;
 }
 
 /** IST calendar-day key ("YYYY-MM-DD") for an epoch-ms instant. */
