@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Image as ImageIcon,
   FileText,
@@ -14,6 +14,7 @@ import {
   Check,
   Loader2,
   RefreshCw,
+  EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UsageReport, DailyRecord } from "@/lib/usage-analytics";
@@ -59,6 +60,24 @@ export default function AdminAnalyticsClient({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activePreset, setActivePreset] = useState<"today" | "7d" | "30d" | "month" | null>("30d");
   const [promptLimit, setPromptLimit] = useState(24);
+  const [promptsExpired, setPromptsExpired] = useState(false);
+
+  // Privacy gate: prompts/images only show while the reveal window is active. When it
+  // elapses, hide them immediately (the server also strips them on the next load).
+  useEffect(() => {
+    setPromptsExpired(false);
+    const until = report.promptsRevealUntil;
+    if (!report.promptsRevealed || !until) return;
+    const ms = Date.parse(until) - Date.now();
+    if (ms <= 0) {
+      setPromptsExpired(true);
+      return;
+    }
+    const id = setTimeout(() => setPromptsExpired(true), Math.min(ms, 2_147_483_000));
+    return () => clearTimeout(id);
+  }, [report.promptsRevealed, report.promptsRevealUntil]);
+
+  const showPrompts = (report.promptsRevealed ?? false) && !promptsExpired;
 
   const applyRange = useCallback(
     async (from: string, to: string) => {
@@ -413,25 +432,37 @@ export default function AdminAnalyticsClient({
         </div>
       </div>
 
-      {/* Image prompts */}
+      {/* Image prompts (privacy-gated) */}
       <div className={cn(card, "p-5")}>
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <ImageIcon className="w-4 h-4 text-gray-400" /> Image prompts in range
-            <span className="text-xs font-normal text-gray-400">({filteredPrompts.length})</span>
+            {showPrompts && <span className="text-xs font-normal text-gray-400">({filteredPrompts.length})</span>}
           </h3>
-          <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              value={promptSearch}
-              onChange={(e) => setPromptSearch(e.target.value)}
-              placeholder="Search prompts..."
-              aria-label="Search image prompts"
-              className="pl-8 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 w-56"
-            />
-          </div>
+          {showPrompts && (
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                value={promptSearch}
+                onChange={(e) => setPromptSearch(e.target.value)}
+                placeholder="Search prompts..."
+                aria-label="Search image prompts"
+                className="pl-8 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 w-56"
+              />
+            </div>
+          )}
         </div>
-        {filteredPrompts.length === 0 ? (
+        {!showPrompts ? (
+          <div className="text-center py-10">
+            <EyeOff className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-300">User images &amp; prompts are hidden</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-md mx-auto">
+              To protect user privacy these are not shown by default. Turn on the{" "}
+              <span className="font-medium text-gray-600 dark:text-gray-300">User media</span> toggle in the sidebar to
+              reveal them temporarily (24h or 48h); they hide again automatically.
+            </p>
+          </div>
+        ) : filteredPrompts.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">
             {report.prompts.length === 0 ? "No images generated in this range" : "No prompts match your search"}
           </p>
@@ -488,9 +519,11 @@ export default function AdminAnalyticsClient({
             )}
           </>
         )}
-        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-4">
-          Prompts are stored latest-only per post; an older image of the same post may have used a different prompt.
-        </p>
+        {showPrompts && (
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-4">
+            Prompts are stored latest-only per post; an older image of the same post may have used a different prompt.
+          </p>
+        )}
       </div>
 
       {/* Cost basis note */}

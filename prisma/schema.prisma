@@ -159,3 +159,12 @@ model Newsletter {
   @@index([userId])
   @@index([scheduledAt])
 }
+
+// Global key-value settings for platform-wide admin toggles (not per-user).
+// e.g. "imagePromptsRevealUntil" = ISO timestamp until which user image prompts
+// are temporarily shown in admin analytics (privacy-gated, auto-expires).
+model AppSetting {
+  key       String   @id
+  value     String?  @db.Text
+  updatedAt DateTime @updatedAt
+}

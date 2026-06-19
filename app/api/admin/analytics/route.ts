@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { buildUsageReport, istDayKey, istDayStartMs } from "@/lib/usage-analytics";
+import { getImagePromptsRevealUntil } from "@/lib/app-settings";
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_RANGE_DAYS = 366;
@@ -54,5 +55,14 @@ export async function GET(req: NextRequest) {
   ]);
 
   const report = buildUsageReport(posts, plans, start, end);
+
+  // Privacy gate (same as the page): strip user image thumbnails + prompts unless
+  // the admin reveal toggle is active.
+  const revealUntil = await getImagePromptsRevealUntil();
+  const revealed = revealUntil !== null && revealUntil.getTime() > Date.now();
+  report.promptsRevealed = revealed;
+  report.promptsRevealUntil = revealed && revealUntil ? revealUntil.toISOString() : null;
+  if (!revealed) report.prompts = [];
+
   return NextResponse.json(report);
 }
