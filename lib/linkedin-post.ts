@@ -59,10 +59,11 @@ export async function postToLinkedIn(
   const hashtags = post.hashtags ? (JSON.parse(post.hashtags) as string[]) : [];
   const parts: string[] = [];
 
-  // Hook / opening line - directly above the body (no blank line in between)
+  // Hook / opening line - with one blank line below it, separating it from the body.
   const hook = cleanInline(post.title);
   if (hook) {
     parts.push(hook);
+    parts.push("");
   }
 
   // Main body (markdown stripped, list items spaced)

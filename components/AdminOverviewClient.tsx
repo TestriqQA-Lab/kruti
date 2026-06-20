@@ -1,7 +1,7 @@
 "use client";
 
 import { Users, CreditCard, FileText, Mail, TrendingUp, Clock } from "lucide-react";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 
 interface Stats {
   totalUsers: number;
@@ -109,13 +109,7 @@ export default function AdminOverviewClient({
         <div className="space-y-3">
           {recentSignups.map((user) => (
             <div key={user.id} className="flex items-center gap-3">
-              {user.image ? (
-                <Image src={user.image} alt={user.name ?? ""} width={32} height={32} className="rounded-full" />
-              ) : (
-                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400 text-xs font-semibold">
-                  {user.name?.[0] ?? "?"}
-                </div>
-              )}
+              <Avatar src={user.image} name={user.name} size={32} fallbackClassName="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{user.name ?? "Unnamed"}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>

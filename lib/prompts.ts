@@ -1,3 +1,5 @@
+import { STYLE_SELECTION_GUIDE } from "@/lib/image-styles";
+
 // ─── Writing Rules ────────────────────────────────────────────────────────────
 
 const NO_EMOJI_RULES = `
@@ -445,14 +447,23 @@ Produce a brief as a JSON object with this EXACT structure:
   "headline": "string",
   "visual": "string",
   "palette": "string",
-  "textPosition": "string"
+  "textPosition": "string",
+  "style": "string"
 }
 
 FIELD DEFINITIONS AND CONSTRAINTS:
 - "headline": The single most important hook or takeaway of THIS specific post, distilled to between 2 and 5 words and at most 28 characters total. Never more than 5 words. This is NOT the title - compress the core idea into your own words, never copy the title verbatim. Prefer short, common words; avoid any word longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates, because they render incorrectly. Short numbers are fine, for example "3 Hiring Mistakes" or "80/20 Rule". If the post body is empty or very short, derive the headline from the title alone and do not invent facts. If postType is "question", make the headline a short, punchy version of the post's core question ending in a single question mark. Use Title Case. No quotation marks, no hashtags, no ending punctuation except that one question mark. This exact text is rendered on the image, so spell every word correctly.
-- "visual": Describe the BEST premium GRAPHIC CONCEPT to communicate THIS post's core point - think like an art director designing a polished LinkedIn marketing visual, NOT a stock-photo picker. Choose whatever format best fits the post: a clean data visualization (a bar or line chart, or a before-and-after comparison, with realistic numbers and short labels drawn from the post or research), a sleek device, app, or dashboard mockup, a clear designed diagram or workflow, or a striking editorial visual of the real subject in the ${industry || "business"} field. Name the specific key elements to include and any real figures or short labels worth showing on charts or mockups - use figures from the post or the research brief, and never invent fake statistics. It should read as one cohesive designed graphic, modern, premium, and on-brand. At most 55 words, one single-line sentence.
+- "visual": One single-line sentence (at most 55 words) describing the single best visual for THIS post's core point. It MUST match the "style" you chose:
+  - photo: a real, concrete scene or subject (people, place, object, moment) with setting, mood and lighting. NO charts, numbers, labels, UI, or any lettering.
+  - illustration: a clear conceptual illustration or visual metaphor built from shapes and symbols. NO charts, data labels, UI, or lettering.
+  - minimal: ONE simple symbolic object or icon surrounded by generous empty space. NO charts, numbers, or lettering.
+  - infographic: the specific chart, diagram, comparison, or step framework to draw, naming the real short labels and figures from the post or research (never invent statistics).
+  - mockup: the specific device and the believable on-screen interface relevant to the topic, with only a few short UI labels.
+  - typographic: the background treatment only (rich solid colour, subtle gradient, or simple geometric field) - the headline itself is the hero, so describe the backdrop, not a scene.
+  Only "headline" is ever rendered as text; for photo, illustration and minimal there must be NO other lettering of any kind anywhere in the image.
 - "palette": Describe a DISTINCTIVE colour mood and atmosphere that emotionally matches THIS specific post - for example "warm golden-hour light with deep teal shadows" or "moody cool blues lifted by one warm amber glow". Draw inspiration from rich colour stories like ${moodHint}, but express it as the lighting and atmosphere of a real scene, NOT as flat background fills. EVERY post must get a clearly DIFFERENT mood - never the same colours twice, and never plain grey-on-white. This guides the overall tone and the small headline panel; the scene's own natural colours should carry most of the frame. At most 30 words, one single-line sentence.
 - "textPosition": Choose the BEST placement for the headline based on where the visual subject sits and where negative space naturally falls. Pick exactly one: "top-center", "bottom-center", "bottom-left", "center-left", or "overlay-center". Vary this based on the scene composition - do NOT always pick the same position.
+- "style": ${STYLE_SELECTION_GUIDE} Make sure the "visual" you describe suits the style you choose here (a real scene for photo, an illustrated concept for illustration, a chart/diagram for infographic, a device/UI for mockup, one clean symbol for minimal, or a background + the headline as hero for typographic).
 
 GUARDRAILS:
 - Use plain hyphens only, never em-dashes or en-dashes.
@@ -509,7 +520,7 @@ ONE SHARED LOOK (this is what makes it a cohesive set):
 
 EACH SLIDE NEEDS:
 - "headline": the ONLY text that should appear on that slide. Between 2 and 5 words, never more than 5, and at most 28 characters total. Punchy, spelled exactly, capturing that slide's one idea. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. Use Title Case. No quotation marks, no hashtags, no emojis.
-- "visual": ONE single-line sentence describing the BEST premium GRAPHIC CONCEPT for THIS slide's idea - a designed element such as a clean chart or key stat with realistic numbers, a sleek device or UI mockup, a tidy icon or diagram, or a striking visual of the real subject from the ${industry || "business"} field. Name the specific elements and any real figures or short labels to show on it (use figures from the post or research, never invent fake statistics). Keep every slide in ONE cohesive designed style. At most 50 words.
+- "visual": ONE single-line sentence (at most 50 words) describing the best visual for THIS slide's idea, MATCHING the single "style" chosen for the whole carousel: for photo a real concrete scene/subject with mood and lighting (NO charts, labels, UI, or lettering); for illustration a conceptual illustration or metaphor from shapes and symbols (NO charts, labels, or lettering); for minimal ONE simple symbolic object or icon with generous empty space (NO lettering); for infographic the specific chart/diagram/step with real short labels and figures from the post (never invent statistics); for mockup the specific device and believable on-screen UI with only a few short labels; for typographic the background treatment only (the slide headline is the hero). Only the slide "headline" is ever rendered as text; for photo, illustration and minimal there must be NO other lettering.
 - "textPosition": choose the best headline placement for this slide's composition: "top-center", "bottom-center", "bottom-left", or "center-left". Keep it consistent across all slides in this carousel.
 
 GUARDRAILS:
@@ -517,9 +528,13 @@ GUARDRAILS:
 
 ${NO_EMOJI_RULES}
 
+PICK ONE STYLE FOR THE WHOLE CAROUSEL (this is the top-level "style" field, shared by every slide so the set is cohesive):
+${STYLE_SELECTION_GUIDE}
+
 Return a JSON object with this EXACT structure (the "slides" array holds between 2 and ${count} objects):
 {
-  "palette": "string (the one shared colour mood and visual style described as scene lighting and atmosphere, reused by every slide)",
+  "palette": "string (the one shared colour mood described as scene lighting and atmosphere, reused by every slide)",
+  "style": "string (ONE of: photo, illustration, infographic, typographic, mockup, minimal - shared by all slides)",
   "slides": [
     { "headline": "string (2-5 words, max 28 chars, the ONLY text on this slide)", "visual": "string (one vivid concrete scene from the post with specific details)", "textPosition": "string (top-center, bottom-center, bottom-left, or center-left)" }
   ]

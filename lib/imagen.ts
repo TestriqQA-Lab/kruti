@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { put } from "@vercel/blob";
+import { ImageStyle, IMAGE_STYLES, isTextBearingStyle } from "./image-styles";
 
 let _ai: GoogleGenAI | null = null;
 function getAI(): GoogleGenAI {
@@ -43,12 +44,32 @@ function friendlyImageError(rawMessage: string): string {
 
 // ─── Branded Image Prompt (content-aware, renders a headline) ─────────────────
 
+// Per-style art direction. {visual} + {palette} are substituted in; the headline,
+// full-bleed/quality footer, and carousel cohesion are appended by the builder. Only
+// text-bearing styles (infographic/typographic/mockup) render the headline as text;
+// photo/illustration/minimal stay text-free so the model never garbles lettering.
+const STYLE_PROMPT: Record<ImageStyle, (visual: string, palette: string) => string> = {
+  photo: (visual, palette) =>
+    `Create a single premium, photo-realistic editorial photograph for a LinkedIn feed, square 1:1. SUBJECT: ${visual}. Shoot it like a senior brand photographer - one clear hero subject, intentional cinematic composition, natural directional lighting, realistic depth of field, true-to-life materials and skin tones, professional colour grading. MOOD AND LIGHT: ${palette} - express this through the lighting and the scene's own natural colours, not flat colour fills. It must look like a real captured photograph, not a render or collage; anatomy must be correct (natural hands, faces and posture, no extra fingers or warped features). Avoid cheap stock-photo cliches, glossy plastic 3D, lens flare, HDR over-processing, busy clutter, and any caption bar pasted on top.`,
+  illustration: (visual, palette) =>
+    `Create a single premium editorial illustration for a LinkedIn feed, square 1:1, in a cohesive modern flat / semi-flat vector style with clean shapes, confident linework, subtle texture and depth, and a strong central visual metaphor. CONCEPT TO ILLUSTRATE: ${visual}. Treat it like a top-studio conceptual illustration - one clear idea, balanced negative space, intentional shapes, no clutter. COLOUR: ${palette} - a cohesive, harmonious, limited palette of 3-5 rich on-brand colours (not washed out or monotone), with one coherent illustration style across the whole frame. Avoid photo-realism, 3D plastic renders, gaudy gradients, AI-soup detail, and distorted hands or faces.`,
+  infographic: (visual, palette) =>
+    `Design a single premium, professionally designed infographic-style square (1:1) graphic for a LinkedIn feed, in the polished style of a high-end report or marketing carousel slide. This is a DESIGNED graphic, not a photo with text on top. WHAT TO SHOW: ${visual}. Render the data or structure as a clean designed element - a tidy bar or line chart, a before-and-after comparison, a numbered step framework, clean icons, or a clear diagram - with realistic axis values, labels and short captions drawn from the post (use only real figures from the post, never invent statistics). COLOUR: ${palette} - cohesive, rich, on-brand, with clear visual hierarchy and purposeful spacing that fills the frame. Avoid stock-photo-with-a-banner looks, gaudy gradients, glossy 3D, and clutter.`,
+  typographic: (visual, palette) =>
+    `Design a single premium typographic poster for a LinkedIn feed, square 1:1, where bold typography is the hero and the entire visual. STATEMENT / DIRECTION: ${visual}. Set the type in confident, beautifully kerned modern sans-serif (or an intentional editorial pairing) with strong scale contrast and a balanced grid that fills the frame. Background: a rich solid colour, subtle gradient, or minimal geometric/textured field derived from the palette - clean, not busy. COLOUR: ${palette} - cohesive, with high contrast between text and background for crisp legibility. Optionally one small simple supporting shape or icon, never competing with the type. Avoid cheap quote-card templates, drop-shadow soup, gaudy gradients, and clip-art.`,
+  mockup: (visual, palette) =>
+    `Create a single premium product mockup for a LinkedIn feed, square 1:1 - a sleek, realistic device or app/dashboard shot (phone, laptop, or screen) showing a believable, cleanly-designed interface relevant to the topic. WHAT TO SHOW: ${visual}. Studio-grade composition with one hero device, tasteful soft shadows and reflections, a clean uncluttered backdrop, and a clean on-screen UI that uses only a few short, common, correctly-spelled labels and favours icons, bars and shapes over dense text (never paragraphs). COLOUR: ${palette} - cohesive, rich, on-brand, expressed through the scene and the UI, not flat fills. Avoid garbled UI text, gaudy gradients, glossy plastic, lens flare, and clutter.`,
+  minimal: (visual, palette) =>
+    `Create a single premium minimalist composition for a LinkedIn feed, square 1:1, built around generous negative space and one small, deliberate focal element. MOTIF: ${visual} - rendered as a single simple, refined shape, object, or icon, small within a calm uncluttered field. COLOUR: ${palette} - a restrained, cohesive, mostly-quiet palette with one intentional accent, premium and on-brand. Precise alignment, intentional asymmetry, lots of breathing room. Avoid clutter, multiple competing elements, gaudy colour, and textures for their own sake.`,
+};
+
 /**
- * Build the final image-model prompt for a content-aware, branded graphic.
- * Produces a cohesive DESIGNED graphic (infographic / product visual) with the
- * headline integrated as a real title and any data or labels rendered as real,
- * correctly-spelled text - leveraging the Pro image model's strong text and
- * composition. Pass `position` per carousel slide.
+ * Build the final image-model prompt for a content-aware image. Branches on the
+ * brief's `style` (photo / illustration / infographic / typographic / mockup /
+ * minimal) so images vary by topic instead of all looking like the same designed
+ * graphic. Text-bearing styles render the headline as real typography; the rest stay
+ * text-free to avoid garbled lettering. Full-bleed, 1:1 and the quality bar are
+ * enforced on every style. Pass `position` per carousel slide.
  */
 export function buildBrandedImagePrompt(brief: {
   headline: string;
@@ -56,26 +77,38 @@ export function buildBrandedImagePrompt(brief: {
   palette: string;
   textPosition?: string;
   position?: string;
+  style?: ImageStyle;
 }): string {
-  const { headline, visual, palette, position } = brief;
+  const { headline, visual, palette, textPosition, position } = brief;
+  const style: ImageStyle =
+    brief.style && (IMAGE_STYLES as readonly string[]).includes(brief.style) ? brief.style : "infographic";
 
-  return `Design a single, premium, professionally designed square (1:1) graphic for a LinkedIn feed - in the polished style of a high-end marketing visual, infographic, or product showcase. This is a DESIGNED graphic, NOT a stock photo with a caption bar pasted on top.
+  const core = STYLE_PROMPT[style](visual, palette);
 
-WHAT TO SHOW: ${visual}
+  let headlineBlock: string;
+  if (isTextBearingStyle(style)) {
+    const where = textPosition ? ` Place it ${textPosition.replace(/-/g, " ")}, in clear negative space.` : "";
+    const extras =
+      style === "infographic"
+        ? " and the chart's own short, real labels and numbers"
+        : style === "mockup"
+        ? " and the interface's own short, real labels"
+        : "";
+    headlineBlock = `HEADLINE (render as clean, correctly-spelled typography that is part of the design): "${headline}".${where} Every letter must be spelled correctly - never produce scrambled or nonsense lettering. Do not add any paragraphs or captions beyond this headline${extras}.`;
+  } else {
+    headlineBlock = `Render NO text anywhere in the image - no words, letters, numbers, labels, captions, or watermarks of any kind. Let the visual alone carry the message; the post caption provides the words.`;
+  }
 
-HEADLINE (the title of the graphic): "${headline}"
-Integrate this as a clean, prominent, well-set title that is part of the design itself - strong, intentional typography, not a translucent sticker or frosted bar floating over a photo.
+  const cohesionTail = isTextBearingStyle(style)
+    ? "composition grid and headline placement"
+    : "composition grid and framing";
+  const carousel = position
+    ? `CAROUSEL: this is ${position} - keep the SAME ${style} style, colour palette and ${cohesionTail} across every slide so the set is cohesive.\n`
+    : "";
 
-DESIGN IT LIKE A SENIOR DESIGNER WOULD:
-- Make it one cohesive, intentional composition with clear visual hierarchy, balanced layout, and purposeful spacing that fills the whole frame.
-- When the topic involves data, growth, results, a product, an app, a UI, a workflow, or a comparison, render it as a polished designed element - a clean chart or graph with realistic labels and numbers, a sleek device or dashboard mockup, tidy icons, or a clear diagram - the way premium LinkedIn carousels and reports look.
-- ALL text in the image (the title plus any labels, numbers, axis values, or captions on charts and mockups) must be real words, correctly spelled, and meaningful to this topic. Never produce scrambled, fake, or nonsense lettering anywhere.
-- FULL-BLEED: the background and the whole design must extend completely to all four edges of the square - NO white, blank, or empty border, frame, padding, or outer margin around the artwork. Keep text and key elements just clear of the very edge so nothing is cut off, but the design itself must fill the entire canvas edge to edge.
+  const footer = `FULL-BLEED: the artwork fills the entire square and extends to all four edges - NO white, blank, or empty border, frame, padding, or outer margin on any side; keep key elements just clear of the edge so nothing is cut off. Square 1:1, high resolution, crisp, modern and premium, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
 
-COLOR: ${palette} Keep it cohesive, rich, and on-brand - intentional, not washed-out, monotone, or flooded with one flat colour.
-
-QUALITY BAR: it must look like a senior designer or a top design tool produced it - crisp, high-resolution, modern, premium. Avoid cheap stock-photo-with-a-text-banner looks, gaudy gradients, glossy plastic 3D, lens flare, busy clutter, and distorted hands, faces, or text.
-${position ? `CAROUSEL: this is ${position} - use the SAME design system, colour palette, type, and layout across every slide so the set is cohesive.\n` : ""}Square 1:1, filling the entire frame edge to edge with no blank border or margin on any side. High quality, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
+  return `${core}\n\n${headlineBlock}\n\n${carousel}${footer}`;
 }
 
 // ─── Image Generation ────────────────────────────────────────────────────────
@@ -201,7 +234,7 @@ export async function generateCarouselImages(
  * slide renders its own short headline. Returns the successful Blob URLs.
  */
 export async function generateCarouselFromPlan(
-  plan: { palette: string; slides: { headline: string; visual: string; textPosition?: string }[] },
+  plan: { palette: string; style?: ImageStyle; slides: { headline: string; visual: string; textPosition?: string }[] },
   postId: string,
   industry?: string
 ): Promise<string[]> {
@@ -216,6 +249,7 @@ export async function generateCarouselFromPlan(
         palette: plan.palette,
         textPosition: slide.textPosition,
         position,
+        style: plan.style,
       });
       return generatePostImage(prompt, `${postId}-c${i}`, industry, true);
     })

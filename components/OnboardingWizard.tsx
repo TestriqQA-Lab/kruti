@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { ChevronRight, ChevronLeft, CheckCircle, User, Target, Palette, Users, Save, Sparkles } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import Avatar from "@/components/Avatar";
 
 const INDUSTRIES = [
   "Technology", "Finance", "Healthcare", "Marketing", "Sales",
@@ -322,8 +323,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
 
               {user.image && (
                 <div className="flex items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={user.image} alt="Profile" className="w-14 h-14 rounded-full border-2 border-blue-600" />
+                  <Avatar src={user.image} name={user.name} size={56} className="border-2 border-blue-600" />
                   <div>
                     <p className="font-semibold text-slate-900 dark:text-white">{user.name}</p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">LinkedIn Member</p>

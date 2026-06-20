@@ -134,10 +134,10 @@ export async function POST(req: NextRequest) {
       }>
     >(raw);
 
-    // Schedule posts on the user's chosen posting days using their timezone and preferred time
-    const weekStart = new Date(plan.weekStart);
+    // Schedule from NOW on the user's chosen posting days (in their timezone), never
+    // in the past - regardless of when the plan's week originally started.
     const timezone = user.timezone || "Asia/Kolkata";
-    const postingSlots = getNextScheduledSlots(weekStart, schedule.days, schedule.time, timezone);
+    const postingSlots = getNextScheduledSlots(new Date(), schedule.days, schedule.time, timezone);
 
     // Create posts, cycling through available slots if fewer slots than posts
     const createdPosts = await Promise.all(
