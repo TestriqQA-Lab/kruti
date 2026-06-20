@@ -58,7 +58,7 @@ const STYLE_PROMPT: Record<ImageStyle, (visual: string, palette: string) => stri
   typographic: (visual, palette) =>
     `Design a single premium typographic poster for a LinkedIn feed, square 1:1, where bold typography is the hero and the entire visual. STATEMENT / DIRECTION: ${visual}. Set the type in confident, beautifully kerned modern sans-serif (or an intentional editorial pairing) with strong scale contrast and a balanced grid that fills the frame. Background: a rich solid colour, subtle gradient, or minimal geometric/textured field derived from the palette - clean, not busy. COLOUR: ${palette} - cohesive, with high contrast between text and background for crisp legibility. Optionally one small simple supporting shape or icon, never competing with the type. Avoid cheap quote-card templates, drop-shadow soup, gaudy gradients, and clip-art.`,
   mockup: (visual, palette) =>
-    `Create a single premium product mockup for a LinkedIn feed, square 1:1 - a sleek, realistic device or app/dashboard shot (phone, laptop, or screen) showing a believable, cleanly-designed interface relevant to the topic. WHAT TO SHOW: ${visual}. Studio-grade composition with one hero device, tasteful soft shadows and reflections, a clean uncluttered backdrop, and realistic on-screen UI with correctly-spelled labels. COLOUR: ${palette} - cohesive, rich, on-brand, expressed through the scene and the UI, not flat fills. Avoid garbled UI text, gaudy gradients, glossy plastic, lens flare, and clutter.`,
+    `Create a single premium product mockup for a LinkedIn feed, square 1:1 - a sleek, realistic device or app/dashboard shot (phone, laptop, or screen) showing a believable, cleanly-designed interface relevant to the topic. WHAT TO SHOW: ${visual}. Studio-grade composition with one hero device, tasteful soft shadows and reflections, a clean uncluttered backdrop, and a clean on-screen UI that uses only a few short, common, correctly-spelled labels and favours icons, bars and shapes over dense text (never paragraphs). COLOUR: ${palette} - cohesive, rich, on-brand, expressed through the scene and the UI, not flat fills. Avoid garbled UI text, gaudy gradients, glossy plastic, lens flare, and clutter.`,
   minimal: (visual, palette) =>
     `Create a single premium minimalist composition for a LinkedIn feed, square 1:1, built around generous negative space and one small, deliberate focal element. MOTIF: ${visual} - rendered as a single simple, refined shape, object, or icon, small within a calm uncluttered field. COLOUR: ${palette} - a restrained, cohesive, mostly-quiet palette with one intentional accent, premium and on-brand. Precise alignment, intentional asymmetry, lots of breathing room. Avoid clutter, multiple competing elements, gaudy colour, and textures for their own sake.`,
 };
@@ -99,8 +99,11 @@ export function buildBrandedImagePrompt(brief: {
     headlineBlock = `Render NO text anywhere in the image - no words, letters, numbers, labels, captions, or watermarks of any kind. Let the visual alone carry the message; the post caption provides the words.`;
   }
 
+  const cohesionTail = isTextBearingStyle(style)
+    ? "composition grid and headline placement"
+    : "composition grid and framing";
   const carousel = position
-    ? `CAROUSEL: this is ${position} - keep the SAME ${style} style, colour palette, composition grid and headline placement across every slide so the set is cohesive.\n`
+    ? `CAROUSEL: this is ${position} - keep the SAME ${style} style, colour palette and ${cohesionTail} across every slide so the set is cohesive.\n`
     : "";
 
   const footer = `FULL-BLEED: the artwork fills the entire square and extends to all four edges - NO white, blank, or empty border, frame, padding, or outer margin on any side; keep key elements just clear of the edge so nothing is cut off. Square 1:1, high resolution, crisp, modern and premium, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
