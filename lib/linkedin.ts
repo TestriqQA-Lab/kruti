@@ -59,6 +59,9 @@ export async function syncLinkedInProfile(
     };
     if (headline) profileUpdate.headline = headline;
     if (industry) profileUpdate.industry = industry;
+    // Refresh the avatar URL on every login - LinkedIn picture URLs are signed and
+    // expire, so re-storing the fresh one keeps avatars from breaking over time.
+    if (profile.picture) profileUpdate.image = profile.picture;
 
     await prisma.user.upsert({
       where: { id: userId },
@@ -68,6 +71,7 @@ export async function syncLinkedInProfile(
         linkedinId: profile.sub,
         headline: headline || null,
         industry: industry || null,
+        image: profile.picture || null,
         profileUrl: `https://www.linkedin.com/in/${profile.sub}`,
       },
     });

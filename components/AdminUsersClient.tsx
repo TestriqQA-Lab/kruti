@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Search, Shield, ShieldOff, Trash2, Database, UserX, MoreVertical } from "lucide-react";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 import { cn } from "@/lib/utils";
 
 interface UserRow {
@@ -134,13 +134,7 @@ export default function AdminUsersClient({
                 <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      {user.image ? (
-                        <Image src={user.image} alt="" width={32} height={32} className="rounded-full" />
-                      ) : (
-                        <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400 text-xs font-semibold">
-                          {user.name?.[0] ?? "?"}
-                        </div>
-                      )}
+                      <Avatar src={user.image} name={user.name} size={32} fallbackClassName="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400" />
                       <div>
                         <p className="font-medium text-gray-900 dark:text-gray-100">{user.name ?? "Unnamed"}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>

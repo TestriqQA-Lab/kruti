@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Loader2, CheckCircle, Plus, X, CreditCard, AlertCircle, AlertTriangle, RefreshCw, ChevronDown } from "lucide-react";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 import { cn } from "@/lib/utils";
 
 interface Subscription {
@@ -271,11 +271,7 @@ export default function SettingsClient({ user }: { user: User | null }) {
       {/* Profile Overview */}
       <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm p-6">
         <div className="flex items-center gap-4 mb-6">
-          {user?.image && (
-            <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-              <Image src={user.image} alt="Profile" fill className="object-cover" />
-            </div>
-          )}
+          <Avatar src={user?.image} name={user?.name} size={64} />
           <div>
             <h2 className="font-semibold text-slate-900 dark:text-white">{user?.name}</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">{user?.email}</p>

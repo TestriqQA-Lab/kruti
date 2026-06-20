@@ -16,7 +16,7 @@ import {
   Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 import { useTheme } from "@/components/ThemeProvider";
 
 const navItems = [
@@ -54,19 +54,7 @@ export default function Sidebar({ user }: SidebarProps) {
       {/* User */}
       <div className="p-4 border-b border-slate-100 dark:border-white/10">
         <div className="flex items-center gap-3">
-          {user.image ? (
-            <Image
-              src={user.image}
-              alt={user.name ?? "User"}
-              width={36}
-              height={36}
-              className="rounded-full"
-            />
-          ) : (
-            <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-              {user.name?.[0] ?? "U"}
-            </div>
-          )}
+          <Avatar src={user.image} name={user.name} size={36} fallbackClassName="bg-blue-600 text-white" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.name}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>

@@ -20,7 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 
 const adminNavItems = [
   { href: "/admin", label: "Overview", icon: BarChart3, exact: true },
@@ -138,13 +138,7 @@ export default function AdminSidebar({ user, imagePromptsRevealUntil = null }: A
         {/* User */}
         <div className="p-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3">
-            {user.image ? (
-              <Image src={user.image} alt={user.name ?? "Admin"} width={36} height={36} className="rounded-full" />
-            ) : (
-              <div className="w-9 h-9 bg-red-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                {user.name?.[0] ?? "A"}
-              </div>
-            )}
+            <Avatar src={user.image} name={user.name} size={36} fallbackClassName="bg-red-600 text-white" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{user.name}</p>
               <span className="text-xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full font-medium">
