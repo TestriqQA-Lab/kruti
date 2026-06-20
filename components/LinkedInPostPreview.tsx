@@ -57,10 +57,10 @@ export default function LinkedInPostPreview({
   const [expanded, setExpanded] = useState(false);
   const [slide, setSlide] = useState(0);
 
-  // Compose full post text: hook directly above the body (no blank-line gap),
-  // with markdown stripped and list items spaced for an accurate preview.
+  // Compose full post text: hook, one blank line, then the body - matching what
+  // we actually send to LinkedIn. Markdown stripped and list items spaced.
   const cleanBody = formatPostBody(body);
-  const fullText = title ? `${cleanInline(title)}\n${cleanBody}` : cleanBody;
+  const fullText = title ? `${cleanInline(title)}\n\n${cleanBody}` : cleanBody;
   const shouldTruncate = fullText.length > TRUNCATE_LENGTH;
 
   return (
