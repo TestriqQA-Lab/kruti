@@ -1,3 +1,5 @@
+import { STYLE_SELECTION_GUIDE } from "@/lib/image-styles";
+
 // ─── Writing Rules ────────────────────────────────────────────────────────────
 
 const NO_EMOJI_RULES = `
@@ -445,7 +447,8 @@ Produce a brief as a JSON object with this EXACT structure:
   "headline": "string",
   "visual": "string",
   "palette": "string",
-  "textPosition": "string"
+  "textPosition": "string",
+  "style": "string"
 }
 
 FIELD DEFINITIONS AND CONSTRAINTS:
@@ -453,6 +456,7 @@ FIELD DEFINITIONS AND CONSTRAINTS:
 - "visual": Describe the BEST premium GRAPHIC CONCEPT to communicate THIS post's core point - think like an art director designing a polished LinkedIn marketing visual, NOT a stock-photo picker. Choose whatever format best fits the post: a clean data visualization (a bar or line chart, or a before-and-after comparison, with realistic numbers and short labels drawn from the post or research), a sleek device, app, or dashboard mockup, a clear designed diagram or workflow, or a striking editorial visual of the real subject in the ${industry || "business"} field. Name the specific key elements to include and any real figures or short labels worth showing on charts or mockups - use figures from the post or the research brief, and never invent fake statistics. It should read as one cohesive designed graphic, modern, premium, and on-brand. At most 55 words, one single-line sentence.
 - "palette": Describe a DISTINCTIVE colour mood and atmosphere that emotionally matches THIS specific post - for example "warm golden-hour light with deep teal shadows" or "moody cool blues lifted by one warm amber glow". Draw inspiration from rich colour stories like ${moodHint}, but express it as the lighting and atmosphere of a real scene, NOT as flat background fills. EVERY post must get a clearly DIFFERENT mood - never the same colours twice, and never plain grey-on-white. This guides the overall tone and the small headline panel; the scene's own natural colours should carry most of the frame. At most 30 words, one single-line sentence.
 - "textPosition": Choose the BEST placement for the headline based on where the visual subject sits and where negative space naturally falls. Pick exactly one: "top-center", "bottom-center", "bottom-left", "center-left", or "overlay-center". Vary this based on the scene composition - do NOT always pick the same position.
+- "style": ${STYLE_SELECTION_GUIDE} Make sure the "visual" you describe suits the style you choose here (a real scene for photo, an illustrated concept for illustration, a chart/diagram for infographic, a device/UI for mockup, one clean symbol for minimal, or a background + the headline as hero for typographic).
 
 GUARDRAILS:
 - Use plain hyphens only, never em-dashes or en-dashes.
@@ -517,9 +521,13 @@ GUARDRAILS:
 
 ${NO_EMOJI_RULES}
 
+PICK ONE STYLE FOR THE WHOLE CAROUSEL (this is the top-level "style" field, shared by every slide so the set is cohesive):
+${STYLE_SELECTION_GUIDE}
+
 Return a JSON object with this EXACT structure (the "slides" array holds between 2 and ${count} objects):
 {
-  "palette": "string (the one shared colour mood and visual style described as scene lighting and atmosphere, reused by every slide)",
+  "palette": "string (the one shared colour mood described as scene lighting and atmosphere, reused by every slide)",
+  "style": "string (ONE of: photo, illustration, infographic, typographic, mockup, minimal - shared by all slides)",
   "slides": [
     { "headline": "string (2-5 words, max 28 chars, the ONLY text on this slide)", "visual": "string (one vivid concrete scene from the post with specific details)", "textPosition": "string (top-center, bottom-center, bottom-left, or center-left)" }
   ]
