@@ -107,36 +107,40 @@ const DAY_NAME_TO_JS_DAY: Record<string, number> = {
  * @returns Array of UTC Dates for each posting slot
  */
 export function getNextScheduledSlots(
-  startDate: Date,
+  fromTime: Date,
   days: string[],
   time: string,
   timezone: string = DEFAULT_TZ,
   maxSlots?: number,
 ): Date[] {
-  const targetDays = new Set(days.map((d) => DAY_NAME_TO_JS_DAY[d]).filter((d) => d !== undefined));
-  if (targetDays.size === 0) {
-    // Fallback: if no valid days, use all weekdays
-    return getNextWeekdaySlots(startDate, maxSlots ?? 5, time, timezone);
-  }
+  let targetDays = new Set<number>(
+    days.map((d) => DAY_NAME_TO_JS_DAY[d]).filter((d): d is number => d !== undefined)
+  );
+  // Fallback: if no valid days were given, schedule on weekdays (Mon-Fri).
+  if (targetDays.size === 0) targetDays = new Set<number>([1, 2, 3, 4, 5]);
 
   const limit = maxSlots ?? targetDays.size; // default: one post per selected day
+  const nowMs = fromTime.getTime();
   const slots: Date[] = [];
-  const current = new Date(startDate);
-  current.setHours(0, 0, 0, 0);
 
-  // Safety: scan at most 60 days ahead to avoid infinite loop
-  const maxDays = 60;
+  // Walk calendar days in the USER'S timezone, starting from "today" there, and
+  // collect each upcoming scheduled day's slot whose time is still in the future.
+  // All date math is done on UTC-midnight keys so it never drifts with the server's
+  // own timezone (e.g. UTC on Vercel) - that drift was scheduling posts in the past.
+  let dayKey = formatInTimeZone(fromTime, timezone, "yyyy-MM-dd"); // today, in the user's tz
   let scanned = 0;
 
-  while (slots.length < limit && scanned < maxDays) {
-    if (targetDays.has(current.getDay())) {
-      const year = current.getFullYear();
-      const month = String(current.getMonth() + 1).padStart(2, "0");
-      const day = String(current.getDate()).padStart(2, "0");
-      const dateStr = `${year}-${month}-${day}`;
-      slots.push(localTimeToUTC(dateStr, time, timezone));
+  while (slots.length < limit && scanned < 90) {
+    // Day-of-week of this calendar date (a yyyy-MM-dd date has the same weekday in
+    // every timezone, so reading it at UTC midnight is correct).
+    const dow = new Date(`${dayKey}T00:00:00Z`).getUTCDay();
+    if (targetDays.has(dow)) {
+      const slot = localTimeToUTC(dayKey, time, timezone);
+      if (slot.getTime() > nowMs) slots.push(slot); // never schedule in the past
     }
-    current.setDate(current.getDate() + 1);
+    // Advance one calendar day.
+    const nextMs = new Date(`${dayKey}T00:00:00Z`).getTime() + 24 * 60 * 60 * 1000;
+    dayKey = new Date(nextMs).toISOString().slice(0, 10);
     scanned++;
   }
 
