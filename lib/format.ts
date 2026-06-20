@@ -30,7 +30,8 @@ const LIST_RE = /^(\s*)(\d+[.)]|[-•*])\s+(.*)$/;
  * - removes markdown emphasis (**, __, ##, `, stray *)
  * - normalizes bullet markers to "•" (keeps numbered markers) and inserts ONE
  *   blank line beneath every list item
- * - collapses 3+ consecutive newlines into a single blank line
+ * - preserves the user's intentional blank lines (up to two in a row), only
+ *   collapsing runaway gaps of three or more blank lines
  */
 export function formatPostBody(input: string | null | undefined): string {
   if (!input) return "";
@@ -54,6 +55,6 @@ export function formatPostBody(input: string | null | undefined): string {
 
   return out
     .join("\n")
-    .replace(/\n{3,}/g, "\n\n") // at most one blank line between blocks
+    .replace(/\n{4,}/g, "\n\n\n") // keep up to two blank lines; cap only runaway gaps
     .trim();
 }

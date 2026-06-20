@@ -9,7 +9,7 @@ export default async function PostEditorPage({ params }: { params: { id: string 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return null;
 
-  const [post, user] = await Promise.all([
+  const [post, user, siblings] = await Promise.all([
     prisma.post.findFirst({
       where: { id: params.id, plan: { userId: session.user.id } },
       include: { plan: { select: { strategy: true, weekStart: true } } },
@@ -21,9 +21,19 @@ export default async function PostEditorPage({ params }: { params: { id: string 
         email: true, role: true, subscription: { select: { status: true } },
       },
     }),
+    // Ordered list of the user's posts so the editor can offer prev/next navigation.
+    prisma.post.findMany({
+      where: { plan: { userId: session.user.id } },
+      orderBy: [{ scheduledAt: "asc" }, { createdAt: "asc" }],
+      select: { id: true },
+    }),
   ]);
 
   if (!post) notFound();
+
+  const idx = siblings.findIndex((p) => p.id === post.id);
+  const prevPostId = idx > 0 ? siblings[idx - 1].id : null;
+  const nextPostId = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1].id : null;
 
   const showWatermark = shouldShowWatermark({
     subscriptionStatus: user?.subscription?.status,
@@ -42,6 +52,8 @@ export default async function PostEditorPage({ params }: { params: { id: string 
       }}
       userTimezone={user?.timezone ?? "Asia/Kolkata"}
       showWatermark={showWatermark}
+      prevPostId={prevPostId}
+      nextPostId={nextPostId}
     />
   );
 }

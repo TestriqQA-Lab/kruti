@@ -15,6 +15,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Image from "next/image";
+import Avatar from "@/components/Avatar";
 import { formatPostBody, cleanInline } from "@/lib/format";
 
 interface LinkedInPostPreviewProps {
@@ -56,10 +57,10 @@ export default function LinkedInPostPreview({
   const [expanded, setExpanded] = useState(false);
   const [slide, setSlide] = useState(0);
 
-  // Compose full post text: hook directly above the body (no blank-line gap),
-  // with markdown stripped and list items spaced for an accurate preview.
+  // Compose full post text: hook, one blank line, then the body - matching what
+  // we actually send to LinkedIn. Markdown stripped and list items spaced.
   const cleanBody = formatPostBody(body);
-  const fullText = title ? `${cleanInline(title)}\n${cleanBody}` : cleanBody;
+  const fullText = title ? `${cleanInline(title)}\n\n${cleanBody}` : cleanBody;
   const shouldTruncate = fullText.length > TRUNCATE_LENGTH;
 
   return (
@@ -77,20 +78,7 @@ export default function LinkedInPostPreview({
         {/* Author header */}
         <div className="px-4 pt-3 pb-2 flex items-start gap-2.5">
           {/* Avatar */}
-          {image ? (
-            <Image
-              src={image}
-              alt={name ?? "User"}
-              width={48}
-              height={48}
-              className="rounded-full flex-shrink-0"
-              unoptimized
-            />
-          ) : (
-            <div className="w-12 h-12 bg-[#0A66C2] rounded-full flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
-              {name?.[0]?.toUpperCase() ?? "U"}
-            </div>
-          )}
+          <Avatar src={image} name={name} size={48} fallbackClassName="bg-[#0A66C2] text-white" className="flex-shrink-0" />
 
           {/* Name, headline, time */}
           <div className="flex-1 min-w-0">

@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Sparkles,
   Image as ImageIcon,
   Copy,
@@ -72,12 +74,16 @@ export default function PostEditorClient({
   userProfile,
   userTimezone = "Asia/Kolkata",
   showWatermark = false,
+  prevPostId = null,
+  nextPostId = null,
 }: {
   post: Post;
   postSignature: string | null;
   userProfile: UserProfile;
   userTimezone?: string;
   showWatermark?: boolean;
+  prevPostId?: string | null;
+  nextPostId?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -687,16 +693,37 @@ export default function PostEditorClient({
         </div>
       )}
 
-      {/* Back + Header Actions */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
+      {/* Floating toolbar: navigation + actions, stays in view while scrolling */}
+      <div className="sticky top-0 z-30 space-y-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white/95 dark:bg-[#0D131F]/95 backdrop-blur-sm shadow-sm px-4 py-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => router.back()}
-            className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-sm"
+            onClick={() => router.push("/posts")}
+            className="flex items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+            title="Back to all posts"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => prevPostId && router.push(`/posts/${prevPostId}`)}
+              disabled={!prevPostId}
+              className="flex items-center gap-1 text-sm px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              title={prevPostId ? "Previous post" : "No previous post"}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Prev
+            </button>
+            <button
+              onClick={() => nextPostId && router.push(`/posts/${nextPostId}`)}
+              disabled={!nextPostId}
+              className="flex items-center gap-1 text-sm px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              title={nextPostId ? "Next post" : "No next post"}
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
           <span className={cn("text-xs px-2 py-0.5 rounded-full border", getPostTypeColor(post.postType))}>
             {post.postType}
           </span>
@@ -1013,7 +1040,7 @@ export default function PostEditorClient({
                 onClick={handleGenerateImage}
                 disabled={generatingImage || imageGenRemaining <= 0}
                 className="flex items-center gap-2 text-sm px-4 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] disabled:opacity-70 transition-colors dark:text-slate-300"
-                title={imageGenRemaining <= 0 ? "Image generation limit reached for this post" : `${imageGenRemaining} generation${imageGenRemaining === 1 ? "" : "s"} remaining`}
+                title={imageGenRemaining <= 0 ? "Image generation limit reached for this post" : Number.isFinite(imageGenRemaining) ? `${imageGenRemaining} generation${imageGenRemaining === 1 ? "" : "s"} remaining` : "Generate a new AI image"}
               >
                 {generatingImage ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1237,7 +1264,7 @@ export default function PostEditorClient({
                       onClick={handleGenerateImage}
                       disabled={generatingImage || imageGenRemaining <= 0}
                       className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] disabled:opacity-70 transition-colors dark:text-slate-300"
-                      title={imageGenRemaining <= 0 ? "Limit reached" : `${imageGenRemaining} left`}
+                      title={imageGenRemaining <= 0 ? "Limit reached" : Number.isFinite(imageGenRemaining) ? `${imageGenRemaining} left` : "Regenerate image"}
                     >
                       {generatingImage ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1269,7 +1296,7 @@ export default function PostEditorClient({
                       onClick={handleCropImages}
                       disabled={cropping}
                       className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] disabled:opacity-70 transition-colors dark:text-slate-300"
-                      title="Crop 1px off all sides and re-encode to remove the LinkedIn 'CR' AI-content tag (free - does not use a generation)"
+                      title="Remove the AI tag LinkedIn shows on generated images"
                     >
                       {cropping ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />

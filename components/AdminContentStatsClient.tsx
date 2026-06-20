@@ -1,7 +1,7 @@
 "use client";
 
 import { FileText, Linkedin, AlertCircle, Mail, BarChart3, Trophy } from "lucide-react";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 import { cn } from "@/lib/utils";
 
 interface ContentStats {
@@ -195,13 +195,7 @@ export default function AdminContentStatsClient({
                 )}>
                   {idx + 1}
                 </span>
-                {item.user.image ? (
-                  <Image src={item.user.image} alt="" width={28} height={28} className="rounded-full" />
-                ) : (
-                  <div className="w-7 h-7 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-semibold">
-                    {item.user.name?.[0] ?? "?"}
-                  </div>
-                )}
+                <Avatar src={item.user.image} name={item.user.name} size={28} fallbackClassName="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{item.user.name ?? "Unnamed"}</p>
                 </div>
