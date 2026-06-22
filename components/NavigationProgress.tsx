@@ -40,6 +40,9 @@ export function NavigationProgress() {
   const safety = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const active = useRef(false);
+  // Last real route (path + query, ignoring the hash) so a hash-only back/forward
+  // - e.g. landing-page anchor links - is not mistaken for a navigation.
+  const lastLoc = useRef("");
 
   const stopTimers = useCallback(() => {
     if (trickle.current) {
@@ -97,6 +100,9 @@ export function NavigationProgress() {
 
   // Complete whenever the route (path or query string) actually changes.
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      lastLoc.current = window.location.pathname + window.location.search;
+    }
     done();
     // We intentionally react only to route changes here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,7 +141,13 @@ export function NavigationProgress() {
       start();
     };
 
-    const onPopState = () => start();
+    const onPopState = () => {
+      // Back/forward (or a router-emitted popstate from an anchor) that only changes
+      // the hash - same path + query - is not a real navigation, so skip the loader.
+      const cur = window.location.pathname + window.location.search;
+      if (cur === lastLoc.current) return;
+      start();
+    };
 
     document.addEventListener("click", onClick, true);
     window.addEventListener("popstate", onPopState);
