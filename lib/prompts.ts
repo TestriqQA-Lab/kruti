@@ -163,6 +163,24 @@ export function parseSelectedStyles(contentStylesStr: string | null | undefined)
 }
 
 /**
+ * The single source of truth for which style each post in a batch is written in.
+ * Cycles the user's literal selected styles round-robin (falling back to the coarse
+ * post types only when no styles are stored). buildPostsPrompt uses this to build the
+ * per-post plan, and the posts route uses the SAME assignment to persist each post's
+ * style - so the badge shown to the user matches the style the post was written in.
+ */
+export function assignPostStyles(
+  selectedStyles: string[],
+  postTypes: string[],
+  postCount: number
+): string[] {
+  const rotation = selectedStyles.length > 0 ? selectedStyles : postTypes;
+  return Array.from({ length: postCount }, (_, i) =>
+    rotation.length > 0 ? rotation[i % rotation.length] : "thought-leadership"
+  );
+}
+
+/**
  * Map the user's selected onboarding content styles to the LinkedIn post types
  * that may be generated. Returns ONLY the types for the styles the user actually
  * selected (deduplicated) - nothing extra is ever added. If no styles are stored
@@ -312,16 +330,17 @@ export function buildPostsPrompt(
 ): string {
   const rules = getRules(humanMode);
 
-  // Per-post style plan: cycle the user's LITERAL selected styles (e.g. "Behind the
-  // Scenes", "Contrarian Take") so each post is genuinely written in a distinct style
-  // the user actually chose - not flattened into one repeated post type. Falls back to
-  // the coarse post types only when the user has no stored styles.
-  const styleRotation = selectedStyles.length > 0 ? selectedStyles : postTypes;
-  const perPostPlan = Array.from({ length: postCount }, (_, i) => {
-    const style = styleRotation.length > 0 ? styleRotation[i % styleRotation.length] : "thought-leadership";
-    const directive = STYLE_DIRECTIVES[String(style).trim().toLowerCase()] ?? "";
-    return `Post ${i + 1} - STYLE: ${style}${directive ? ` - ${directive}` : ""}`;
-  }).join("\n");
+  // Per-post style plan: assign each post a distinct style the user actually chose
+  // (e.g. "Behind the Scenes", "Contrarian Take") so the batch reads as different
+  // shapes, not one repeated post type. Uses the shared assignPostStyles so the saved
+  // post.style (set in the route) matches what the writer was told for each post.
+  const perPostStyles = assignPostStyles(selectedStyles, postTypes, postCount);
+  const perPostPlan = perPostStyles
+    .map((style, i) => {
+      const directive = STYLE_DIRECTIVES[String(style).trim().toLowerCase()] ?? "";
+      return `Post ${i + 1} - STYLE: ${style}${directive ? ` - ${directive}` : ""}`;
+    })
+    .join("\n");
 
   const researchBlock = researchBrief.trim()
     ? `RESEARCH BRIEF (real, current, verified facts gathered for this batch - your source of truth):

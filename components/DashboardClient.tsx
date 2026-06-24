@@ -26,6 +26,7 @@ interface Post {
   id: string;
   title: string;
   postType: string;
+  style?: string | null;
   scheduledAt: Date | null;
   status: string;
   weekNumber: number;
@@ -382,7 +383,7 @@ export default function DashboardClient({ user, recentPlan, stats, upcomingPosts
                     <p className="text-sm font-medium text-slate-900 dark:text-gray-100 truncate">{post.title}</p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className={cn("text-xs px-2 py-0.5 rounded-full border", getPostTypeColor(post.postType))}>
-                        {post.postType}
+                        {post.style || post.postType}
                       </span>
                       {post.scheduledAt && (
                         <span className="text-xs text-slate-500 dark:text-slate-400">{formatDate(post.scheduledAt)}</span>

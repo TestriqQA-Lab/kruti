@@ -12,6 +12,7 @@ interface Post {
   id: string;
   title: string;
   postType: string;
+  style?: string | null;
   scheduledAt: Date | string | null;
   status: string;
   body: string;
@@ -320,7 +321,7 @@ export default function CalendarClient({ posts: initialPosts, userTimezone = "As
                           <p className="text-sm font-medium text-slate-900 dark:text-white">{post.title}</p>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className={cn("text-xs px-2 py-0.5 rounded-full border", getPostTypeColor(post.postType))}>
-                              {post.postType}
+                              {post.style || post.postType}
                             </span>
                             <span className={cn("text-xs px-2 py-0.5 rounded-full", getStatusColor(post.status))}>
                               {post.status}

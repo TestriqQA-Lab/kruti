@@ -120,6 +120,7 @@ model Post {
   documentName      String?     // original PDF filename, for display
   hashtags          String?     @db.Text // JSON array string
   postType          String      // thought-leadership | tips | story | poll | carousel
+  style             String?     // the user-selected content style this post was written in (e.g. "Contrarian Take"); null for legacy posts -> badge falls back to postType
   scheduledAt       DateTime?
   status            String      @default("draft") // draft | ready | published
   weekNumber        Int         @default(1)
