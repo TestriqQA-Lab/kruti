@@ -44,6 +44,7 @@ interface Post {
   body: string;
   hashtags: string | null;
   postType: string;
+  style?: string | null;
   status: string;
   scheduledAt: Date | string | null;
   imageUrl: string | null;
@@ -725,7 +726,7 @@ export default function PostEditorClient({
             </button>
           </div>
           <span className={cn("text-xs px-2 py-0.5 rounded-full border", getPostTypeColor(post.postType))}>
-            {post.postType}
+            {post.style || post.postType}
           </span>
           {!isPublished && (
             <div className="ml-auto flex items-center gap-1.5">
