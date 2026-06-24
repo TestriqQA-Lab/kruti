@@ -127,6 +127,59 @@ const STYLE_TO_POST_TYPES: Record<string, string[]> = {
   "social proof / results": ["listicle"],
 };
 
+// One concrete writing directive per onboarding content style. This is what makes
+// the user's ACTUAL selection drive each post: instead of flattening 14 styles into
+// 5 coarse post types, each post is written genuinely in the style the user picked.
+// Keys are lowercased to match the stored style labels case-insensitively.
+export const STYLE_DIRECTIVES: Record<string, string> = {
+  "behind the scenes": "Take the reader inside a real process - show the messy middle, the decision, the trade-off, not a polished result. Do NOT open with a statistic.",
+  "contrarian take": "Challenge a widely held belief in this field; lead with the counter-position and defend it. Open with the claim, not a number.",
+  "personal story": "Tell one specific first-person moment with a turn and a lesson. Open with the scene, not a number.",
+  "narrative / story": "Use a narrative arc - setup, tension, resolution - anchored in a concrete situation. Open with the scene, not a number.",
+  "lessons learned": "Frame around a mistake or hard-won lesson and the principle it taught. Open with the moment, not a number.",
+  "data-driven insights": "Build the post around ONE notable figure from the brief and the practitioner 'so what' behind it. A number here is appropriate.",
+  "case study": "Walk through one real situation: problem, what was done, outcome. A specific result is fine but the story carries it.",
+  "social proof / results": "Center a concrete result or outcome and what made it possible. A result figure is fine; do not stack multiple stats.",
+  "how-to / tutorial": "Give a clear, ordered, do-this-next set of steps the reader can act on today.",
+  "problem agitation solution": "Name the painful problem sharply, sit in it briefly, then deliver a concrete fix.",
+  "motivational": "Land one earned, specific point of conviction grounded in real practice - no platitudes, no inspirational filler.",
+  "predictions & trends": "Make one defensible forward-looking claim about where this field is heading and why.",
+  "q&a format": "Pose one real question this audience actually asks, then answer it with practitioner depth.",
+  "list / tips": "Give a tight numbered set of genuinely useful, non-obvious tips.",
+};
+
+/**
+ * Returns the user's literal selected style labels (order preserved), e.g.
+ * ["Contrarian Take", "Behind the Scenes"]. Safe against null and malformed JSON.
+ */
+export function parseSelectedStyles(contentStylesStr: string | null | undefined): string[] {
+  if (!contentStylesStr) return [];
+  try {
+    const v = JSON.parse(contentStylesStr);
+    return Array.isArray(v) ? v.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The single source of truth for which style each post in a batch is written in.
+ * Cycles the user's literal selected styles round-robin (falling back to the coarse
+ * post types only when no styles are stored). buildPostsPrompt uses this to build the
+ * per-post plan, and the posts route uses the SAME assignment to persist each post's
+ * style - so the badge shown to the user matches the style the post was written in.
+ */
+export function assignPostStyles(
+  selectedStyles: string[],
+  postTypes: string[],
+  postCount: number
+): string[] {
+  const rotation = selectedStyles.length > 0 ? selectedStyles : postTypes;
+  return Array.from({ length: postCount }, (_, i) =>
+    rotation.length > 0 ? rotation[i % rotation.length] : "thought-leadership"
+  );
+}
+
 /**
  * Map the user's selected onboarding content styles to the LinkedIn post types
  * that may be generated. Returns ONLY the types for the styles the user actually
@@ -272,16 +325,29 @@ export function buildPostsPrompt(
   humanMode: boolean = true,
   postCount: number = 5,
   allowedTypes: string[] = ["thought-leadership", "tips", "story", "question", "listicle"],
-  researchBrief: string = ""
+  researchBrief: string = "",
+  selectedStyles: string[] = []
 ): string {
   const rules = getRules(humanMode);
+
+  // Per-post style plan: assign each post a distinct style the user actually chose
+  // (e.g. "Behind the Scenes", "Contrarian Take") so the batch reads as different
+  // shapes, not one repeated post type. Uses the shared assignPostStyles so the saved
+  // post.style (set in the route) matches what the writer was told for each post.
+  const perPostStyles = assignPostStyles(selectedStyles, postTypes, postCount);
+  const perPostPlan = perPostStyles
+    .map((style, i) => {
+      const directive = STYLE_DIRECTIVES[String(style).trim().toLowerCase()] ?? "";
+      return `Post ${i + 1} - STYLE: ${style}${directive ? ` - ${directive}` : ""}`;
+    })
+    .join("\n");
 
   const researchBlock = researchBrief.trim()
     ? `RESEARCH BRIEF (real, current, verified facts gathered for this batch - your source of truth):
 ${researchBrief.trim()}
 
 HOW TO USE THE RESEARCH BRIEF:
-- Ground the posts in the specific facts, statistics, recent developments, and concrete examples above. This is what separates an expert post from generic filler.
+- Ground the posts in the specific facts, mechanisms, examples, and expert interpretation above. Most posts should make their point qualitatively; reach for a number only when it is genuinely the sharpest way to make THIS post's point. What separates an expert post from filler is sharp insight and concrete detail, not the presence of a statistic.
 - Use stats and facts only as they appear in the brief. Do NOT round, inflate, reshape, or "improve" any number.
 - Do NOT invent statistics, studies, dates, company names, or quotes that are not in the brief. If you want to make a point the brief does not support with a number, make it qualitatively instead - never with a fabricated figure.
 - If a heading in the brief says no reliable current data was found, treat that area as having no usable numbers and make the point qualitatively.
@@ -300,7 +366,9 @@ ${profileContext}
 
 THEME: "${weekTheme}"
 FOCUS: "${weekFocus}"
-POST TYPES TO USE: ${postTypes.slice(0, postCount).join(", ")}
+
+PER-POST STYLE PLAN (write each post genuinely in its assigned style - the ${postCount} posts must read as clearly DIFFERENT shapes, not the same template with different words):
+${perPostPlan}
 
 Use the tone.voice, tone.style and tone.avoid fields from the strategy below as hard constraints on how this week's posts read - the avoid list names things you must NOT do.
 STRATEGY CONTEXT: ${JSON.stringify(strategy)}
@@ -310,9 +378,9 @@ ${researchBlock}
 WHAT MAKES THESE POSTS EXPERT-LEVEL (this is the whole point - do not skip):
 - Voice: Write exactly as this person would speak - their tone, their level of formality, their personality from the profile. If the profile specifies tone preferences (professional, conversational, inspirational, educational), honor them precisely. A reader who knows this person should recognize them in the writing.
 - Audience-first: Every post must give the target audience something real - a sharper way to think about a problem they have, a concrete tactic, a non-obvious insight, or a useful reframe. Never write to impress; write to be useful.
-- Specificity over fluff: Use concrete details, real situations, named tools or methods, numbers from the research brief, and precise language. Replace every vague generality ("companies are struggling", "AI is changing everything") with a specific, grounded claim.
+- Specificity over fluff: Use concrete details, real situations, named tools or methods, and - only where it genuinely sharpens the point - a relevant figure from the brief, and precise language. Replace every vague generality ("companies are struggling", "AI is changing everything") with a specific, grounded claim.
 - One idea per post: Each post makes ONE clear point and earns it. No grab-bag of disconnected thoughts.
-- Hook: The first line (title) must make the second line unavoidable. Use a specific number from the brief, a concrete detail, or a sharp claim you will defend. Banned openers: "In today's [x] world", "Let that sink in", "Read that again", "Most people get this wrong", "Unpopular opinion", "I'll be honest", and any standalone rhetorical question.
+- Hook: The first line (title) must make the second line unavoidable. Choose an opener that fits THIS post's assigned style - a concrete scene, a blunt defensible claim, a confession, a contrarian assertion, a specific moment in time, or a question reframed as a statement. At most ONE post in this whole batch may open with a statistic, and only when a number is genuinely the sharpest opener for its assigned style; every other post must open a different way. Banned openers: "In today's [x] world", "Let that sink in", "Read that again", "Most people get this wrong", "Unpopular opinion", "I'll be honest", and any standalone rhetorical question.
 - Vary the opening device across the ${postCount} posts. Never reuse the same stock phrase ("here's the thing", "real talk", "let's be honest") more than once in the whole batch.
 - Real CTA: End by asking about the reader's own experience with the specific thing this post covered, or by giving them one concrete thing to try. Banned CTAs: "What's your take", "Curious to hear your thoughts", "Agree?", "Comment below", "Let me know your thoughts", "Drop a comment". A good CTA could not be pasted onto a different post.
 - No motivational filler: Cut platitudes, inspirational-poster lines, and empty positivity. If a sentence would survive on any post in any industry, rewrite it to be specific to this person and topic.
@@ -336,7 +404,7 @@ Rules for each post:
 - Each post must sound like it was written by the specific person in the profile above, in their tone and voice - not by an AI.
 - Build each post on real, specific substance: facts and examples from the research brief where one is provided, plus this person's expert interpretation. Never use a stat or source that is not in the brief.
 - If you quote any phrase from the research brief inside a post, paraphrase it - never reproduce double-quote characters inside any JSON string value.
-- Vary the format: some with short paragraphs, some with numbered points, some as narrative. Match the post type assigned to each.
+- Vary the format: some with short paragraphs, some with numbered points, some as narrative. Write each post genuinely in the style assigned to it in the per-post style plan above, so the batch reads as different shapes.
 - Include a strong, specific, natural call-to-action in each post body - not generic engagement bait.
 - Do not use bullet points starting with dashes - use numbered lists or plain paragraphs.
 - Hashtags must be relevant, lowercase, no spaces (e.g. productmanagement, leadership).
@@ -385,11 +453,8 @@ Organize the brief under these headings (use these exact plain-text headings, no
 KEY FACTS
 - The most important, currently-true facts a knowledgeable expert in this field would cite. Concrete and specific, not generic.
 
-STATISTICS AND DATA
-- Real numbers, percentages, survey results, or benchmarks you found via search. After each, add a rough date or time frame in parentheses (for example "(2024 report)", "(as of early 2025)") and name the source or type of source. Only include numbers you actually found in search results. If you cannot find a credible figure for a point, leave the number out rather than estimating.
-
-RECENT DEVELOPMENTS
-- News, launches, regulatory or market shifts, or notable events from roughly the last 18 months that are relevant to the theme. Include the rough timing of each.
+EXPERT TALKING POINTS
+- 4 to 8 sharp, non-obvious angles, contrarian takes, or "what most people miss" insights an expert in this field would actually voice on this theme. These are the spine of strong posts.
 
 CONCRETE EXAMPLES
 - Real-world examples, named companies, products, people, case studies, or scenarios that the writer can reference specifically (not invented or hypothetical).
@@ -397,8 +462,11 @@ CONCRETE EXAMPLES
 COMMON MISCONCEPTIONS
 - Widely-believed but wrong or oversimplified ideas in this area that an expert could correct to sound credible.
 
-EXPERT TALKING POINTS
-- 4 to 8 sharp, non-obvious angles, contrarian takes, or "what most people miss" insights an expert in this field would actually voice on this theme. These are the spine of strong posts.
+RECENT DEVELOPMENTS
+- News, launches, regulatory or market shifts, or notable events from roughly the last 18 months that are relevant to the theme. Include the rough timing of each.
+
+STATISTICS AND DATA (optional - include at most 2 or 3, and only if a genuinely notable, well-sourced figure exists; otherwise skip this section entirely)
+- Real numbers, percentages, survey results, or benchmarks you found via search. After each, add a rough date or time frame in parentheses (for example "(2024 report)", "(as of early 2025)") and name the source or type of source. Only include numbers you actually found in search results. If you cannot find a credible figure for a point, leave the number out rather than estimating.
 
 STRICT RULES
 - Only include facts, numbers, examples, and developments you actually found through search. Do NOT fabricate, estimate, or fill gaps from general knowledge. It is better to write less than to invent anything.

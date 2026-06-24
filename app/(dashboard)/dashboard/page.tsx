@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   const [user, recentPlan, allPostCounts, newsletters, upcomingPosts] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { name: true, headline: true, industry: true, image: true, postingSchedule: true, role: true },
+      select: { name: true, headline: true, industry: true, image: true, postingSchedule: true, role: true, positioning: true, contentStyles: true },
     }),
     // Get most recent week's plan
     prisma.contentPlan.findFirst({
@@ -40,6 +40,7 @@ export default async function DashboardPage() {
         id: true,
         title: true,
         postType: true,
+        style: true,
         scheduledAt: true,
         status: true,
         weekNumber: true,
@@ -128,6 +129,7 @@ export default async function DashboardPage() {
         id: true,
         title: true,
         postType: true,
+        style: true,
         scheduledAt: true,
         status: true,
         weekNumber: true,

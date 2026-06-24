@@ -103,6 +103,20 @@ const POSITIONING_VALUE: Record<string, string> = {
   "Community Builder": "a sense of community and conversations worth joining",
 };
 
+// Seed a sensible voice/tone from the chosen positioning so a new user's first
+// strategy and posts aren't written in the flat default "Professional" voice. The
+// user can still change this any time in Settings (which overrides this).
+const POSITIONING_TO_TONE: Record<string, string> = {
+  "Thought Leader": "professional",
+  "Industry Expert": "professional",
+  "Practitioner": "professional",
+  "Contrarian": "professional",
+  "Educator": "educational",
+  "Storyteller": "inspirational",
+  "Entertainer": "conversational",
+  "Community Builder": "conversational",
+};
+
 interface OnboardingWizardProps {
   user: {
     name?: string | null;
@@ -237,6 +251,7 @@ export default function OnboardingWizard({ user }: OnboardingWizardProps) {
           contentStyles,
           targetAudience,
           timezone,
+          tonePrefs: POSITIONING_TO_TONE[positioning] ?? "professional",
         }),
       });
 

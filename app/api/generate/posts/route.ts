@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateText, parseJSON, generateGroundedText } from "@/lib/gemini";
-import { buildPostsPrompt, buildResearchPrompt, deriveAllowedPostTypes } from "@/lib/prompts";
+import { buildPostsPrompt, buildResearchPrompt, deriveAllowedPostTypes, parseSelectedStyles, assignPostStyles } from "@/lib/prompts";
 import { buildProfileContext } from "@/lib/linkedin";
 import { getNextScheduledSlots } from "@/lib/timezone";
 import { checkActiveSubscription } from "@/lib/subscription-check";
@@ -90,6 +90,9 @@ export async function POST(req: NextRequest) {
   const humanMode = true;
 
   const allowedTypes = deriveAllowedPostTypes(user.contentStyles);
+  // The user's LITERAL selected styles drive a per-post style plan so each post is
+  // written in a distinct style they actually chose (not a single flattened type).
+  const selectedStyles = parseSelectedStyles(user.contentStyles);
 
   // Web-research step: ground the posts in real, current facts before writing.
   // Best-effort - if grounding fails (quota, network, etc.) we write without a brief.
@@ -108,16 +111,22 @@ export async function POST(req: NextRequest) {
     researchBrief = "";
   }
 
+  const postTypesForPrompt = strategy.postTypes ?? allowedTypes;
+  // Same assignment the prompt uses, so each saved post.style matches the style the
+  // writer was told to use for that post (used for the per-post style badge in the UI).
+  const styleAssignment = assignPostStyles(selectedStyles, postTypesForPrompt, postCount);
+
   const prompt = buildPostsPrompt(
     profileContext,
     strategy.weekTheme ?? "Professional Growth",
     strategy.weekFocus ?? "Sharing expertise",
-    strategy.postTypes ?? allowedTypes,
+    postTypesForPrompt,
     { pillars: strategy.pillars, tone: strategy.tone, postMix: strategy.postMix },
     humanMode,
     postCount,
     allowedTypes,
-    researchBrief
+    researchBrief,
+    selectedStyles
   );
 
   try {
@@ -157,6 +166,9 @@ export async function POST(req: NextRequest) {
             // model produced outside the allowed set. Coerce any stray type to an
             // allowed one so the calendar only ever shows selected types.
             postType: allowedTypes.includes(post.postType) ? post.postType : allowedTypes[0],
+            // The actual user-selected style this post was written in (drives the UI
+            // badge); falls back to null for safety so the badge shows the post type.
+            style: styleAssignment[idx] ?? null,
             imagePrompt: post.imagePrompt,
             weekNumber: 1,
             scheduledAt,
