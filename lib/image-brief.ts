@@ -1,6 +1,5 @@
 import { generateText, parseJSON } from "@/lib/gemini";
 import { buildImageBriefPrompt, buildCarouselPlanPrompt, UserVisualProfile } from "@/lib/prompts";
-import { ImageStyle, resolveStyle, pickFallbackStyle, styleSeed } from "@/lib/image-styles";
 
 /**
  * Content-aware image briefs.
@@ -16,7 +15,6 @@ export interface ImageBrief {
   visual: string; // one single-line concrete scene from the post (no text/colors)
   palette: string; // one single-line color direction with specific hex colors
   textPosition: string; // where the headline sits: top-center, bottom-center, bottom-left, center-left, overlay-center
-  style: ImageStyle; // the visual style to render (photo, illustration, infographic, typographic, mockup, minimal)
 }
 
 export interface CarouselSlide {
@@ -27,7 +25,6 @@ export interface CarouselSlide {
 
 export interface CarouselPlan {
   palette: string; // one shared palette + register, reused by every slide
-  style: ImageStyle; // ONE style for the whole set (cohesion), reused by every slide
   slides: CarouselSlide[]; // 2..count entries, in carousel order (hook ... takeaway)
 }
 
@@ -75,7 +72,6 @@ function fallbackBrief(
     visual: `A clean, modern editorial scene representing ${post.postType} content for ${industry}, with vivid colors and clear negative space for the headline.`,
     palette: fallbackPalettes[post.postType] || DEFAULT_PALETTE,
     textPosition: textPositions[posIdx],
-    style: pickFallbackStyle(post.postType, styleSeed(post.title)),
   };
 }
 
@@ -104,7 +100,6 @@ export async function getImageBrief(
           visual: String(parsed.visual),
           palette: String(parsed.palette),
           textPosition,
-          style: resolveStyle(parsed.style, post.postType, post.title),
         };
       }
     } catch (err) {
@@ -143,11 +138,7 @@ export async function getCarouselPlan(
             .slice(0, count)
         : [];
       if (parsed.palette && slides.length >= 2) {
-        return {
-          palette: String(parsed.palette),
-          style: resolveStyle(parsed.style, post.postType, post.title),
-          slides,
-        };
+        return { palette: String(parsed.palette), slides };
       }
     } catch (err) {
       console.error(`[CarouselPlan] attempt ${attempt + 1} failed:`, (err as Error).message);
