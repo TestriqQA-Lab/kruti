@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
       summary,
       industry,
       timezone,
+      tonePrefs,
     } = body;
 
     // Use "field" in body pattern to safely map data, similar to profile route
@@ -29,6 +30,9 @@ export async function POST(req: NextRequest) {
     };
 
     if (positioning !== undefined) updateData.positioning = positioning || null;
+    // Encode tonePrefs the same way the profile route does (JSON-stringified string),
+    // so resolveTone() parses it consistently. Settings can override it later.
+    if (tonePrefs !== undefined) updateData.tonePrefs = tonePrefs ? JSON.stringify(tonePrefs) : null;
     if (contentGoals !== undefined) updateData.contentGoals = contentGoals && contentGoals.length > 0 ? JSON.stringify(contentGoals) : null;
     if (contentStyles !== undefined) updateData.contentStyles = contentStyles && contentStyles.length > 0 ? JSON.stringify(contentStyles) : null;
     if (targetAudience !== undefined) updateData.targetAudience = targetAudience || null;

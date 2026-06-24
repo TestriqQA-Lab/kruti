@@ -133,6 +133,20 @@ function resolveTone(tonePrefs: string | null | undefined): { label: string; dir
   return { label, direction };
 }
 
+// Turns the user's chosen positioning into a binding WRITING stance (not just an
+// image direction). This is what makes a Contrarian actually sound contrarian and an
+// Educator teach - it augments the tone direction, it never replaces it.
+const POSITIONING_VOICE: Record<string, string> = {
+  "thought leader": "lead with a clear point of view and a stance worth following",
+  "industry expert": "argue from credibility, proof, and precise analysis",
+  storyteller: "teach through a narrative arc and concrete moments",
+  educator: "teach step by step, break down the why, make the complex simple",
+  entertainer: "be vivid and memorable; land the insight with personality and a light touch",
+  contrarian: "challenge the consensus; lead with the counter-take and defend it",
+  practitioner: "speak from hands-on, in-the-trenches experience and tactical detail",
+  "community builder": "write to convene and invite participation; frame ideas as shared conversation",
+};
+
 export function buildProfileContext(user: {
   name?: string | null;
   headline?: string | null;
@@ -149,6 +163,8 @@ export function buildProfileContext(user: {
   const goals = safeJsonParse(user.contentGoals, []);
   const styles = safeJsonParse(user.contentStyles, []);
   const tone = resolveTone(user.tonePrefs);
+  const posKey = (user.positioning || "").trim().toLowerCase();
+  const posStance = POSITIONING_VOICE[posKey] || "";
 
   return `
 WHO THIS PERSON IS
@@ -165,7 +181,7 @@ Preferred content styles: ${styles.length > 0 ? styles.join(", ") : "Narrative, 
 
 VOICE AND TONE (write every post in this voice - this is non-negotiable)
 Tone preference: ${tone.label}
-Voice direction: ${tone.direction}
+Voice direction: ${tone.direction}${posStance ? `\nPositioning stance (how this person must come across): ${posStance}.` : ""}
 
 WHO THEY ARE WRITING FOR
 Target audience: ${user.targetAudience || "LinkedIn professionals in my industry"}
