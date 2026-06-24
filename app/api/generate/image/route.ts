@@ -84,7 +84,6 @@ export async function POST(req: NextRequest) {
       visual: brief.visual,
       palette: brief.palette,
       textPosition: brief.textPosition,
-      style: brief.style,
     });
     imageUrl = await generatePostImage(prompt, post.id, industry, true);
     savedPrompt = `${brief.headline} - ${brief.visual}`;
