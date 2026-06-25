@@ -59,22 +59,25 @@ export function buildBrandedImagePrompt(brief: {
 }): string {
   const { headline, visual, palette, position } = brief;
 
-  return `Design a single, premium, professionally designed square (1:1) graphic for a LinkedIn feed - in the polished style of a high-end marketing visual, infographic, or product showcase. This is a DESIGNED graphic, NOT a stock photo with a caption bar pasted on top.
+  return `Design a single, premium, professionally designed square (1:1) graphic for a LinkedIn feed - in the polished style of a high-end infographic, data visual, or product showcase. This is a DESIGNED graphic, NOT a stock photo with a caption bar pasted on top, and NOT a text-heavy poster.
 
-WHAT TO SHOW: ${visual}
+MAIN VISUAL - the hero, it must carry the meaning on its own: ${visual}
+- Whenever the topic involves data, numbers, growth, results, steps, stages, a comparison, a process, a product, an app, a UI, or a workflow, make a clean infographic, chart, graph, or diagram the main subject - with realistic labels and numbers, sleek device or dashboard mockups, tidy icons, or a clear flow - the way premium LinkedIn carousels and reports look. Let the visual do the talking.
 
-HEADLINE (the title of the graphic): "${headline}"
-Integrate this as a clean, prominent, well-set title that is part of the design itself - strong, intentional typography, not a translucent sticker or frosted bar floating over a photo.
+HEADLINE: "${headline}"
+Place this as ONE small, restrained caption that supports the visual - clean, well-set, legible type, clearly SECONDARY to the imagery but ALWAYS present and readable, never hidden, tiny, or faded out. It is not a big banner and must not dominate the frame.
+
+KEEP TEXT MINIMAL:
+- The image MUST contain this short headline as real, readable text, plus only the few real labels, numbers, or axis values a chart, diagram, or mockup genuinely needs - and nothing more. This is a DESIGNED graphic with minimal meaningful text, never a blank or text-free illustration and never a text-heavy poster. No paragraphs, sub-headlines, body copy, taglines, descriptions, watermarks, or decorative lettering anywhere.
+- Every word that does appear must be real, correctly spelled, and meaningful to this topic. Never produce scrambled, fake, or nonsense lettering.
 
 DESIGN IT LIKE A SENIOR DESIGNER WOULD:
-- Make it one cohesive, intentional composition with clear visual hierarchy, balanced layout, and purposeful spacing that fills the whole frame.
-- When the topic involves data, growth, results, a product, an app, a UI, a workflow, or a comparison, render it as a polished designed element - a clean chart or graph with realistic labels and numbers, a sleek device or dashboard mockup, tidy icons, or a clear diagram - the way premium LinkedIn carousels and reports look.
-- ALL text in the image (the title plus any labels, numbers, axis values, or captions on charts and mockups) must be real words, correctly spelled, and meaningful to this topic. Never produce scrambled, fake, or nonsense lettering anywhere.
-- FULL-BLEED: the background and the whole design must extend completely to all four edges of the square - NO white, blank, or empty border, frame, padding, or outer margin around the artwork. Keep text and key elements just clear of the very edge so nothing is cut off, but the design itself must fill the entire canvas edge to edge.
+- One cohesive, intentional composition with clear visual hierarchy, balanced layout, and purposeful spacing that fills the whole frame.
+- FULL-BLEED: the background and the whole design must extend completely to all four edges of the square - NO white, blank, or empty border, frame, padding, or outer margin. Keep key elements just clear of the very edge so nothing is cut off, but the design must fill the entire canvas edge to edge.
 
 COLOR: ${palette} Keep it cohesive, rich, and on-brand - intentional, not washed-out, monotone, or flooded with one flat colour.
 
-QUALITY BAR: it must look like a senior designer or a top design tool produced it - crisp, high-resolution, modern, premium. Avoid cheap stock-photo-with-a-text-banner looks, gaudy gradients, glossy plastic 3D, lens flare, busy clutter, and distorted hands, faces, or text.
+QUALITY BAR: it must look like a senior designer or a top design tool produced it - crisp, high-resolution, modern, premium. Avoid cheap stock-photo-with-a-text-banner looks, walls of text, gaudy gradients, glossy plastic 3D, lens flare, busy clutter, and distorted hands, faces, or text.
 ${position ? `CAROUSEL: this is ${position} - use the SAME design system, colour palette, type, and layout across every slide so the set is cohesive.\n` : ""}Square 1:1, filling the entire frame edge to edge with no blank border or margin on any side. High quality, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
 }
 
@@ -163,14 +166,15 @@ Square format (1:1), filling the entire frame edge to edge with no blank border,
 
 // ─── Carousel (multiple images) ───────────────────────────────────────────────
 
-// Distinct framings so each carousel slide looks visually different.
+// Distinct DESIGNED layouts so each carousel slide looks visually different while
+// staying an infographic-style graphic (not a photo and not a blank illustration).
 const CAROUSEL_VARIATIONS = [
-  "wide cinematic establishing shot",
-  "close-up detail with shallow depth of field",
-  "overhead top-down flat-lay perspective",
-  "dramatic side angle with bold directional lighting",
-  "minimalist composition with generous negative space",
-  "vibrant dynamic three-quarter perspective",
+  "laid out as a bold single big-number stat card",
+  "laid out as a clean bar or line chart with short real labels",
+  "laid out as a numbered step-by-step flow diagram",
+  "laid out as a side-by-side before-and-after comparison",
+  "laid out as an icon-driven concept grid",
+  "laid out as a simple labeled device or dashboard mockup",
 ];
 
 /**
@@ -190,7 +194,8 @@ export async function generateCarouselImages(
     (_, i) => `${base} - ${CAROUSEL_VARIATIONS[i % CAROUSEL_VARIATIONS.length]}`
   );
   const results = await Promise.all(
-    prompts.map((p, i) => generatePostImage(p, `${postId}-c${i}`, industry))
+    // allowText so the designed labels in the prompt survive (no no-text wrapper).
+    prompts.map((p, i) => generatePostImage(p, `${postId}-c${i}`, industry, true))
   );
   return results.filter((u): u is string => !!u);
 }
@@ -228,11 +233,15 @@ export async function generateCarouselFromPlan(
 export function buildImagePrompt(
   postTitle: string,
   postType: string,
-  industry: string
+  industry: string,
+  headline?: string
 ): string {
-  // This is a fallback when no imagePrompt exists on the post.
-  // Describes a visual concept - no actual post text is included.
-  return `Professional abstract visual metaphor representing the concept of ${postType} content in the ${industry} industry.
-Clean, modern composition with symbolic imagery. No text, no words, no letters, no numbers anywhere in the image.
-Square format (1:1), filling the entire frame edge to edge with no blank border or margin on any side. High quality, suitable for LinkedIn.`;
+  // Carousel fallback (used only when the content-aware plan fails). Keeps the same
+  // intent as the main path: a DESIGNED graphic anchored to the person's ROLE, with
+  // minimal meaningful labels - never an industry-stereotype, never a blank text-free
+  // illustration.
+  const role = (headline || "").trim() || "professional";
+  return `A clean, premium DESIGNED infographic-style graphic about "${postTitle}", anchored to the real work of a ${role} (broad field: ${industry || "business"} - context only, do NOT default to a generic stereotype of the field such as chips, wires, or circuit boards).
+Build it as a simple chart, diagram, labeled mockup, or icon-driven concept layout with only a few short, real, correctly-spelled labels - a designed graphic with minimal meaningful text, never a blank text-free illustration and never a text-heavy poster.
+Square format (1:1), full-bleed edge to edge with no blank border or margin on any side. High quality, suitable for LinkedIn.`;
 }

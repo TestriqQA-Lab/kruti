@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
     contentStyles: post.plan.user.contentStyles,
     industry,
     name: post.plan.user.name,
+    headline: post.plan.user.headline, // the actual ROLE that drives the imagery
   };
 
   let imageUrl: string | null;
