@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       imageUrl: null,
       ...(isAdmin ? {} : { imageGenCount: { lt: IMAGE_GEN_LIMIT_PER_POST } }),
     },
-    include: { plan: { include: { user: { select: { industry: true, positioning: true, contentStyles: true, name: true } } } } },
+    include: { plan: { include: { user: { select: { industry: true, positioning: true, contentStyles: true, name: true, headline: true } } } } },
   });
 
   if (posts.length === 0) {
@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
         contentStyles: post.plan.user.contentStyles,
         industry,
         name: post.plan.user.name,
+        headline: post.plan.user.headline, // the actual ROLE that drives the imagery
       };
       const brief = await getImageBrief(
         { title: post.title, body: post.body, postType: post.postType },

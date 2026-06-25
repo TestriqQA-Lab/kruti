@@ -5,14 +5,14 @@ import { buildImageBriefPrompt, buildCarouselPlanPrompt, UserVisualProfile } fro
  * Content-aware image briefs.
  *
  * The text model reads a post's real title + body and returns a brief that ties
- * the generated image to the post's actual content, plus a short headline to
- * render on the image. This replaces the old generic "scene or metaphor" prompt
- * that produced images unrelated to the post.
+ * the generated image to the post's actual content. The image is a DESIGNED graphic
+ * (infographic / chart / diagram preferred) driven by the person's ROLE, with a short
+ * supporting headline caption and minimal meaningful text.
  */
 
 export interface ImageBrief {
-  headline: string; // 2-5 words, <=28 chars, the exact text rendered on the image
-  visual: string; // one single-line concrete scene from the post (no text/colors)
+  headline: string; // short supporting caption (2-4 words, <=24 chars target), kept secondary to the visual
+  visual: string; // one single-line infographic-forward graphic concept anchored to the post + the person's role
   palette: string; // one single-line color direction with specific hex colors
   textPosition: string; // where the headline sits: top-center, bottom-center, bottom-left, center-left, overlay-center
 }
@@ -36,12 +36,12 @@ const DEFAULT_PALETTE =
  * whitespace, strip wrapping quotes, and hard-cap at 28 characters. Instructions
  * alone do not guarantee the cap, so we enforce it in code.
  */
-export function clampHeadline(raw: string): string {
+export function clampHeadline(raw: string, max = 28): string {
   return (raw || "")
     .replace(/\s+/g, " ")
     .replace(/^["'“”]+|["'“”]+$/g, "")
     .trim()
-    .slice(0, 28)
+    .slice(0, max)
     .trim();
 }
 
@@ -54,8 +54,10 @@ function headlineFromTitle(title: string): string {
 /** Deterministic, still-content-related brief for when the text model is down. */
 function fallbackBrief(
   post: { title: string; postType: string },
-  industry: string
+  industry: string,
+  headline?: string
 ): ImageBrief {
+  const role = (headline || "").trim() || "professional";
   // Pick a fallback palette based on postType so even fallbacks get variety
   const fallbackPalettes: Record<string, string> = {
     "thought-leadership": "Deep indigo #3730A3 background, crisp white text, warm amber #F59E0B accent.",
@@ -69,7 +71,7 @@ function fallbackBrief(
   const posIdx = (post.title || "").length % textPositions.length;
   return {
     headline: headlineFromTitle(post.title),
-    visual: `A clean, modern editorial scene representing ${post.postType} content for ${industry}, with vivid colors and clear negative space for the headline.`,
+    visual: `A clean infographic-style graphic about "${post.title}" anchored to what a ${role} actually does (broad field: ${industry} - context only, never a generic stereotype of the field), with a simple chart or diagram, a few short real labels, and clear space for the headline.`,
     palette: fallbackPalettes[post.postType] || DEFAULT_PALETTE,
     textPosition: textPositions[posIdx],
   };
@@ -91,7 +93,7 @@ export async function getImageBrief(
         buildImageBriefPrompt(post.title, post.body, post.postType, industry, userProfile)
       );
       const parsed = parseJSON<Partial<ImageBrief>>(raw);
-      const headline = clampHeadline(parsed.headline || "");
+      const headline = clampHeadline(parsed.headline || "", 24);
       if (headline && parsed.visual && parsed.palette) {
         const validPositions = ["top-center", "bottom-center", "bottom-left", "center-left", "overlay-center"];
         const textPosition = validPositions.includes(parsed.textPosition || "") ? parsed.textPosition! : "top-center";
@@ -106,7 +108,7 @@ export async function getImageBrief(
       console.error(`[ImageBrief] attempt ${attempt + 1} failed:`, (err as Error).message);
     }
   }
-  return fallbackBrief(post, industry);
+  return fallbackBrief(post, industry, userProfile?.headline ?? undefined);
 }
 
 /**

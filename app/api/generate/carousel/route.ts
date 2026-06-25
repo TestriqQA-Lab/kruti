@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
     contentStyles: post.plan.user.contentStyles,
     industry,
     name: post.plan.user.name,
+    headline: post.plan.user.headline, // the actual ROLE that drives the imagery
   };
 
   // Content-aware: plan a cohesive carousel from THIS post (hook -> key points ->
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
     images = await generateCarouselFromPlan(plan, post.id, industry);
     savedPrompt = plan.slides.map((s) => s.headline).join(" / ");
   } else {
-    const basePrompt = buildImagePrompt(post.title, post.postType, industry);
+    const basePrompt = buildImagePrompt(post.title, post.postType, industry, userVisualProfile.headline ?? undefined);
     images = await generateCarouselImages(basePrompt, post.id, industry, CAROUSEL_COUNT);
     savedPrompt = basePrompt;
   }
