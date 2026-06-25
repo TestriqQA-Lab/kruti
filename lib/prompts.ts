@@ -37,11 +37,15 @@ export interface UserVisualProfile {
   contentStyles?: string | null;
   industry?: string | null;
   name?: string | null;
+  headline?: string | null; // the person's actual ROLE (e.g. "SEO Analyst") - drives the imagery
 }
 
 /**
  * Derives a visual style direction block for image prompts based on the user's
- * profile. This ensures each user's images feel personal and on-brand.
+ * profile. The subject vocabulary is driven by the person's actual ROLE (their
+ * headline/title), NOT a generic industry stereotype, so images match what they
+ * really do - an SEO analyst and a backend engineer in "technology" get different
+ * imagery. This keeps each user's images personal, on-brand, and role-accurate.
  */
 export function deriveVisualStyle(profile: UserVisualProfile): string {
   const parts: string[] = [];
@@ -77,26 +81,20 @@ export function deriveVisualStyle(profile: UserVisualProfile): string {
     parts.push("Composition style: thought-provoking, open compositions with visual tension and curiosity.");
   }
 
-  // Industry-specific visual vocabulary
-  const ind = (profile.industry || "").toLowerCase();
-  if (ind.includes("tech") || ind.includes("software") || ind.includes("it ") || ind.includes("saas")) {
-    parts.push("Industry visuals: circuit patterns, devices, code abstractions, digital interfaces, server rooms, developer workspaces.");
-  } else if (ind.includes("finance") || ind.includes("banking") || ind.includes("invest")) {
-    parts.push("Industry visuals: market trends, currency, financial instruments, trading floors, analytical dashboards.");
-  } else if (ind.includes("health") || ind.includes("medical") || ind.includes("pharma")) {
-    parts.push("Industry visuals: medical environments, lab equipment, wellness imagery, clinical precision.");
-  } else if (ind.includes("educ") || ind.includes("learn") || ind.includes("train")) {
-    parts.push("Industry visuals: learning environments, books, workshops, mentorship moments, knowledge sharing.");
-  } else if (ind.includes("market") || ind.includes("advertis") || ind.includes("brand") || ind.includes("media")) {
-    parts.push("Industry visuals: creative workspaces, campaign elements, brand materials, audience engagement.");
-  } else if (ind.includes("design") || ind.includes("creative") || ind.includes("art")) {
-    parts.push("Industry visuals: creative tools, design workspaces, color swatches, typography specimens, artistic processes.");
-  } else if (ind.includes("consult") || ind.includes("manag") || ind.includes("strateg")) {
-    parts.push("Industry visuals: strategy sessions, whiteboards, collaborative workspaces, decision-making moments.");
-  } else if (ind.includes("real estate") || ind.includes("property") || ind.includes("construction")) {
-    parts.push("Industry visuals: architectural elements, building materials, property spaces, urban landscapes.");
-  } else if (ind) {
-    parts.push(`Industry visuals: use recognizable objects, tools, environments, and scenarios specific to the ${profile.industry} field.`);
+  // Subject vocabulary from the person's actual ROLE (their headline/title), NOT a
+  // generic industry stereotype. Two people in the same industry - say an SEO analyst
+  // and a backend engineer, both in "technology" - do completely different work, so the
+  // imagery must follow what THIS person actually does, never the field's cliche.
+  const role = (profile.headline || "").trim();
+  const industry = (profile.industry || "").trim();
+  if (role) {
+    parts.push(
+      `Subject vocabulary: build the imagery from the real tools, screens, artifacts, and day-to-day scenarios of THIS person's actual role - "${role}". Do NOT default to a generic ${industry || "industry"} stereotype (for example circuit boards, chips, or wires just because the field is technology); show what this specific role genuinely works with.`
+    );
+  } else if (industry) {
+    parts.push(
+      `Subject vocabulary: use objects, tools, and scenarios that match what a ${industry} professional actually does day to day, matched to their real work rather than a generic stereotype of the field.`
+    );
   }
 
   return parts.length > 0 ? parts.join("\n") : "";
@@ -506,7 +504,8 @@ export function buildImageBriefPrompt(
 POST TITLE (hook): ${title}
 POST BODY: ${body}
 POST TYPE: ${postType}
-INDUSTRY: ${industry || "business"}
+ROLE (base the imagery on what THIS person actually does): ${userProfile?.headline || "professional"}
+FIELD (broad context only - do NOT base the imagery on this): ${industry || "business"}
 ${profileBlock}
 Produce a brief as a JSON object with this EXACT structure:
 {
@@ -517,8 +516,8 @@ Produce a brief as a JSON object with this EXACT structure:
 }
 
 FIELD DEFINITIONS AND CONSTRAINTS:
-- "headline": The single most important hook or takeaway of THIS specific post, distilled to between 2 and 5 words and at most 28 characters total. Never more than 5 words. This is NOT the title - compress the core idea into your own words, never copy the title verbatim. Prefer short, common words; avoid any word longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates, because they render incorrectly. Short numbers are fine, for example "3 Hiring Mistakes" or "80/20 Rule". If the post body is empty or very short, derive the headline from the title alone and do not invent facts. If postType is "question", make the headline a short, punchy version of the post's core question ending in a single question mark. Use Title Case. No quotation marks, no hashtags, no ending punctuation except that one question mark. This exact text is rendered on the image, so spell every word correctly.
-- "visual": Describe the BEST premium GRAPHIC CONCEPT to communicate THIS post's core point - think like an art director designing a polished LinkedIn marketing visual, NOT a stock-photo picker. Choose whatever format best fits the post: a clean data visualization (a bar or line chart, or a before-and-after comparison, with realistic numbers and short labels drawn from the post or research), a sleek device, app, or dashboard mockup, a clear designed diagram or workflow, or a striking editorial visual of the real subject in the ${industry || "business"} field. Name the specific key elements to include and any real figures or short labels worth showing on charts or mockups - use figures from the post or the research brief, and never invent fake statistics. It should read as one cohesive designed graphic, modern, premium, and on-brand. At most 55 words, one single-line sentence.
+- "headline": A short SUPPORTING caption that labels the visual - the graphic is the hero, the text is secondary, so keep it brief. The single most important hook or takeaway of THIS specific post, distilled to between 2 and 4 words and at most 24 characters total. Never more than 4 words. This is NOT the title - compress the core idea into your own words, never copy the title verbatim. Prefer short, common words; avoid any word longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates, because they render incorrectly. Short numbers are fine, for example "3 Hiring Mistakes" or "80/20 Rule". If the post body is empty or very short, derive the headline from the title alone and do not invent facts. If postType is "question", make the headline a short, punchy version of the post's core question ending in a single question mark. Use Title Case. No quotation marks, no hashtags, no ending punctuation except that one question mark. This exact text is rendered on the image, so spell every word correctly.
+- "visual": Describe the BEST premium GRAPHIC CONCEPT to communicate THIS post's core point - think like an art director, NOT a stock-photo picker. STRONGLY PREFER a clean infographic, chart, graph, comparison, diagram, or data visualization whenever the post has any numbers, steps, stages, lists, or comparisons - with realistic figures and only a few short labels drawn from the post or research, never invented. Otherwise use a sleek device or dashboard mockup, a clear process diagram, or a clean DESIGNED composition (a labeled diagram, an annotated mockup, or an icon-driven concept layout - not a plain photo or empty illustration) built around the real subject of THIS person's actual ROLE (from their headline) and the post's topic - never a generic stereotype of their field (no chips or wires just because the field is technology). The visual itself must carry the meaning, so keep on-image text minimal. Name the specific key elements and the few short real labels worth showing. At most 55 words, one single-line sentence.
 - "palette": Describe a DISTINCTIVE colour mood and atmosphere that emotionally matches THIS specific post - for example "warm golden-hour light with deep teal shadows" or "moody cool blues lifted by one warm amber glow". Draw inspiration from rich colour stories like ${moodHint}, but express it as the lighting and atmosphere of a real scene, NOT as flat background fills. EVERY post must get a clearly DIFFERENT mood - never the same colours twice, and never plain grey-on-white. This guides the overall tone and the small headline panel; the scene's own natural colours should carry most of the frame. At most 30 words, one single-line sentence.
 - "textPosition": Choose the BEST placement for the headline based on where the visual subject sits and where negative space naturally falls. Pick exactly one: "top-center", "bottom-center", "bottom-left", "center-left", or "overlay-center". Vary this based on the scene composition - do NOT always pick the same position.
 
@@ -576,8 +575,8 @@ ONE SHARED LOOK (this is what makes it a cohesive set):
 - The visual scene must be the hero of each slide - occupying at least 65% of the frame area. Headlines are elegant overlays, not the dominant element.
 
 EACH SLIDE NEEDS:
-- "headline": the ONLY text that should appear on that slide. Between 2 and 5 words, never more than 5, and at most 28 characters total. Punchy, spelled exactly, capturing that slide's one idea. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. Use Title Case. No quotation marks, no hashtags, no emojis.
-- "visual": ONE single-line sentence describing the BEST premium GRAPHIC CONCEPT for THIS slide's idea - a designed element such as a clean chart or key stat with realistic numbers, a sleek device or UI mockup, a tidy icon or diagram, or a striking visual of the real subject from the ${industry || "business"} field. Name the specific elements and any real figures or short labels to show on it (use figures from the post or research, never invent fake statistics). Keep every slide in ONE cohesive designed style. At most 50 words.
+- "headline": the ONLY text that should appear on that slide, and it must always be present and legible. Between 2 and 5 words, never more than 5, and at most 28 characters total. Punchy, spelled exactly, capturing that slide's one idea. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. Use Title Case. No quotation marks, no hashtags, no emojis.
+- "visual": ONE single-line sentence describing the BEST premium GRAPHIC CONCEPT for THIS slide's idea - STRONGLY PREFER a clean chart, graph, key stat with realistic numbers, a sleek device or UI mockup, or a tidy diagram; otherwise a clean DESIGNED composition (a labeled diagram, an annotated mockup, or an icon-driven concept layout, not a plain photo or empty illustration) built around the real subject of THIS person's actual role and the post's topic (never a generic stereotype of their field). Name the specific elements and any real figures or short labels to show (use figures from the post or research, never invent fake statistics). The visual carries the meaning, so keep on-slide text minimal. Keep every slide in ONE cohesive designed style. At most 50 words.
 - "textPosition": choose the best headline placement for this slide's composition: "top-center", "bottom-center", "bottom-left", or "center-left". Keep it consistent across all slides in this carousel.
 
 GUARDRAILS:
