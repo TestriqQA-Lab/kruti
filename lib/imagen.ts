@@ -59,25 +59,28 @@ export function buildBrandedImagePrompt(brief: {
 }): string {
   const { headline, visual, palette, position } = brief;
 
-  return `Design a single, premium, professionally designed square (1:1) graphic for a LinkedIn feed - in the polished style of a high-end infographic, data visual, or product showcase. This is a DESIGNED graphic, NOT a stock photo with a caption bar pasted on top, and NOT a text-heavy poster.
+  return `Design a single, clean, professionally designed square (1:1) graphic for a LinkedIn feed, in a REALISTIC, grounded style that genuinely fits the topic. This is a DESIGNED graphic, NOT a stock photo with a caption bar pasted on top, and NOT a text-heavy poster.
 
 MAIN VISUAL - the hero, it must carry the meaning on its own: ${visual}
-- Whenever the topic involves data, numbers, growth, results, steps, stages, a comparison, a process, a product, an app, a UI, or a workflow, make a clean infographic, chart, graph, or diagram the main subject - with realistic labels and numbers, sleek device or dashboard mockups, tidy icons, or a clear flow - the way premium LinkedIn carousels and reports look. Let the visual do the talking.
+- Whenever the topic involves data, numbers, growth, results, steps, stages, a comparison, a process, a product, a UI, or a workflow, make a clean infographic, chart, graph, or diagram the main subject - with realistic labels and numbers, tidy icons, a clear flow, or a believable device or dashboard mockup. Render it cleanly and realistically, not as a glowing futuristic dashboard. Let the visual do the talking.
+
+REALISTIC, ON-TOPIC LOOK (important):
+- Match the theme, style, and colours to what THIS post is actually about, and vary them from post to post. Do NOT default to a futuristic, sci-fi, neon, holographic, or generic hi-tech aesthetic, and do NOT default to a cool blue or teal "tech" palette. A futuristic or high-tech look is allowed ONLY when the post is genuinely about the future or technology; otherwise keep it realistic, professional, and on-topic.
 
 HEADLINE: "${headline}"
 Place this as ONE small, restrained caption that supports the visual - clean, well-set, legible type, clearly SECONDARY to the imagery but ALWAYS present and readable, never hidden, tiny, or faded out. It is not a big banner and must not dominate the frame.
 
-KEEP TEXT MINIMAL:
-- The image MUST contain this short headline as real, readable text, plus only the few real labels, numbers, or axis values a chart, diagram, or mockup genuinely needs - and nothing more. This is a DESIGNED graphic with minimal meaningful text, never a blank or text-free illustration and never a text-heavy poster. No paragraphs, sub-headlines, body copy, taglines, descriptions, watermarks, or decorative lettering anywhere.
+KEEP TEXT MINIMAL BUT IMPACTFUL:
+- The image MUST contain this short headline as real, readable text, plus at most one or two short key points or the few real labels, numbers, or axis values a chart, diagram, or mockup genuinely needs - displayed cleanly and legibly, and nothing more. This is a DESIGNED graphic with minimal meaningful text, never a blank or text-free illustration and never a text-heavy poster. No paragraphs, sub-headlines, body copy, taglines, descriptions, watermarks, or decorative lettering anywhere.
 - Every word that does appear must be real, correctly spelled, and meaningful to this topic. Never produce scrambled, fake, or nonsense lettering.
 
 DESIGN IT LIKE A SENIOR DESIGNER WOULD:
 - One cohesive, intentional composition with clear visual hierarchy, balanced layout, and purposeful spacing that fills the whole frame.
 - FULL-BLEED: the background and the whole design must extend completely to all four edges of the square - NO white, blank, or empty border, frame, padding, or outer margin. Keep key elements just clear of the very edge so nothing is cut off, but the design must fill the entire canvas edge to edge.
 
-COLOR: ${palette} Keep it cohesive, rich, and on-brand - intentional, not washed-out, monotone, or flooded with one flat colour.
+COLOR: ${palette} Use realistic colours drawn from the subject; keep it cohesive, rich, and on-brand - intentional, not washed-out, monotone, flooded with one flat colour, or a default cool blue, teal, or neon tech palette.
 
-QUALITY BAR: it must look like a senior designer or a top design tool produced it - crisp, high-resolution, modern, premium. Avoid cheap stock-photo-with-a-text-banner looks, walls of text, gaudy gradients, glossy plastic 3D, lens flare, busy clutter, and distorted hands, faces, or text.
+QUALITY BAR: it must look like a senior designer made it - crisp, clean, professional, and realistic. Avoid cheap stock-photo-with-a-text-banner looks, walls of text, sci-fi or neon glow, holographic and futuristic-tech cliches, gaudy gradients, glossy plastic 3D, lens flare, busy clutter, and distorted hands, faces, or text.
 ${position ? `CAROUSEL: this is ${position} - use the SAME design system, colour palette, type, and layout across every slide so the set is cohesive.\n` : ""}Square 1:1, filling the entire frame edge to edge with no blank border or margin on any side. High quality, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
 }
 
@@ -174,7 +177,7 @@ const CAROUSEL_VARIATIONS = [
   "laid out as a numbered step-by-step flow diagram",
   "laid out as a side-by-side before-and-after comparison",
   "laid out as an icon-driven concept grid",
-  "laid out as a simple labeled device or dashboard mockup",
+  "laid out as a simple labeled device or dashboard mockup, rendered realistically",
 ];
 
 /**
@@ -241,7 +244,8 @@ export function buildImagePrompt(
   // minimal meaningful labels - never an industry-stereotype, never a blank text-free
   // illustration.
   const role = (headline || "").trim() || "professional";
-  return `A clean, premium DESIGNED infographic-style graphic about "${postTitle}", anchored to the real work of a ${role} (broad field: ${industry || "business"} - context only, do NOT default to a generic stereotype of the field such as chips, wires, or circuit boards).
+  return `A clean, professional, REALISTIC DESIGNED infographic-style graphic about "${postTitle}", anchored to the real work of a ${role} (broad field: ${industry || "business"} - context only, do NOT default to a generic stereotype of the field such as chips, wires, or circuit boards).
+Match the theme, style, and colours to what THIS post is actually about; do NOT default to a futuristic, sci-fi, neon, or cool blue/teal "tech" aesthetic unless the post is genuinely about the future or technology - otherwise keep it realistic and on-topic.
 Build it as a simple chart, diagram, labeled mockup, or icon-driven concept layout with only a few short, real, correctly-spelled labels - a designed graphic with minimal meaningful text, never a blank text-free illustration and never a text-heavy poster.
 Square format (1:1), full-bleed edge to edge with no blank border or margin on any side. High quality, suitable for LinkedIn.`;
 }
