@@ -52,35 +52,46 @@ function friendlyImageError(rawMessage: string): string {
  */
 export function buildBrandedImagePrompt(brief: {
   headline: string;
+  subpoints?: string[];
   visual: string;
   palette: string;
   textPosition?: string;
   position?: string;
 }): string {
   const { headline, visual, palette, position } = brief;
+  const subpoints = (brief.subpoints ?? [])
+    .map((s) => (s || "").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  const subpointsBlock = subpoints.length
+    ? `SUPPORTING POINTS - render these ${subpoints.length} short points as bold, legible on-image labels (a tidy stack, row, chips, or chart/diagram labels) near the headline, clearly smaller than the headline but fully readable, so the viewer grasps the post's context at a glance - never crowded, never a paragraph:\n${subpoints
+        .map((s) => `- "${s}"`)
+        .join("\n")}\n\n`
+    : "";
 
-  return `Design a single, clean, professionally designed square (1:1) graphic for a LinkedIn feed, in a REALISTIC, grounded style that genuinely fits the topic. This is a DESIGNED graphic, NOT a stock photo with a caption bar pasted on top, and NOT a text-heavy poster.
+  return `Design a single, clean, professionally designed square (1:1) graphic for a LinkedIn feed that EXPLAINS the post - the visual and its on-image text together must make the post's core message clear at a glance and stop the scroll. CHOOSE THE STYLE THAT FITS THIS CONTENT and vary it by post: a realistic / photographic scene, a bold flat illustration or friendly animated look, a clean infographic / chart / diagram, an editorial concept, or a futuristic look only if the post is genuinely about the future or technology. There is NO default style - do not force every image to be realistic, and do not force every image to be futuristic; follow the style named in the main visual below. This is a DESIGNED, information-rich graphic, NOT a stock photo with a caption bar pasted on top, and NOT a text-heavy poster.
 
 MAIN VISUAL - the hero, it must carry the meaning on its own: ${visual}
 - Whenever the topic involves data, numbers, growth, results, steps, stages, a comparison, a process, a product, a UI, or a workflow, make a clean infographic, chart, graph, or diagram the main subject - with realistic labels and numbers, tidy icons, a clear flow, or a believable device or dashboard mockup. Render it cleanly and realistically, not as a glowing futuristic dashboard. Let the visual do the talking.
 
-REALISTIC, ON-TOPIC LOOK (important):
-- Match the theme, style, and colours to what THIS post is actually about, and vary them from post to post. Do NOT default to a futuristic, sci-fi, neon, holographic, or generic hi-tech aesthetic, and do NOT default to a cool blue or teal "tech" palette. A futuristic or high-tech look is allowed ONLY when the post is genuinely about the future or technology; otherwise keep it realistic, professional, and on-topic.
+CONTENT-DRIVEN, ON-TOPIC LOOK (important):
+- Match the style, theme, and colours to what THIS post is actually about, and vary them from post to post - the main visual above names the intended style, so commit to it. A futuristic, sci-fi, neon, or hi-tech aesthetic is allowed ONLY when the post is genuinely about the future or technology; otherwise do not default to it, and do not default to a cool blue or teal "tech" palette. Equally, do NOT flatten every post into the same realistic photo - if the concept calls for a bold illustration, infographic, or editorial treatment, render that. The image must communicate the topic, professionally and on-brand.
 
-HEADLINE: "${headline}"
-Place this as ONE small, restrained caption that supports the visual - clean, well-set, legible type, clearly SECONDARY to the imagery but ALWAYS present and readable, never hidden, tiny, or faded out. It is not a big banner and must not dominate the frame.
+HEADLINE (the dominant message): "${headline}"
+Render this as the clear focal text of the graphic - bold, large, well-set, high-contrast, and instantly readable. It is the single line that dominates the type and states the post's core point. It works WITH the visual (not pasted over it as an afterthought), is always present and readable, never hidden, tiny, or faded out, and stays within the center 80% of the canvas so it is never cropped.
 
-KEEP TEXT MINIMAL BUT IMPACTFUL:
-- The image MUST contain this short headline as real, readable text, plus at most one or two short key points or the few real labels, numbers, or axis values a chart, diagram, or mockup genuinely needs - displayed cleanly and legibly, and nothing more. This is a DESIGNED graphic with minimal meaningful text, never a blank or text-free illustration and never a text-heavy poster. No paragraphs, sub-headlines, body copy, taglines, descriptions, watermarks, or decorative lettering anywhere.
-- Every word that does appear must be real, correctly spelled, and meaningful to this topic. Never produce scrambled, fake, or nonsense lettering.
+${subpointsBlock}TEXT MUST BE CLEARLY VISIBLE AND INFORMATIVE (not minimal, not a wall):
+- Build a clear reading path: the bold headline first and dominant, then any supporting points listed above as smaller but fully legible text, plus only the few real labels, numbers, or axis values a chart, diagram, or mockup genuinely needs. This is the RIGHT amount of text - enough to grasp the post's context at a glance, never a tiny faded caption and never paragraphs, sub-headlines, body copy, taglines, descriptions, watermarks, or a cluttered poster.
+- Use size, weight, and contrast to separate the headline from the supporting points so the hierarchy is obvious and everything is easy to read on a phone.
+- Every word that appears must be real, correctly spelled, and meaningful to this topic. Never produce scrambled, fake, or nonsense lettering.
 
 DESIGN IT LIKE A SENIOR DESIGNER WOULD:
 - One cohesive, intentional composition with clear visual hierarchy, balanced layout, and purposeful spacing that fills the whole frame.
 - FULL-BLEED: the background and the whole design must extend completely to all four edges of the square - NO white, blank, or empty border, frame, padding, or outer margin. Keep key elements just clear of the very edge so nothing is cut off, but the design must fill the entire canvas edge to edge.
 
-COLOR: ${palette} Use realistic colours drawn from the subject; keep it cohesive, rich, and on-brand - intentional, not washed-out, monotone, flooded with one flat colour, or a default cool blue, teal, or neon tech palette.
+COLOR: ${palette} Use cohesive, rich, intentional colours drawn from the subject - not washed-out, monotone, flooded with one flat colour, or a default cool blue, teal, or neon tech palette unless the topic is genuinely about technology.
 
-QUALITY BAR: it must look like a senior designer made it - crisp, clean, professional, and realistic. Avoid cheap stock-photo-with-a-text-banner looks, walls of text, sci-fi or neon glow, holographic and futuristic-tech cliches, gaudy gradients, glossy plastic 3D, lens flare, busy clutter, and distorted hands, faces, or text.
+QUALITY BAR: it must look like a senior designer made it - crisp, clean, professional, and well-composed in whatever style this post called for. Avoid cheap stock-photo-with-a-text-banner looks, walls of text, bare empty illustrations, gaudy gradients, glossy plastic 3D, lens flare, busy clutter, and distorted hands, faces, or text. Avoid sci-fi / neon glow and holographic futuristic-tech cliches UNLESS the post is genuinely about the future or technology.
 ${position ? `CAROUSEL: this is ${position} - use the SAME design system, colour palette, type, and layout across every slide so the set is cohesive.\n` : ""}Square 1:1, filling the entire frame edge to edge with no blank border or margin on any side. High quality, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
 }
 

@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
       );
       const prompt = buildBrandedImagePrompt({
         headline: brief.headline,
+        subpoints: brief.subpoints,
         visual: brief.visual,
         palette: brief.palette,
         textPosition: brief.textPosition,
