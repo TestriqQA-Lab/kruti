@@ -11,8 +11,9 @@ import { buildImageBriefPrompt, buildCarouselPlanPrompt, UserVisualProfile } fro
  */
 
 export interface ImageBrief {
-  headline: string; // short supporting caption (2-4 words, <=24 chars target), kept secondary to the visual
-  visual: string; // one single-line infographic-forward graphic concept anchored to the post + the person's role
+  headline: string; // hero message (3-7 words, <=42 chars) stating the post's core point, prominently rendered
+  subpoints: string[]; // 0-3 short supporting key points (<=32 chars each) rendered as legible on-image labels
+  visual: string; // one single-line graphic concept (style varies by content) that EXPLAINS the post + the person's role
   palette: string; // one single-line color direction with specific hex colors
   textPosition: string; // where the headline sits: top-center, bottom-center, bottom-left, center-left, overlay-center
 }
@@ -36,7 +37,7 @@ const DEFAULT_PALETTE =
  * whitespace, strip wrapping quotes, and hard-cap at 28 characters. Instructions
  * alone do not guarantee the cap, so we enforce it in code.
  */
-export function clampHeadline(raw: string, max = 28): string {
+export function clampHeadline(raw: string, max = 42): string {
   return (raw || "")
     .replace(/\s+/g, " ")
     .replace(/^["'“”]+|["'“”]+$/g, "")
@@ -45,10 +46,37 @@ export function clampHeadline(raw: string, max = 28): string {
     .trim();
 }
 
-/** A 2-5 word headline derived from the post title, used when the model fails. */
+/**
+ * Normalise the model-produced supporting points so they render as tight, legible
+ * on-image text: collapse whitespace, strip wrapping quotes, dedupe, hard-cap each
+ * at 32 chars and the list at 3. Optional field - any missing/garbage value safely
+ * becomes [] so the headline text-floor still governs.
+ */
+export function clampSubpoints(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of raw) {
+    const s = String(item ?? "")
+      .replace(/\s+/g, " ")
+      .replace(/^["'“”]+|["'“”]+$/g, "")
+      .trim()
+      .slice(0, 32)
+      .trim();
+    const key = s.toLowerCase();
+    if (s && !seen.has(key)) {
+      seen.add(key);
+      out.push(s);
+      if (out.length === 3) break;
+    }
+  }
+  return out;
+}
+
+/** A 3-7 word headline derived from the post title, used when the model fails. */
 function headlineFromTitle(title: string): string {
-  const words = (title || "Key insight").trim().split(/\s+/).slice(0, 5).join(" ");
-  return clampHeadline(words) || "Key insight";
+  const words = (title || "Key insight").trim().split(/\s+/).slice(0, 7).join(" ");
+  return clampHeadline(words, 42) || "Key insight";
 }
 
 /** Deterministic, still-content-related brief for when the text model is down. */
@@ -73,7 +101,8 @@ function fallbackBrief(
   const posIdx = (post.title || "").length % textPositions.length;
   return {
     headline: headlineFromTitle(post.title),
-    visual: `A clean infographic-style graphic about "${post.title}" anchored to what a ${role} actually does (broad field: ${industry} - context only, never a generic stereotype of the field), with a simple chart or diagram, a few short real labels, and clear space for the headline.`,
+    subpoints: [],
+    visual: `A clean infographic-style graphic about "${post.title}" anchored to what a ${role} actually does (broad field: ${industry} - context only, never a generic stereotype of the field), with a simple chart or diagram, a few short real labels, and clear space for the headline plus two or three short supporting points.`,
     palette: fallbackPalettes[post.postType] || DEFAULT_PALETTE,
     textPosition: textPositions[posIdx],
   };
@@ -95,12 +124,13 @@ export async function getImageBrief(
         buildImageBriefPrompt(post.title, post.body, post.postType, industry, userProfile)
       );
       const parsed = parseJSON<Partial<ImageBrief>>(raw);
-      const headline = clampHeadline(parsed.headline || "", 24);
+      const headline = clampHeadline(parsed.headline || "", 42);
       if (headline && parsed.visual && parsed.palette) {
         const validPositions = ["top-center", "bottom-center", "bottom-left", "center-left", "overlay-center"];
         const textPosition = validPositions.includes(parsed.textPosition || "") ? parsed.textPosition! : "top-center";
         return {
           headline,
+          subpoints: clampSubpoints(parsed.subpoints),
           visual: String(parsed.visual),
           palette: String(parsed.palette),
           textPosition,
