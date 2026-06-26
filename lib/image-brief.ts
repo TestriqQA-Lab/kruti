@@ -58,12 +58,14 @@ function fallbackBrief(
   headline?: string
 ): ImageBrief {
   const role = (headline || "").trim() || "professional";
-  // Pick a fallback palette based on postType so even fallbacks get variety
+  // Deterministic per-postType fallbacks (used only when the text model is down, so
+  // they can't be content-matched). Kept warm/grounded and non-tech so the fallback
+  // never lands on the cool blue/teal/neon look the prompts now forbid.
   const fallbackPalettes: Record<string, string> = {
-    "thought-leadership": "Deep indigo #3730A3 background, crisp white text, warm amber #F59E0B accent.",
-    "tips": "Clean white background, teal #0D9488 accent elements, dark charcoal #1E293B text.",
+    "thought-leadership": "Deep navy #1E3A5F background, crisp ivory text, warm amber #F59E0B accent.",
+    "tips": "Warm paper #FAF7F0 background, muted clay #B45309 accent elements, dark charcoal #1E293B text.",
     "story": "Warm terracotta #C2410C tones, creamy ivory #FFFBEB base, soft brown accents.",
-    "question": "Rich violet #7C3AED background, bright white text, subtle grey highlights.",
+    "question": "Muted plum #6B2D5C background, soft ivory text, warm sand highlights.",
     "listicle": "Fresh sage #4D7C0F accents, clean white base, dark slate #334155 text.",
   };
   const textPositions = ["top-center", "bottom-center", "center-left", "bottom-left"];
