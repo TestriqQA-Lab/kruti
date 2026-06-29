@@ -237,7 +237,11 @@ Generate exactly ${postCount} posts as a JSON array. Each post must follow this 
 
 Rules for each post:
 - Each post must sound like it was written by the specific person in the profile above
-- Vary the format across the set (short paragraphs, numbered points, narrative)
+- HOOK (most important): the first line must stop the scroll. Use a bold/contrarian claim, a surprising number, a specific moment ("Last Tuesday a client asked me…"), or a sharp question. NEVER open with generic filler like "In today's fast-paced world", "Let's dive in", "We all know that…".
+- ONE clear idea per post — make a single point well; don't cram everything in.
+- Be SPECIFIC and concrete: real scenarios, numbers, names of tools/situations, a lesson learned — not vague platitudes or motivational fluff.
+- Avoid AI tells: no "delve", "tapestry", "in conclusion", "navigate the landscape", "unlock/elevate/supercharge", em-dash overuse, or rhetorical "But here's the kicker" clichés.
+- Vary the HOOK STYLE and format across the ${postCount} posts (story, contrarian take, how-to, data point, lesson) — no two should open the same way.
 - Include a strong, specific call-to-action in each post body
 ${formatRule}
 - Image prompts must describe a scene or visual metaphor only — NEVER describe text or words that should appear in the image

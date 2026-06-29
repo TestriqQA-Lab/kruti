@@ -27,10 +27,16 @@ export async function generatePostImage(
 
   const prompt = `${sceneDescription}
 
-Style: Professional, polished, visually compelling. Cinematic composition, natural lighting, professional color grading.
+Art direction:
+- Modern, premium editorial photography or a clean 3D render — NOT generic stock-photo, clip-art, or infographic.
+- Cinematic composition with a clear focal point, shallow depth of field, and breathing space (negative space) for a polished LinkedIn feel.
+- Soft, natural lighting with professional color grading; a cohesive palette with subtle blue accents looks on-brand.
+- High detail, crisp and realistic; uncluttered, no busy or distracting backgrounds.
 Industry context: ${industry || "business"}.
-The image must contain ZERO text — no words, letters, numbers, labels, captions, watermarks, or typography of any kind.
-Square format (1:1). High quality, suitable for LinkedIn.`;
+Hard constraints (do NOT violate):
+- ZERO text of any kind — no words, letters, numbers, labels, captions, watermarks, logos, or typography.
+- No distorted hands, faces or anatomy; no warped objects; no user-interface screenshots.
+Square format (1:1), high resolution, suitable for a LinkedIn post.`;
 
   console.log(`[Imagen] Scene: ${sceneDescription.slice(0, 80)}...`);
 
@@ -38,8 +44,11 @@ Square format (1:1). High quality, suitable for LinkedIn.`;
   // - gemini-3.1-flash-image-preview: confirmed working, returns JPEG images via generateContent
   // - Imagen 4.0 models: only support "predict" (Vertex AI), NOT generateImages via Gemini API
 
+  // Tried in order — primary first, stable fallback second. If the preview
+  // model is ever deprecated/unavailable, generation falls back automatically.
   const imageModels = [
-    "gemini-3.1-flash-image-preview",
+    "gemini-3.1-flash-image-preview", // primary — newest, best quality
+    "gemini-2.5-flash-image", // stable GA fallback
   ];
 
   for (const model of imageModels) {
