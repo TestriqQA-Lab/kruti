@@ -72,11 +72,11 @@ export async function POST(req: NextRequest) {
         userVisualProfile
       );
       const prompt = buildBrandedImagePrompt({
+        style: brief.style,
         headline: brief.headline,
-        subpoints: brief.subpoints,
+        label: brief.label,
         visual: brief.visual,
         palette: brief.palette,
-        textPosition: brief.textPosition,
       });
       const imageUrl = await generatePostImage(prompt, post.id, industry, true);
 
