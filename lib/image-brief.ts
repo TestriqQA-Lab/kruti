@@ -4,40 +4,42 @@ import { buildImageBriefPrompt, buildCarouselPlanPrompt, UserVisualProfile } fro
 /**
  * Content-aware image briefs.
  *
- * The text model reads a post's real title + body and returns a brief that ties
- * the generated image to the post's actual content. The image is a DESIGNED graphic
- * (infographic / chart / diagram preferred) driven by the person's ROLE, with a short
- * supporting headline caption and minimal meaningful text.
+ * The text model reads a post's real title + body and, acting as an editorial art
+ * director, returns a brief for ONE striking, content-driven image. The VISUAL is
+ * the hero (a genuinely different medium/style per post - photo, illustration, data
+ * viz, conceptual...) and a short headline only supports it. No house style, no
+ * default look, no forced text stack.
  */
 
 export interface ImageBrief {
-  headline: string; // hero message (3-7 words, <=42 chars) stating the post's core point, prominently rendered
-  subpoints: string[]; // 0-3 short supporting key points (<=32 chars each) rendered as legible on-image labels
-  visual: string; // one single-line graphic concept (style varies by content) that EXPLAINS the post + the person's role
-  palette: string; // one single-line color direction with specific hex colors
-  textPosition: string; // where the headline sits: top-center, bottom-center, bottom-left, center-left, overlay-center
+  style: string; // ONE named art-direction medium/style, chosen from the post's content (varies per post)
+  visual: string; // the hero image itself - a rich, concrete art-director scene that represents the post
+  headline: string; // short SUPPORTING headline (3-6 words, <=36 chars) stating the post's core point
+  label: string; // AT MOST one short callout figure/label, "" unless the visual is a chart/diagram/data scene
+  palette: string; // one single-line colour + light direction drawn from the real subject
 }
 
 export interface CarouselSlide {
   headline: string;
   visual: string;
-  textPosition?: string;
+  label?: string;
 }
 
 export interface CarouselPlan {
-  palette: string; // one shared palette + register, reused by every slide
+  style: string; // one shared art-direction style, reused by every slide
+  palette: string; // one shared palette + light mood, reused by every slide
   slides: CarouselSlide[]; // 2..count entries, in carousel order (hook ... takeaway)
 }
 
 const DEFAULT_PALETTE =
-  "Rich, warm neutrals with a bold accent - deep charcoal #1E293B background, warm ivory #FEFCE8 headline text, and a vibrant accent color for key elements.";
+  "warm directional light on rich neutral tones, deep charcoal shadows, one confident accent colour drawn from the subject.";
 
 /**
- * Normalise a model-produced headline so it always fits on the image: collapse
- * whitespace, strip wrapping quotes, and hard-cap at 28 characters. Instructions
- * alone do not guarantee the cap, so we enforce it in code.
+ * Normalise a model-produced headline so it always fits on the image as a clean,
+ * supporting line: collapse whitespace, strip wrapping quotes, and hard-cap the
+ * length. Instructions alone do not guarantee the cap, so we enforce it in code.
  */
-export function clampHeadline(raw: string, max = 42): string {
+export function clampHeadline(raw: string, max = 40): string {
   return (raw || "")
     .replace(/\s+/g, " ")
     .replace(/^["'“”]+|["'“”]+$/g, "")
@@ -47,36 +49,38 @@ export function clampHeadline(raw: string, max = 42): string {
 }
 
 /**
- * Normalise the model-produced supporting points so they render as tight, legible
- * on-image text: collapse whitespace, strip wrapping quotes, dedupe, hard-cap each
- * at 32 chars and the list at 3. Optional field - any missing/garbage value safely
- * becomes [] so the headline text-floor still governs.
+ * Normalise the model-produced style name into one short, clean art-direction
+ * phrase. Falls back to a neutral, non-tech editorial style if empty/garbage so
+ * the image prompt always leads with a committed medium.
  */
-export function clampSubpoints(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const item of raw) {
-    const s = String(item ?? "")
-      .replace(/\s+/g, " ")
-      .replace(/^["'“”]+|["'“”]+$/g, "")
-      .trim()
-      .slice(0, 32)
-      .trim();
-    const key = s.toLowerCase();
-    if (s && !seen.has(key)) {
-      seen.add(key);
-      out.push(s);
-      if (out.length === 3) break;
-    }
-  }
-  return out;
+export function clampStyle(raw: unknown): string {
+  const s = String(raw ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/^["'“”]+|["'“”]+$/g, "")
+    .trim()
+    .slice(0, 80)
+    .trim();
+  return s || "clean modern editorial illustration";
 }
 
-/** A 3-7 word headline derived from the post title, used when the model fails. */
+/**
+ * Normalise the single optional callout label: collapse whitespace, strip wrapping
+ * quotes, hard-cap at 24 chars. Any missing/garbage value safely becomes "" so no
+ * stray text is forced onto the image.
+ */
+export function clampLabel(raw: unknown): string {
+  return String(raw ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/^["'“”]+|["'“”]+$/g, "")
+    .trim()
+    .slice(0, 24)
+    .trim();
+}
+
+/** A 3-5 word headline derived from the post title, used when the model fails. */
 function headlineFromTitle(title: string): string {
-  const words = (title || "Key insight").trim().split(/\s+/).slice(0, 7).join(" ");
-  return clampHeadline(words, 42) || "Key insight";
+  const words = (title || "Key insight").trim().split(/\s+/).slice(0, 5).join(" ");
+  return clampHeadline(words, 40) || "Key insight";
 }
 
 /** Deterministic, still-content-related brief for when the text model is down. */
@@ -87,24 +91,29 @@ function fallbackBrief(
 ): ImageBrief {
   const role = (headline || "").trim() || "professional";
   // Deterministic per-postType fallbacks (used only when the text model is down, so
-  // they can't be content-matched). Kept warm/grounded and non-tech so the fallback
-  // never lands on the cool blue/teal/neon look the prompts now forbid.
-  const fallbackPalettes: Record<string, string> = {
-    "thought-leadership": "Deep navy #1E3A5F background, crisp ivory text, warm amber #F59E0B accent.",
-    "tips": "Warm paper #FAF7F0 background, muted clay #B45309 accent elements, dark charcoal #1E293B text.",
-    "story": "Warm terracotta #C2410C tones, creamy ivory #FFFBEB base, soft brown accents.",
-    "question": "Muted plum #6B2D5C background, soft ivory text, warm sand highlights.",
-    "listicle": "Fresh sage #4D7C0F accents, clean white base, dark slate #334155 text.",
+  // they can't be content-matched). Each pairs a genuinely different visual-first
+  // style with a warm/grounded, non-tech palette so the fallback never collapses to
+  // one look or to the cool blue/teal/neon "tech" cliche.
+  const fallbackStyles: Record<string, string> = {
+    "thought-leadership": "bold editorial concept illustration",
+    "tips": "clean modern editorial illustration",
+    "story": "warm cinematic documentary photograph",
+    "question": "striking minimal conceptual composition",
+    "listicle": "clean editorial data visualization",
   };
-  const textPositions = ["top-center", "bottom-center", "center-left", "bottom-left"];
-  // Use title length as a simple deterministic seed for position variety
-  const posIdx = (post.title || "").length % textPositions.length;
+  const fallbackPalettes: Record<string, string> = {
+    "thought-leadership": "deep navy dusk light, warm amber highlights, crisp ivory accents.",
+    "tips": "soft daylight on warm paper tones, muted clay accents, charcoal detail.",
+    "story": "warm golden-hour terracotta light, creamy ivory base, soft brown shadow.",
+    "question": "moody plum twilight, soft ivory key light, warm sand highlights.",
+    "listicle": "bright clean daylight, fresh sage greens, deep slate contrast.",
+  };
   return {
+    style: fallbackStyles[post.postType] || "clean modern editorial illustration",
+    visual: `A single striking image that represents "${post.title}" through the real, tangible world of a ${role} (broad field: ${industry} - context only, never a generic stereotype of the field), one clear focal subject filling the frame with natural depth, real textures, and deliberate lighting, telling the post's story on its own.`,
     headline: headlineFromTitle(post.title),
-    subpoints: [],
-    visual: `A clean infographic-style graphic about "${post.title}" anchored to what a ${role} actually does (broad field: ${industry} - context only, never a generic stereotype of the field), with a simple chart or diagram, a few short real labels, and clear space for the headline plus two or three short supporting points.`,
+    label: "",
     palette: fallbackPalettes[post.postType] || DEFAULT_PALETTE,
-    textPosition: textPositions[posIdx],
   };
 }
 
@@ -124,16 +133,14 @@ export async function getImageBrief(
         buildImageBriefPrompt(post.title, post.body, post.postType, industry, userProfile)
       );
       const parsed = parseJSON<Partial<ImageBrief>>(raw);
-      const headline = clampHeadline(parsed.headline || "", 42);
+      const headline = clampHeadline(parsed.headline || "", 40);
       if (headline && parsed.visual && parsed.palette) {
-        const validPositions = ["top-center", "bottom-center", "bottom-left", "center-left", "overlay-center"];
-        const textPosition = validPositions.includes(parsed.textPosition || "") ? parsed.textPosition! : "top-center";
         return {
-          headline,
-          subpoints: clampSubpoints(parsed.subpoints),
+          style: clampStyle(parsed.style),
           visual: String(parsed.visual),
+          headline,
+          label: clampLabel(parsed.label),
           palette: String(parsed.palette),
-          textPosition,
         };
       }
     } catch (err) {
@@ -159,20 +166,19 @@ export async function getCarouselPlan(
         buildCarouselPlanPrompt(post.title, post.body, post.postType, industry, count, userProfile)
       );
       const parsed = parseJSON<Partial<CarouselPlan>>(raw);
-      const validPositions = ["top-center", "bottom-center", "bottom-left", "center-left", "overlay-center"];
       const slides = Array.isArray(parsed.slides)
         ? parsed.slides
             .filter((s): s is CarouselSlide => !!s && !!s.headline && !!s.visual)
             .map((s) => ({
               headline: clampHeadline(s.headline),
               visual: String(s.visual),
-              textPosition: validPositions.includes(s.textPosition || "") ? s.textPosition : undefined,
+              label: clampLabel((s as { label?: unknown }).label),
             }))
             .filter((s) => !!s.headline)
             .slice(0, count)
         : [];
-      if (parsed.palette && slides.length >= 2) {
-        return { palette: String(parsed.palette), slides };
+      if (parsed.style && parsed.palette && slides.length >= 2) {
+        return { style: clampStyle(parsed.style), palette: String(parsed.palette), slides };
       }
     } catch (err) {
       console.error(`[CarouselPlan] attempt ${attempt + 1} failed:`, (err as Error).message);
