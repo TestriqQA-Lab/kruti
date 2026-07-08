@@ -41,63 +41,23 @@ export interface UserVisualProfile {
 }
 
 /**
- * Derives a visual style direction block for image prompts based on the user's
- * profile. The subject vocabulary is driven by the person's actual ROLE (their
- * headline/title), NOT a generic industry stereotype, so images match what they
- * really do - an SEO analyst and a backend engineer in "technology" get different
- * imagery. This keeps each user's images personal, on-brand, and role-accurate.
+ * Derives a single, concrete role-grounding line for image prompts. Deliberately
+ * does NOT pre-commit a visual register or composition style - that would fight the
+ * per-post "style varies by content" selection the art director makes. It only
+ * anchors the imagery to the person's actual ROLE (their headline/title) so it draws
+ * on what they really do, never a generic industry stereotype - an SEO analyst and a
+ * backend engineer, both in "technology", get different imagery.
  */
 export function deriveVisualStyle(profile: UserVisualProfile): string {
-  const parts: string[] = [];
-
-  // Visual register from positioning
-  const pos = (profile.positioning || "").toLowerCase();
-  if (pos.includes("thought leader")) {
-    parts.push("Visual register: bold editorial photography with striking compositions, strong directional lighting, and confident subjects.");
-  } else if (pos.includes("industry expert") || pos.includes("technical")) {
-    parts.push("Visual register: sharp, technical, detail-oriented imagery with precision and clarity - tools, environments, and close-up details relevant to the field.");
-  } else if (pos.includes("storyteller") || pos.includes("mentor")) {
-    parts.push("Visual register: warm cinematic storytelling scenes with natural lighting, human moments, and emotional depth.");
-  } else if (pos.includes("innovator") || pos.includes("entrepreneur")) {
-    parts.push("Visual register: dynamic, confident compositions with energy and momentum, grounded in real, believable scenes.");
-  } else {
-    parts.push("Visual register: clean, professional editorial photography or simple flat illustration.");
-  }
-
-  // Composition style from content styles
-  let styles: string[] = [];
-  try {
-    styles = profile.contentStyles ? JSON.parse(profile.contentStyles) : [];
-  } catch { /* ignore */ }
-  const stylesJoined = styles.join(" ").toLowerCase();
-
-  if (stylesJoined.includes("narrative") || stylesJoined.includes("story") || stylesJoined.includes("behind the scenes")) {
-    parts.push("Composition style: cinematic narrative scenes that tell a visual story, with depth and atmosphere.");
-  } else if (stylesJoined.includes("how-to") || stylesJoined.includes("tips") || stylesJoined.includes("problem")) {
-    parts.push("Composition style: clean, structured layouts with clear visual hierarchy - organized and instructive.");
-  } else if (stylesJoined.includes("data") || stylesJoined.includes("case study") || stylesJoined.includes("list")) {
-    parts.push("Composition style: infographic-inspired, precise, data-driven visual feel with geometric elements.");
-  } else if (stylesJoined.includes("q&a") || stylesJoined.includes("question") || stylesJoined.includes("predict")) {
-    parts.push("Composition style: thought-provoking, open compositions with visual tension and curiosity.");
-  }
-
-  // Subject vocabulary from the person's actual ROLE (their headline/title), NOT a
-  // generic industry stereotype. Two people in the same industry - say an SEO analyst
-  // and a backend engineer, both in "technology" - do completely different work, so the
-  // imagery must follow what THIS person actually does, never the field's cliche.
   const role = (profile.headline || "").trim();
   const industry = (profile.industry || "").trim();
   if (role) {
-    parts.push(
-      `Subject vocabulary: build the imagery from the real tools, screens, artifacts, and day-to-day scenarios of THIS person's actual role - "${role}". Do NOT default to a generic ${industry || "industry"} stereotype (for example circuit boards, chips, or wires just because the field is technology); show what this specific role genuinely works with.`
-    );
-  } else if (industry) {
-    parts.push(
-      `Subject vocabulary: use objects, tools, and scenarios that match what a ${industry} professional actually does day to day, matched to their real work rather than a generic stereotype of the field.`
-    );
+    return `Ground the imagery in the real tools, screens, artifacts, environments, and day-to-day moments of THIS person's actual role - "${role}" - not a generic stereotype of the ${industry || "field"} (for example, no circuit boards, chips, or wires just because the field is technology). Show what this specific role genuinely works with.`;
   }
-
-  return parts.length > 0 ? parts.join("\n") : "";
+  if (industry) {
+    return `Ground the imagery in the real objects, tools, environments, and day-to-day moments of a ${industry} professional's actual work, not a generic stereotype of the field.`;
+  }
+  return "";
 }
 
 export const ALL_POST_TYPES = ["thought-leadership", "tips", "story", "question", "listicle"];
@@ -476,8 +436,9 @@ Output ONLY the research brief under the headings above. Do not add commentary b
 }
 
 // ─── Single Image Brief Prompt ────────────────────────────────────────────────
-// Reads a post and designs a content-aware, text-bearing image (quote/title card).
-// Returns JSON: { headline, visual, palette, textPosition }.
+// Reads a post and briefs ONE visual-first, content-driven feed image the way an
+// editorial art director briefs a photographer/illustrator per article.
+// Returns JSON: { style, visual, headline, label, palette }.
 
 export function buildImageBriefPrompt(
   title: string,
@@ -487,39 +448,39 @@ export function buildImageBriefPrompt(
   userProfile?: UserVisualProfile
 ): string {
   const visualStyle = userProfile ? deriveVisualStyle(userProfile) : "";
-  const profileBlock = visualStyle ? `\nUSER VISUAL PROFILE (personalize the image to match this person's brand):\n${visualStyle}\n` : "";
+  const profileBlock = visualStyle ? `\nROLE GROUNDING (keep the imagery true to this person's real work):\n${visualStyle}\n` : "";
 
-  return `You are an art director for high-performing LinkedIn graphics. Read the LinkedIn post below and design a single square (1:1) feed image that EXPLAINS this post - a viewer should grasp the post's core message and context from the image alone, from its visual and its on-image text together. Think like an editorial / infographic designer, not a stock-photo picker: choose a visual concept that genuinely communicates THIS post's point, then render a strong, readable headline plus 2-3 short supporting points as clean, well-designed on-image text. This is a scroll-stopping, intentionally designed graphic that does real visual storytelling, NOT a bare illustration and NOT a plain stock photo with a caption. CHOOSE THE VISUAL STYLE THAT BEST COMMUNICATES THIS POST - it MUST vary from post to post. Depending on the topic, pick a realistic / photographic scene, a bold flat illustration or friendly animated / cartoon style, a clean infographic / chart / diagram, an editorial concept, or a futuristic / conceptual look when the topic is genuinely about the future or technology. There is NO default look: do NOT make every image realistic, and do NOT make every image futuristic. Match the register to the content.
+  return `You are the art director for a premium LinkedIn publication. For the post below, brief ONE striking square (1:1) feed image the way you would brief a photographer or illustrator for a magazine feature: the VISUAL is the hero and tells the post's story on its own, and a short headline only supports it. Find the single most important idea in the post, then imagine the one image that best represents and explains that idea at a glance.
+
+Choose the medium and art style that genuinely fit THIS post's idea and mood, and commit to it - let it vary naturally from post to post. An analytical or numbers post may become a clean data visualization; a human story a warm documentary photograph; an abstract or technical idea a bold illustration or a single strong conceptual composition; a product or how-to an elegant device or diagram scene; a big-idea opinion a striking editorial image. There is no house style and no default look - the content decides, and a futuristic / neon / tech look is right only when the post is truly about technology or the future.
 
 POST TITLE (hook): ${title}
 POST BODY: ${body}
 POST TYPE: ${postType}
-ROLE (base the imagery on what THIS person actually does): ${userProfile?.headline || "professional"}
-FIELD (broad context only - do NOT base the imagery on this): ${industry || "business"}
+ROLE (ground the imagery in what THIS person actually does): ${userProfile?.headline || "professional"}
+FIELD (broad context only - never draw the imagery from the field itself): ${industry || "business"}
 ${profileBlock}
-Produce a brief as a JSON object with this EXACT structure:
+Return a brief as a JSON object with this EXACT structure:
 {
-  "headline": "string",
-  "subpoints": ["string", "string"],
+  "style": "string",
   "visual": "string",
-  "palette": "string",
-  "textPosition": "string"
+  "headline": "string",
+  "label": "string",
+  "palette": "string"
 }
 
-FIELD DEFINITIONS AND CONSTRAINTS:
-- "headline": The post's core message as a bold, communicative headline that a viewer reads first and immediately understands - NOT a tiny secondary caption. Distil the post's main takeaway into your own words, between 3 and 7 words and at most 42 characters total. State the specific point or outcome of THIS post (a concrete claim, for example "Why Senior Hires Quit In 90 Days" or "Cut Onboarding From 30 Days To 5"), not a vague label. This is NOT the title - never copy the title verbatim. Prefer short, common words; avoid any word longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates, because they render incorrectly. Short numbers are fine, for example "3 Hiring Mistakes" or "80/20 Rule". If the post body is empty or very short, derive the headline from the title alone and do not invent facts. If postType is "question", make the headline a short, punchy version of the post's core question ending in a single question mark. Use Title Case. No quotation marks, no hashtags, no ending punctuation except that one question mark. This exact text is rendered large on the image, so spell every word correctly.
-- "subpoints": An array of 2 or 3 short supporting points that, together with the headline, let a viewer understand the post's context at a glance - the key facts, steps, stats, or contrasts the post is built on. Each is its own string, 2 to 5 words and at most 32 characters, Title Case or a short real label, spelled exactly. Draw them ONLY from the post (never invent facts, stats, or claims): for a list or steps post use the actual steps; for a data post use the few real figures; for a comparison use the two sides; for a story or opinion post use the key beats or contrasts (for example ["Slow Feedback Loops", "No Clear Owner", "Skipped The Why"] or ["Before: 30 Days", "After: 5 Days", "70% Faster"]). These render as bold, legible on-image labels under or beside the headline, creating the reading path a strong LinkedIn graphic uses. Provide 2 to 3 (never more than 3); use an empty array [] only if the post genuinely supports only the headline. No ending punctuation, no quotation marks, no hashtags. Keep each tight and scannable - never a sentence or a paragraph.
-- "visual": Describe the BEST GRAPHIC CONCEPT to EXPLAIN THIS post's core point - think like an art director choosing the right medium for THIS message, NOT a stock-photo picker. First decide the STYLE that communicates THIS content best and NAME it explicitly at the start of the sentence: (a) a clean infographic, chart, graph, comparison, or diagram when the post has any numbers, steps, stages, lists, or contrasts (with realistic figures and only short real labels from the post, never invented); (b) a clear process / flow diagram or an annotated UI or device mockup for a how-to or product point; (c) a bold flat illustration or a friendly animated / cartoon scene for a conceptual, contrarian, or human idea; (d) a realistic editorial photo scene for a story or people-centered post; (e) a futuristic or conceptual rendering ONLY when the post is genuinely about the future or technology. VARY this choice across posts - do not default to realistic and do not default to futuristic. Build it around THIS person's actual ROLE (from their headline) and the post's topic, never a generic stereotype of their field (no chips or wires just because the field is technology). The visual must do real storytelling so the message is clear even before reading the text, and it must leave clean space for the headline and the 2-3 supporting labels so the text is legible, not crowded - never an empty, text-free, or decorative-only illustration. Name the specific key elements and the few short real labels worth showing. At most 60 words, one single-line sentence.
-- "palette": Choose a REALISTIC colour palette that genuinely matches THIS post's subject and mood - derive it from the real-world colours of the actual topic (for example a hiring post leans warm human office tones, a finance post grounded navy, forest, or paper tones, a burnout post muted and desaturated, a sustainability post natural greens and earth). Express it as the lighting and atmosphere of a real scene, not flat background fills. EVERY post must get a clearly DIFFERENT, realistic palette - never the same colours twice, and do NOT default to a cool blue, teal, or neon "tech" palette unless the post is genuinely about technology or the future. Avoid plain grey-on-white. At most 30 words, one single-line sentence.
-- "textPosition": Choose the BEST placement for the headline based on where the visual subject sits and where negative space naturally falls. Pick exactly one: "top-center", "bottom-center", "bottom-left", "center-left", or "overlay-center". Vary this based on the scene composition - do NOT always pick the same position.
+FIELD DEFINITIONS:
+- "style": Name ONE specific visual medium and art style for this image, chosen from the post's content - the single genre the image commits to. Be concrete and evocative, for example "warm editorial documentary photograph", "bold flat vector illustration with geometric shapes", "clean isometric data visualization", "moody cinematic still", "hand-drawn conceptual sketch", "minimal editorial 3D render", or "vintage screen-print poster". This must genuinely differ from post to post based on what best represents THIS post. 3 to 8 words. Do not default to a futuristic, sci-fi, or "tech" look unless the post is truly about technology or the future.
+- "visual": The hero image itself, described like a rich art-director's brief - the ONE image that represents this post's core idea. Name a concrete subject and what it is doing, the setting, the composition and camera angle, the key objects, the materials and textures, and the emotional tone. Make it specific and real, built from the post's actual topic and this person's role, never a generic stereotype of their field. Depict a concrete object, person, place, or scene - never an abstraction such as growth, innovation, or success drawn as glowing arrows, lightbulbs, or floating holograms. It fills the frame as the single hero with one clear focal point. Do NOT describe any headline, label, caption, or text here, and do NOT reserve blank space for text - describe only the image. 40 to 80 words, one single-line sentence, written in the chosen style.
+- "headline": A short SUPPORTING headline, in your own words, stating this post's core point - readable but secondary to the visual, never a giant banner. Between 3 and 5 words and at most 30 characters (shorter is better - long headlines render badly under compression and crowd out the visual). State a specific point or outcome (for example "Why Senior Hires Quit Early" or "Cut Onboarding To Five Days"), not a vague label, and never copy the title verbatim. Prefer short common words; avoid any word longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates (short numbers like "3 Mistakes" or "80/20 Rule" are fine). If the body is empty or very short, derive it from the title alone and invent nothing. If postType is "question", make it a short, punchy question ending in one question mark. Use Title Case. No quotation marks, no hashtags, no ending punctuation except that one question mark. This exact text is rendered on the image, so spell every word correctly.
+- "label": AT MOST ONE very short, real callout - a single key figure or label - and ONLY when the visual is genuinely a chart, diagram, or data scene that needs it. Draw it strictly from the post, never invented. At most 24 characters, Title Case or a short real figure, no ending punctuation, no quotation marks. For every other post, use an empty string "". Never a sentence, never a list.
+- "palette": A realistic colour and light direction drawn from the real-world subject of THIS post, expressed as the scene's lighting and atmosphere rather than flat background fills (for example "soft morning window light, warm oak and paper tones, deep espresso shadows"). Every post gets a clearly DIFFERENT, realistic palette - never the same colours twice, and never a default cool blue, teal, or neon "tech" palette unless the post is truly about technology. At most 30 words, one single-line sentence.
 
 GUARDRAILS:
-- Use plain hyphens only, never em-dashes or en-dashes.
-- Professional, human tone. No buzzwords.
-- The image must EXPLAIN the post: visual plus text together should make the core message and context clear at a glance. It must be rich and intentional, never bare, blank, or text-free.
-- TEXT MUST BE CLEARLY VISIBLE AND INFORMATIVE: the headline reads as the bold, dominant message and the 2-3 subpoints read as legible supporting labels, so the post's context is grasped at a glance. This is the right amount of text - NOT a tiny faded caption, and NOT a wall of text, paragraphs, body copy, or a cluttered poster. A strong headline plus a few short key points, cleanly laid out with clear hierarchy.
-- STYLE VARIES BY CONTENT: choose realistic, illustrated / cartoon, infographic, editorial, or futuristic strictly by what best explains THIS post, and make it differ from other posts. Never lock to one look. Do NOT make every post realistic, and use a futuristic / neon / sci-fi treatment only when the post is genuinely about the future or technology.
-- The visual must be visually rich and appropriately colourful for the subject - a designed graphic that communicates, never a bland grey stock photo, never bare or empty, and never a wall of text.
+- The VISUAL is the hero and does the storytelling; the headline is short and supporting. Never build a text poster, a caption bar, or a wall of text.
+- Choose the style purely from THIS post's content so it genuinely varies from other posts.
+- Invent no facts, statistics, or claims - everything shown must come from the post.
+- Professional, human, premium quality. Use plain hyphens only, never em-dashes or en-dashes.
 
 ${NO_EMOJI_RULES}
 
@@ -529,8 +490,9 @@ Return ONLY valid JSON. No markdown fences. No explanation. No emojis. Use plain
 }
 
 // ─── Carousel Slide Plan Prompt ───────────────────────────────────────────────
-// Breaks ONE post into a cohesive multi-slide walkthrough (hook -> points -> CTA).
-// Returns JSON: { palette, slides: [{ headline, visual, textPosition }] }.
+// Breaks ONE post into a cohesive multi-slide walkthrough (hook -> points -> CTA),
+// visual-first with a short supporting headline per slide.
+// Returns JSON: { style, palette, slides: [{ headline, visual, label }] }.
 
 export function buildCarouselPlanPrompt(
   title: string,
@@ -541,9 +503,9 @@ export function buildCarouselPlanPrompt(
   userProfile?: UserVisualProfile
 ): string {
   const visualStyle = userProfile ? deriveVisualStyle(userProfile) : "";
-  const profileBlock = visualStyle ? `\nUSER VISUAL PROFILE (personalize the carousel to match this person's brand):\n${visualStyle}\n` : "";
+  const profileBlock = visualStyle ? `\nROLE GROUNDING (keep the imagery true to this person's real work):\n${visualStyle}\n` : "";
 
-  return `You are an expert LinkedIn carousel designer. Turn ONE LinkedIn post into a cohesive, visually stunning image carousel of up to ${count} slides that walks the reader through THIS post's actual content.
+  return `You are the art director for a premium LinkedIn carousel. Turn ONE LinkedIn post into a cohesive, visually stunning set of up to ${count} slides that walks the reader through THIS post's actual content. On every slide the VISUAL is the hero and tells that slide's point; a short headline only supports it.
 
 THE POST:
 Title (hook): ${title}
@@ -563,26 +525,28 @@ HOW MANY SLIDES:
 - Produce between 2 and ${count} slides. Use ${count} only if the post genuinely has that many distinct points. If it has fewer, emit fewer (always at least a hook slide and a takeaway slide) rather than padding or repeating. If the body is empty or very short, build a minimal hook and takeaway from the title alone and do not invent facts, stats, or claims that are not in the post.
 
 ONE SHARED LOOK (this is what makes it a cohesive set):
-- Choose ONE REALISTIC colour mood and ONE visual style for the whole carousel that genuinely match the post's topic - derive the colours from the real-world subject and describe them as the lighting and atmosphere of real scenes (for example "warm sunrise tones with deep shadow contrast"), NOT flat background fills. Every carousel must use a clearly different, realistic palette; do NOT default to a cool blue, teal, or neon "tech" look unless the post is genuinely about technology or the future. Describe it once in "palette" and let every slide share that same atmosphere while the scenes' own natural colours carry the frames.
-- All slides share the SAME compositional grid and consistent headline placement. Vary only the subject and imagery per slide; keep type placement, margins, and visual rhythm identical across all slides.
-- Choose ONE visual style for the whole carousel that genuinely fits the post's topic - a clean infographic / chart / diagram system, a bold flat illustration or cartoon set, a realistic editorial / photographic set, an editorial concept, or a futuristic look ONLY when the post is genuinely about the future or technology. Commit to that ONE register across all slides. Do NOT default every carousel to realistic, and do NOT default to futuristic or neon.
-- The visual scene must be the hero of each slide - occupying at least 65% of the frame area. Headlines are elegant overlays, not the dominant element.
+- Choose ONE art-direction style and ONE realistic colour-and-light mood for the whole carousel that genuinely fit the post's topic, and commit to both across every slide. Name the style once in "style" (concrete and evocative, for example "warm editorial documentary photography" or "bold flat vector illustration"), chosen from the content so it varies from other carousels - not a default futuristic / neon / tech look unless the post is truly about technology. Describe the colour mood once in "palette" as the lighting and atmosphere of real scenes (for example "warm sunrise tones with deep shadow contrast"), not flat background fills.
+- Keep the same compositional grid, headline placement, margins, and visual rhythm on every slide; vary only the subject and imagery per slide so the set feels like one series.
+- On each slide the visual scene is the hero, filling the frame; the headline is a short, elegant supporting overlay, never the dominant element.
 
 EACH SLIDE NEEDS:
-- "headline": the dominant text on that slide, always present and legible - it must communicate that slide's point on its own, not act as a faded caption. Between 3 and 7 words, never more than 7, and at most 42 characters total. Punchy, spelled exactly, capturing that slide's one idea as a bold readable message. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. Use Title Case. No quotation marks, no hashtags, no emojis.
-- "visual": ONE single-line sentence describing the BEST GRAPHIC CONCEPT for THIS slide's idea - STRONGLY PREFER a clean chart, graph, key stat with realistic numbers, a device or UI mockup, or a tidy diagram; otherwise a clean DESIGNED composition (a labeled diagram, an annotated mockup, or an icon-driven concept layout, not a plain photo or empty illustration) built around the real subject of THIS person's actual role and the post's topic (never a generic stereotype of their field). Render it in the carousel's one chosen style (realistic, illustrated / cartoon, infographic, editorial, or futuristic only when the topic genuinely calls for it), consistent across all slides. Name the specific elements and any real figures or short labels to show (use figures from the post or research, never invent fake statistics). The visual carries the meaning, so keep on-slide text minimal. Keep every slide in ONE cohesive designed style. At most 50 words.
-- "textPosition": choose the best headline placement for this slide's composition: "top-center", "bottom-center", "bottom-left", or "center-left". Keep it consistent across all slides in this carousel.
+- "headline": a short SUPPORTING headline for that slide, always present and legible, communicating that slide's one point but secondary to the visual - never a faded caption and never a giant banner. Between 3 and 5 words and at most 30 characters (shorter renders more crisply). Punchy, spelled exactly, Title Case. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. No quotation marks, no hashtags, no emojis.
+- "visual": ONE single-line art-director's brief for THIS slide's hero image - the concrete subject and what it is doing, the composition, key objects, materials/textures, and mood, built from the real subject of this person's role and the post's topic (never a generic stereotype of their field, and never an abstraction like growth or success drawn as glowing arrows or lightbulbs). Render it in the carousel's one chosen style, consistent across all slides. Describe only the image; do not describe headline or caption text, and do not reserve blank space for text. At most 60 words.
+- "label": AT MOST ONE very short, real callout figure or label for this slide, and ONLY when its visual is genuinely a chart, diagram, or data scene (use figures from the post, never invented). At most 24 characters, no ending punctuation. Otherwise use an empty string "".
 
 GUARDRAILS:
+- The visual is the hero on every slide; the headline is short and supporting. Never build a text poster or a wall of text.
+- Invent no facts, statistics, or claims - everything shown must come from the post.
 - Use plain hyphens only, never em-dashes or en-dashes.
 
 ${NO_EMOJI_RULES}
 
 Return a JSON object with this EXACT structure (the "slides" array holds between 2 and ${count} objects):
 {
-  "palette": "string (the one shared colour mood and visual style described as scene lighting and atmosphere, reused by every slide)",
+  "style": "string (the one shared art-direction medium and style, chosen from the content, reused by every slide)",
+  "palette": "string (the one shared colour mood described as scene lighting and atmosphere, reused by every slide)",
   "slides": [
-    { "headline": "string (3-7 words, max 42 chars, the dominant text on this slide)", "visual": "string (one graphic concept for this slide's idea, in the carousel's chosen style)", "textPosition": "string (top-center, bottom-center, bottom-left, or center-left)" }
+    { "headline": "string (3-5 words, max 30 chars, short supporting headline)", "visual": "string (one art-director brief for this slide's hero image, in the carousel's chosen style)", "label": "string (one short real callout, or empty string)" }
   ]
 }
 
