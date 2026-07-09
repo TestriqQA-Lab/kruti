@@ -1,4 +1,4 @@
-import { generateText, parseJSON } from "@/lib/gemini";
+import { generateText, generateProText, parseJSON } from "@/lib/gemini";
 import { buildImageBriefPrompt, buildCarouselPlanPrompt, UserVisualProfile } from "@/lib/prompts";
 
 /**
@@ -29,12 +29,15 @@ export interface CarouselSlide {
   subheadline?: string;
   visual: string;
   nodes?: string[];
+  connectsFrom?: string; // how this slide follows from the previous one (narrative continuity)
+  connectsTo?: string; // how this slide leads into the next one
 }
 
 export interface CarouselPlan {
   style: string; // one shared art-direction style, reused by every slide
   palette: string; // one shared palette + light mood, reused by every slide
-  slides: CarouselSlide[]; // 2..count entries, in carousel order (hook ... takeaway)
+  slides: CarouselSlide[]; // exactly `count` entries, in carousel order (hook ... takeaway)
+  plannerModel?: string; // which text model actually produced the plan (pro tier or flash fallback)
 }
 
 const DEFAULT_PALETTE =
@@ -197,7 +200,10 @@ export async function getCarouselPlan(
 ): Promise<CarouselPlan | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const raw = await generateText(
+      // The planner is a pro-tier text model (falls back to flash). It reads the full
+      // post and returns one "packet" per slide: the slide's text content plus a
+      // visual prompt built from that text, with prev/next continuity refs.
+      const { text: raw, model: plannerModel } = await generateProText(
         buildCarouselPlanPrompt(post.title, post.body, post.postType, industry, count, userProfile)
       );
       const parsed = parseJSON<Partial<CarouselPlan>>(raw);
@@ -210,12 +216,14 @@ export async function getCarouselPlan(
               subheadline: clampSubhead((s as { subheadline?: unknown }).subheadline),
               visual: String(s.visual),
               nodes: clampLabels((s as { nodes?: unknown }).nodes, 6, 28),
+              connectsFrom: clampHeadline(String((s as { connectsFrom?: unknown }).connectsFrom ?? ""), 100),
+              connectsTo: clampHeadline(String((s as { connectsTo?: unknown }).connectsTo ?? ""), 100),
             }))
             .filter((s) => !!s.headline)
             .slice(0, count)
         : [];
       if (parsed.style && parsed.palette && slides.length >= 2) {
-        return { style: clampStyle(parsed.style), palette: String(parsed.palette), slides };
+        return { style: clampStyle(parsed.style), palette: String(parsed.palette), slides, plannerModel };
       }
     } catch (err) {
       console.error(`[CarouselPlan] attempt ${attempt + 1} failed:`, (err as Error).message);
