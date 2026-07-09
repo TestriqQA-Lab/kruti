@@ -30,6 +30,11 @@ import Image from "next/image";
 import { useToast } from "@/components/Toast";
 import VariantModal, { Variant } from "@/components/VariantModal";
 import RepurposeModal, { RepurposeResult } from "@/components/RepurposeModal";
+import CarouselProgressModal, {
+  CarouselProgress,
+  CarouselSlideProgress,
+  SlideStatus,
+} from "@/components/CarouselProgressModal";
 import LinkedInPostPreview from "@/components/LinkedInPostPreview";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useSession } from "next-auth/react";
@@ -67,6 +72,37 @@ interface UserProfile {
   name: string | null;
   image: string | null;
   headline: string | null;
+}
+
+// Shape of one NDJSON event streamed by /api/generate/carousel.
+interface CarouselStreamSlide {
+  index: number;
+  role?: string;
+  headline?: string;
+  subheadline?: string;
+  nodes?: string[];
+  visual?: string;
+  connectsFrom?: string;
+  connectsTo?: string;
+}
+interface CarouselStreamEvent {
+  type: string;
+  key?: string;
+  status?: string;
+  message?: string;
+  model?: string | null;
+  style?: string;
+  palette?: string;
+  slides?: CarouselStreamSlide[];
+  total?: number;
+  index?: number;
+  url?: string;
+  carouselImages?: string[];
+  imageUrl?: string;
+  count?: number;
+  remaining?: number | null;
+  limit?: number;
+  subscriptionRequired?: boolean;
 }
 
 export default function PostEditorClient({
@@ -122,6 +158,7 @@ export default function PostEditorClient({
   });
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [generatingCarousel, setGeneratingCarousel] = useState(false);
+  const [carouselProgress, setCarouselProgress] = useState<CarouselProgress | null>(null);
   const [cropping, setCropping] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(post.documentUrl);
   const [documentName, setDocumentName] = useState<string | null>(post.documentName);
@@ -175,6 +212,9 @@ export default function PostEditorClient({
   const [generatingRepurpose, setGeneratingRepurpose] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+  // Set true when the user dismisses the live carousel modal, so late stream events
+  // don't re-open it (the generation itself keeps running in the background).
+  const carouselClosedRef = useRef(false);
 
   // Weekend detection
   const isWeekend = (() => {
@@ -344,31 +384,173 @@ export default function PostEditorClient({
 
   async function handleGenerateCarousel() {
     setGeneratingCarousel(true);
+    carouselClosedRef.current = false;
+    let prog: CarouselProgress = {
+      running: true,
+      preflight: [
+        { key: "auth", label: "Signed in", status: "pending" },
+        { key: "subscription", label: "Subscription", status: "pending" },
+        { key: "ratelimit", label: "Rate limit", status: "pending" },
+        { key: "post", label: "Post loaded", status: "pending" },
+        { key: "quota", label: "Generation quota", status: "pending" },
+      ],
+      plan: { status: "pending" },
+      render: { started: false, total: 0 },
+      slides: [],
+      save: "pending",
+      done: false,
+    };
+    const update = (next: CarouselProgress) => {
+      prog = next;
+      if (!carouselClosedRef.current) setCarouselProgress(next);
+    };
+    update(prog);
+
+    const applyEvent = (ev: CarouselStreamEvent) => {
+      switch (ev.type) {
+        case "preflight":
+          update({
+            ...prog,
+            preflight: prog.preflight.map((p) =>
+              p.key === ev.key
+                ? { ...p, status: ev.status === "done" ? "done" : "error", message: ev.message }
+                : p
+            ),
+          });
+          break;
+        case "plan":
+          if (ev.status === "start") {
+            update({ ...prog, plan: { ...prog.plan, status: "running" } });
+          } else if (ev.status === "done") {
+            const slides: CarouselSlideProgress[] = (ev.slides ?? []).map((s) => ({
+              index: s.index,
+              role: s.role,
+              headline: s.headline,
+              subheadline: s.subheadline,
+              nodes: s.nodes,
+              visual: s.visual,
+              connectsFrom: s.connectsFrom,
+              connectsTo: s.connectsTo,
+              status: "queued",
+            }));
+            update({
+              ...prog,
+              plan: { status: "done", model: ev.model, style: ev.style, palette: ev.palette },
+              slides,
+            });
+          } else if (ev.status === "fallback") {
+            update({ ...prog, plan: { status: "fallback", message: ev.message } });
+          } else if (ev.status === "error") {
+            update({ ...prog, plan: { ...prog.plan, status: "error", message: ev.message } });
+          }
+          break;
+        case "render": {
+          let slides = prog.slides;
+          if (slides.length === 0 && ev.total) {
+            slides = Array.from({ length: ev.total }, (_, i) => ({
+              index: i,
+              status: "queued" as SlideStatus,
+            }));
+          }
+          update({ ...prog, render: { started: true, total: ev.total ?? slides.length }, slides });
+          break;
+        }
+        case "slide":
+          update({
+            ...prog,
+            slides: prog.slides.map((s) =>
+              s.index === ev.index
+                ? {
+                    ...s,
+                    status:
+                      ev.status === "start" ? "rendering" : ev.status === "done" ? "done" : "error",
+                    url: ev.url ?? s.url,
+                    error: ev.message ?? s.error,
+                  }
+                : s
+            ),
+          });
+          break;
+        case "save":
+          update({ ...prog, save: ev.status === "start" ? "running" : "done" });
+          break;
+        case "done": {
+          const imgs = ev.carouselImages ?? [];
+          if (imgs.length > 0) {
+            setCarouselImages(imgs);
+            setCarouselIndex(0);
+            setImageUrl(imgs[0]);
+            pushGeneration(imgs);
+            setDocumentUrl(null);
+            setDocumentName(null);
+          }
+          if (ev.remaining !== undefined && ev.remaining !== null) setImageGenRemaining(ev.remaining);
+          update({ ...prog, running: false, done: true, save: "done" });
+          toast(`Carousel created (${ev.count ?? imgs.length} images)`, "success");
+          router.refresh();
+          break;
+        }
+        case "error":
+          if (ev.remaining !== undefined && ev.remaining !== null) setImageGenRemaining(ev.remaining);
+          update({ ...prog, running: false, error: ev.message || "Carousel generation failed" });
+          toast(ev.message || "Failed to generate carousel", "error");
+          break;
+      }
+    };
+
     try {
       const res = await fetch("/api/generate/carousel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postId: post.id }),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        toast(data.error || "Failed to generate carousel", "error");
-        if (data.remaining !== undefined) setImageGenRemaining(data.remaining);
+      if (!res.ok || !res.body) {
+        let msg = "Failed to generate carousel";
+        try {
+          const d = await res.json();
+          msg = d.error || msg;
+        } catch {
+          /* response was not JSON */
+        }
+        update({ ...prog, running: false, error: msg });
+        toast(msg, "error");
         return;
       }
-      if (Array.isArray(data.carouselImages) && data.carouselImages.length > 0) {
-        setCarouselImages(data.carouselImages);
-        setCarouselIndex(0);
-        setImageUrl(data.carouselImages[0]);
-        pushGeneration(data.carouselImages);
-        setDocumentUrl(null);
-        setDocumentName(null);
-        setImageGenRemaining(data.remaining ?? 0);
-        toast(`Carousel created (${data.carouselImages.length} images)`, "success");
-        router.refresh();
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) >= 0) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line) continue;
+          try {
+            applyEvent(JSON.parse(line) as CarouselStreamEvent);
+          } catch {
+            /* skip a malformed line */
+          }
+        }
       }
+      const tail = buffer.trim();
+      if (tail) {
+        try {
+          applyEvent(JSON.parse(tail) as CarouselStreamEvent);
+        } catch {
+          /* ignore */
+        }
+      }
+    } catch {
+      update({ ...prog, running: false, error: "Carousel generation failed. Please try again." });
+      toast("Carousel generation failed. Please try again.", "error");
     } finally {
       setGeneratingCarousel(false);
+      if (!carouselClosedRef.current) {
+        setCarouselProgress((p) => (p ? { ...p, running: false } : p));
+      }
     }
   }
 
@@ -1526,6 +1708,17 @@ export default function PostEditorClient({
           results={repurposeResults}
           loading={generatingRepurpose}
           onClose={() => setShowRepurpose(false)}
+        />
+      )}
+
+      {/* Live Carousel Pipeline Modal */}
+      {carouselProgress && (
+        <CarouselProgressModal
+          progress={carouselProgress}
+          onClose={() => {
+            carouselClosedRef.current = true;
+            setCarouselProgress(null);
+          }}
         />
       )}
 

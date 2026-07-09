@@ -34,6 +34,45 @@ export async function generateTextWithConfig(
   return result.response.text();
 }
 
+// Pro-tier text models for higher-quality structured planning (e.g. the carousel
+// packet plan). We try Gemini 3 Pro, then Gemini 2.5 Pro, then fall back to flash,
+// so a model that is not enabled on the key degrades gracefully instead of failing.
+const PRO_TEXT_MODELS = ["gemini-3-pro-preview", "gemini-3-pro", "gemini-2.5-pro"];
+const PRO_TEXT_FALLBACK = "gemini-2.5-flash";
+
+let _genai: GoogleGenAI | null = null;
+function getGenAIClient(): GoogleGenAI {
+  if (!_genai) {
+    _genai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY! });
+  }
+  return _genai;
+}
+
+/**
+ * Generate text with a pro-tier model, falling through the list and finally to
+ * gemini-2.5-flash. Returns the text AND which model actually produced it (so the
+ * caller can surface it). Throws only if every model, including the flash fallback,
+ * fails.
+ */
+export async function generateProText(
+  prompt: string
+): Promise<{ text: string; model: string }> {
+  const client = getGenAIClient();
+  let lastErr: Error | null = null;
+  for (const model of [...PRO_TEXT_MODELS, PRO_TEXT_FALLBACK]) {
+    try {
+      const response = await client.models.generateContent({ model, contents: prompt });
+      const text = response.text ?? "";
+      if (text.trim()) return { text, model };
+      console.warn(`[ProText] ${model} returned empty text, trying next model`);
+    } catch (err) {
+      lastErr = err as Error;
+      console.error(`[ProText] ${model} failed:`, (err as Error).message);
+    }
+  }
+  throw lastErr ?? new Error("Pro text generation returned no text from any model");
+}
+
 export function parseJSON<T>(text: string): T {
   // Strip markdown code fences if present
   const cleaned = text
