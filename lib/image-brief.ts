@@ -110,7 +110,7 @@ function fallbackBrief(
   };
   return {
     style: fallbackStyles[post.postType] || "clean modern editorial illustration",
-    visual: `A single striking image that represents "${post.title}" through the real, tangible world of a ${role} (broad field: ${industry} - context only, never a generic stereotype of the field), one clear focal subject filling the frame with natural depth, real textures, and deliberate lighting, telling the post's story on its own.`,
+    visual: `A single striking, visually unique image that represents "${post.title}" through the real, tangible world of a ${role}, one clear focal subject filling the frame with natural depth, real textures, and deliberate lighting, telling the post's story on its own.`,
     headline: headlineFromTitle(post.title),
     label: "",
     palette: fallbackPalettes[post.postType] || DEFAULT_PALETTE,
