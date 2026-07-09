@@ -13,7 +13,7 @@ import { buildImageBriefPrompt, buildCarouselPlanPrompt, UserVisualProfile } fro
  */
 
 export interface ImageBrief {
-  style: string; // aesthetic register, content-matched (neon tech-dark w/ glows, OR clean light w/ accent)
+  style: string; // aesthetic register, content-matched (modern editorial, realistic premium - never neon/glow)
   structure: string; // the named information-design layout that maps the post
   headline: string; // prominent bold headline (2-6 words, <=34 chars)
   subheadline: string; // one supporting subheadline line (<=70 chars), "" if none
@@ -46,12 +46,16 @@ const DEFAULT_PALETTE =
 
 /** Collapse whitespace, strip wrapping quotes, hard-cap length. */
 export function clampHeadline(raw: string, max = 40): string {
-  return (raw || "")
+  const s = (raw || "")
     .replace(/\s+/g, " ")
     .replace(/^["'“”]+|["'“”]+$/g, "")
-    .trim()
-    .slice(0, max)
     .trim();
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  // Trim back to a word boundary so on-image text is never cut mid-word (unless the
+  // first word itself is longer than max).
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trim();
 }
 
 /** Subheadline: one clean line, capped so it stays a supporting line. */
@@ -134,10 +138,10 @@ function fallbackBrief(
     "listicle": "a clean grid of labeled point cards",
   };
   const fallbackPalettes: Record<string, string> = {
-    "thought-leadership": "deep navy background, warm amber accent, crisp ivory text, soft glows.",
+    "thought-leadership": "warm off-white background, deep ink text, one confident amber accent, soft natural shadows.",
     "tips": "clean light background, one orange accent, soft shadows, charcoal text.",
     "story": "warm cream background, terracotta accent, soft brown shadow, ivory cards.",
-    "question": "moody plum background, soft ivory text, warm sand accent, gentle glow.",
+    "question": "muted warm-grey background, deep aubergine accent, soft ivory panels, gentle natural shadow.",
     "listicle": "bright white background, fresh teal accent, soft shadows, deep slate text.",
   };
   const structure = fallbackStructures[post.postType] || "a clean labeled diagram of connected nodes";
