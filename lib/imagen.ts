@@ -97,9 +97,9 @@ WHAT TO SHOW: ${visual}
 
 HEADLINE (prominent): set "${headline}" as a bold, confident headline that anchors the composition. ${subLine}${nodesLine}${cardsLine}All on-image text must be real, correctly spelled, and meaningful - never scrambled, fake, or nonsense lettering, and add no text beyond the headline, subheadline, node labels, and card labels named above.
 
-COLOUR AND FINISH: ${palette} Render it rich and premium with intentional depth - tasteful glows and soft gradients on a dark background, or clean surfaces with an accent colour and soft shadows on a light background. Crisp, high-resolution, modern, and genuinely UNIQUE to this post - never a generic stock photo, a bare object on emptiness, or a flat gradient wash.
+COLOUR AND FINISH: ${palette} Render it the way a top human design studio would - premium, modern, and editorial, with believable depth, real materials and textures, and soft natural shadows. NO neon glow, NO glowing outlines or light halos, NO heavy sci-fi blue, NO circuit-board or digital-grid cliche, and NO obvious "AI infographic" look. Use tasteful, confident colour (colourful is fine when the topic suits it) on clean, realistic surfaces, so a LinkedIn viewer thinks "what a great graphic" rather than "this was made by AI". Crisp, high-resolution, and genuinely UNIQUE to this post - never a generic stock photo or a flat gradient wash.
 
-${carouselLine}${continuityLine}Full-bleed square (1:1): the design runs edge to edge with no outer border, frame, or margin, key elements kept clear of the very edge. Above all, make it a cohesive, information-rich, on-concept infographic that clearly represents THIS post.`;
+${carouselLine}${continuityLine}Square 1:1 with a comfortable safe margin: the background may fill the whole frame, but keep ALL text (headline, subheadline, and every label) and every important graphic fully INSIDE a safe inner area with clear padding on all four sides - nothing may touch, run off, or be cut at any edge or corner. If a line of text is long, shorten or wrap it so it fits completely; never crop a word. Above all, make it a cohesive, information-rich, on-concept infographic that clearly represents THIS post.`;
 }
 
 // ─── Image Generation ────────────────────────────────────────────────────────
