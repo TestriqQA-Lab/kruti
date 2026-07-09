@@ -511,7 +511,7 @@ export function buildCarouselPlanPrompt(
   const visualStyle = userProfile ? deriveVisualStyle(userProfile) : "";
   const profileBlock = visualStyle ? `\nROLE GROUNDING (keep the imagery true to this person's real work):\n${visualStyle}\n` : "";
 
-  return `You are a senior marketing designer at a top agency. Turn ONE LinkedIn post into a cohesive set of up to ${count} premium, designed square (1:1) INFOGRAPHIC slides that walk the reader through THIS post's actual content. Every slide is a rich, polished designed graphic that explains its point at a glance - clean modern icons, a clear layout, organized labels, and a prominent headline - never a plain photo or a bare object on emptiness.
+  return `You are a senior marketing designer and content strategist at a top agency. Turn ONE LinkedIn post into a cohesive set of EXACTLY ${count} premium, designed square (1:1) INFOGRAPHIC slides that walk the reader through THIS post's actual content. Every slide is a rich, polished designed graphic that explains its point at a glance - clean modern icons, a clear layout, organized labels, and a prominent headline - never a plain photo or a bare object on emptiness.
 
 THE POST:
 Title (hook): ${title}
@@ -520,42 +520,52 @@ Post type: ${postType}
 ${profileBlock}
 Base every slide ONLY on the post content and this person's profile (role, positioning, and content-style preferences) - NOT their industry or field.
 
-YOUR JOB:
-Read the post above and break ITS real content into slides. Do not invent a generic or unrelated metaphor - every slide must represent something the post actually says.
+YOUR JOB - build EXACTLY ${count} slide "packets". For EACH slide, work in this exact order:
+1. FIRST decide the slide's TEXT CONTENT from the post: its headline, an optional subheadline, and its short labels (nodes). This is the real information the slide teaches.
+2. THEN write the slide's VISUAL PROMPT (the "structure" and "visual" fields) so it visually REPRESENTS THAT text content - the visual must be built from and match the headline, subheadline, and nodes you just chose, never a random or generic scene.
+Do not invent a generic or unrelated metaphor - every slide must represent something the post actually says.
 
-SLIDE ARC (must follow in this order):
-- The FIRST slide is the HOOK: the single most important highlight or opening idea of the post.
-- Every slide in between is ONE distinct key point from the post, in the SAME ORDER it appears in the body.
+SLIDE ARC (must follow in this order across the ${count} slides):
+- Slide 1 is the HOOK: the single most important highlight or opening idea of the post.
+- The middle slides are the key points from the post, in the SAME ORDER they appear in the body (one distinct point per slide).
 - The LAST slide is the TAKEAWAY or CALL TO ACTION that closes the post.
 
 HOW MANY SLIDES:
-- Produce between 2 and ${count} slides. Use ${count} only if the post genuinely has that many distinct points. If it has fewer, emit fewer (always at least a hook slide and a takeaway slide) rather than padding or repeating. If the body is empty or very short, build a minimal hook and takeaway from the title alone and do not invent facts, stats, or claims that are not in the post.
+- Produce EXACTLY ${count} slides - no more, no fewer. If the post has fewer than ${count} distinct points, expand the most important points into their own slides (for example split a point into a "what" slide and a "how" slide, or add a supporting example slide). Never repeat a slide, never leave one empty, and never invent facts, stats, or claims that are not in the post. If the body is empty or very short, build the ${count} slides from the title's idea alone without inventing facts.
+
+RELATABILITY (each slide must connect to its neighbours - IMPORTANT):
+- The ${count} slides tell ONE continuous story. Every slide must clearly follow from the previous slide and lead into the next.
+- For each slide give a short "connectsFrom" (how this slide follows from the previous one) and "connectsTo" (how it sets up the next one). Slide 1's connectsFrom and the last slide's connectsTo may be "".
+- Carry a visual through-line across the slides (a recurring motif, consistent characters or objects, or a progressing element such as a filling bar or a moving marker) so adjacent slides obviously belong to the same set.
 
 ONE SHARED LOOK (this is what makes it a cohesive set):
 - Choose ONE aesthetic style and ONE colour-and-light mood for the whole carousel that genuinely fit the post's topic, and commit to both across every slide. Name the style once in "style" (concrete, for example "clean light flat-vector infographic with an accent colour" or "neon tech-dark infographic with soft glows"), chosen from the content so it varies from other carousels. Describe the colour mood once in "palette" as concrete colours (for example "deep navy background, electric teal accent, soft glow, ivory text").
 - Keep the same layout system, headline placement, margins, and type treatment on every slide; vary only the per-slide structure, imagery, and labels so the set feels like one series.
 - On each slide the designed graphic is the hero, filling the frame; the headline is prominent and the labels are clean and organized.
 
-EACH SLIDE NEEDS:
-- "structure": the information-design layout for THIS slide (for example "a single big labeled stat", "three labeled icon cards in a row", "a two-step before-and-after", or "a labeled diagram of connected parts"), chosen to represent that slide's point. 3 to 12 words.
-- "headline": a PROMINENT headline for that slide, always present and legible, communicating that slide's one point. Between 2 and 6 words and at most 34 characters. Punchy, spelled exactly, Title Case. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. No quotation marks, no hashtags, no emojis.
-- "subheadline": ONE optional short supporting line for the slide (at most 60 characters, plain sentence case), or an empty string "".
-- "visual": ONE single-line brief for THIS slide's designed graphic - how the structure is laid out, the clean modern icons and imagery, the connectors and panels - built strictly from the post's content and this person's role. Describe only the design; do not restate the headline or list the node text. At most 60 words.
-- "nodes": an array of 0 to 5 SHORT real labels for the key parts of this slide's structure, drawn strictly from the post (never invented). Each 1 to 4 words, at most 24 characters, spelled exactly. Use an empty array [] if the slide needs none.
+EACH SLIDE PACKET NEEDS:
+- "headline": a PROMINENT headline for that slide (TEXT CONTENT), always present and legible, communicating that slide's one point. Between 2 and 6 words and at most 34 characters. Punchy, spelled exactly, Title Case. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. No quotation marks, no hashtags, no emojis.
+- "subheadline": ONE optional short supporting line for the slide (TEXT CONTENT, at most 60 characters, plain sentence case), or an empty string "".
+- "nodes": an array of 0 to 5 SHORT real labels (TEXT CONTENT) for the key parts of this slide, drawn strictly from the post (never invented). Each 1 to 4 words, at most 24 characters, spelled exactly. Use an empty array [] if the slide needs none.
+- "structure": the information-design layout for THIS slide (for example "a single big labeled stat", "three labeled icon cards in a row", "a two-step before-and-after", or "a labeled diagram of connected parts"), chosen to hold that slide's text content. 3 to 12 words.
+- "visual": ONE single-line VISUAL PROMPT for THIS slide's designed graphic, written to REPRESENT this slide's headline, subheadline, and nodes - how the structure is laid out, the clean modern icons and imagery, the connectors and panels - built strictly from the post's content and this person's role. Describe only the design; do not restate the headline or list the node text. At most 60 words.
+- "connectsFrom": a short line (at most 90 characters) on how this slide follows from the previous slide, or "" for slide 1.
+- "connectsTo": a short line (at most 90 characters) on how this slide leads into the next slide, or "" for the last slide.
 
 GUARDRAILS:
 - Every slide is a DESIGNED, information-rich infographic - never a plain photo, a bare object on emptiness, or a wall of text.
+- Every slide's visual must match its own text content, and the ${count} slides must read as one connected story in one shared look.
 - Invent no facts, statistics, or claims - everything shown must come from the post, correctly spelled.
 - Use plain hyphens only, never em-dashes or en-dashes.
 
 ${NO_EMOJI_RULES}
 
-Return a JSON object with this EXACT structure (the "slides" array holds between 2 and ${count} objects):
+Return a JSON object with this EXACT structure (the "slides" array holds EXACTLY ${count} objects, in carousel order):
 {
   "style": "string (the one shared aesthetic style, chosen from the content, reused by every slide)",
   "palette": "string (the one shared colour and light mood, reused by every slide)",
   "slides": [
-    { "structure": "string (this slide's layout)", "headline": "string (2-6 words, max 34 chars, prominent)", "subheadline": "string (one supporting line, or empty)", "visual": "string (one brief for this slide's designed graphic, in the carousel's chosen style)", "nodes": ["string (short real label)"] }
+    { "headline": "string (2-6 words, max 34 chars, prominent)", "subheadline": "string (one supporting line, or empty)", "nodes": ["string (short real label)"], "structure": "string (this slide's layout)", "visual": "string (visual prompt representing this slide's text content, in the carousel's chosen style)", "connectsFrom": "string (how this follows the previous slide, or empty)", "connectsTo": "string (how this leads to the next slide, or empty)" }
   ]
 }
 

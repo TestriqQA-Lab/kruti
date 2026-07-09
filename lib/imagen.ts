@@ -60,6 +60,8 @@ export function buildBrandedImagePrompt(brief: {
   cards?: string[];
   palette: string;
   position?: string;
+  connectsFrom?: string;
+  connectsTo?: string;
 }): string {
   const { style, structure, headline, visual, palette, position } = brief;
   const clean = (s: string) => (s || "").replace(/\s+/g, " ").trim();
@@ -79,6 +81,12 @@ export function buildBrandedImagePrompt(brief: {
   const carouselLine = position
     ? `This is ${position} in a set: keep the same ${style}, palette, layout system, and type treatment on every slide so the carousel reads as one cohesive series.\n`
     : "";
+  const connectsFrom = clean(brief.connectsFrom || "");
+  const connectsTo = clean(brief.connectsTo || "");
+  const continuityLine =
+    connectsFrom || connectsTo
+      ? `CONTINUITY WITH THE SET: ${connectsFrom ? `this slide follows from the previous one - ${connectsFrom}. ` : ""}${connectsTo ? `it then leads into the next slide - ${connectsTo}. ` : ""}Carry a clear visual through-line (a recurring motif, consistent characters or objects, or a progressing element) so this slide obviously belongs to the same series as its neighbours.\n`
+      : "";
 
   return `Design ONE premium, professionally designed square (1:1) marketing INFOGRAPHIC for a LinkedIn feed - a rich, polished graphic that EXPLAINS the post at a glance, the way a top design agency would make it. This is a DESIGNED infographic, NOT a plain photo, and NOT a bare 3D object floating on an empty background.
 
@@ -91,7 +99,7 @@ HEADLINE (prominent): set "${headline}" as a bold, confident headline that ancho
 
 COLOUR AND FINISH: ${palette} Render it rich and premium with intentional depth - tasteful glows and soft gradients on a dark background, or clean surfaces with an accent colour and soft shadows on a light background. Crisp, high-resolution, modern, and genuinely UNIQUE to this post - never a generic stock photo, a bare object on emptiness, or a flat gradient wash.
 
-${carouselLine}Full-bleed square (1:1): the design runs edge to edge with no outer border, frame, or margin, key elements kept clear of the very edge. Above all, make it a cohesive, information-rich, on-concept infographic that clearly represents THIS post.`;
+${carouselLine}${continuityLine}Full-bleed square (1:1): the design runs edge to edge with no outer border, frame, or margin, key elements kept clear of the very edge. Above all, make it a cohesive, information-rich, on-concept infographic that clearly represents THIS post.`;
 }
 
 // ─── Image Generation ────────────────────────────────────────────────────────
@@ -200,16 +208,23 @@ export async function generateCarouselImages(
   basePrompt: string,
   postId: string,
   industry?: string,
-  count = 4
+  count = 4,
+  onSlideEvent?: (e: CarouselSlideEvent) => void
 ): Promise<string[]> {
   const base = basePrompt || "Professional abstract business concept";
-  const prompts = Array.from(
-    { length: count },
-    (_, i) => `${base} - ${CAROUSEL_VARIATIONS[i % CAROUSEL_VARIATIONS.length]}`
-  );
   const results = await Promise.all(
-    // allowText so the designed labels in the prompt survive (no no-text wrapper).
-    prompts.map((p, i) => generatePostImage(p, `${postId}-c${i}`, industry, true))
+    Array.from({ length: count }, async (_, i) => {
+      const prompt = `${base} - ${CAROUSEL_VARIATIONS[i % CAROUSEL_VARIATIONS.length]}`;
+      onSlideEvent?.({ index: i, status: "start" });
+      // allowText so the designed labels in the prompt survive (no no-text wrapper).
+      const url = await generatePostImage(prompt, `${postId}-c${i}`, industry, true);
+      if (url) {
+        onSlideEvent?.({ index: i, status: "done", url });
+      } else {
+        onSlideEvent?.({ index: i, status: "error", message: lastImageGenError || "No image returned" });
+      }
+      return url;
+    })
   );
   return results.filter((u): u is string => !!u);
 }
@@ -219,18 +234,34 @@ export async function generateCarouselImages(
  * slide (hook -> key points -> takeaway), all sharing the plan's palette. Each
  * slide renders its own short headline. Returns the successful Blob URLs.
  */
+export type CarouselSlideEvent = {
+  index: number;
+  status: "start" | "done" | "error";
+  url?: string;
+  message?: string;
+};
+
 export async function generateCarouselFromPlan(
   plan: {
     style: string;
     palette: string;
-    slides: { structure: string; headline: string; subheadline?: string; visual: string; nodes?: string[] }[];
+    slides: {
+      structure: string;
+      headline: string;
+      subheadline?: string;
+      visual: string;
+      nodes?: string[];
+      connectsFrom?: string;
+      connectsTo?: string;
+    }[];
   },
   postId: string,
-  industry?: string
+  industry?: string,
+  onSlideEvent?: (e: CarouselSlideEvent) => void
 ): Promise<string[]> {
   const total = plan.slides.length;
   const results = await Promise.all(
-    plan.slides.map((slide, i) => {
+    plan.slides.map(async (slide, i) => {
       const role = i === 0 ? "the hook" : i === total - 1 ? "the takeaway" : "a key point";
       const position = `slide ${i + 1} of ${total} - ${role}`;
       const prompt = buildBrandedImagePrompt({
@@ -242,8 +273,17 @@ export async function generateCarouselFromPlan(
         nodes: slide.nodes,
         palette: plan.palette,
         position,
+        connectsFrom: slide.connectsFrom,
+        connectsTo: slide.connectsTo,
       });
-      return generatePostImage(prompt, `${postId}-c${i}`, industry, true);
+      onSlideEvent?.({ index: i, status: "start" });
+      const url = await generatePostImage(prompt, `${postId}-c${i}`, industry, true);
+      if (url) {
+        onSlideEvent?.({ index: i, status: "done", url });
+      } else {
+        onSlideEvent?.({ index: i, status: "error", message: lastImageGenError || "No image returned" });
+      }
+      return url;
     })
   );
   return results.filter((u): u is string => !!u);
