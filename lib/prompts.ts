@@ -520,6 +520,12 @@ Post type: ${postType}
 ${profileBlock}
 Base every slide ONLY on the post content and this person's profile (role, positioning, and content-style preferences) - NOT their industry or field.
 
+ANALYSE THE POST FIRST (do this thinking before you write anything):
+- What is this post REALLY about - its core topic, its single most important message, and the concrete key points or data it makes?
+- Who is the audience and what is the tone (educational, bold, contrarian, story, celebratory)?
+- Given that, decide the THEME and modern visual direction that would make THIS specific post land as a premium LinkedIn carousel - the kind a top brand's in-house design team would ship today: clean, contemporary, professional, on-trend, and matched to the subject, never a generic or dated template.
+State that decision once in "theme", then carry it consistently through the shared "style", the "palette", and every slide's design.
+
 YOUR JOB - build EXACTLY ${count} slide "packets". For EACH slide, work in this exact order:
 1. FIRST decide the slide's TEXT CONTENT from the post: its headline, an optional subheadline, and its short labels (nodes). This is the real information the slide teaches.
 2. THEN write the slide's VISUAL PROMPT (the "structure" and "visual" fields) so it visually REPRESENTS THAT text content - the visual must be built from and match the headline, subheadline, and nodes you just chose, never a random or generic scene.
@@ -539,7 +545,7 @@ RELATABILITY (each slide must connect to its neighbours - IMPORTANT):
 - Carry a visual through-line across the slides (a recurring motif, consistent characters or objects, or a progressing element such as a filling bar or a moving marker) so adjacent slides obviously belong to the same set.
 
 ONE SHARED LOOK (this is what makes it a cohesive set):
-- Choose ONE aesthetic style and ONE colour-and-light mood for the whole carousel that genuinely fit the post's topic, and commit to both across every slide. Name the style once in "style" (concrete, for example "clean light flat-vector infographic with an accent colour" or "neon tech-dark infographic with soft glows"), chosen from the content so it varies from other carousels. Describe the colour mood once in "palette" as concrete colours (for example "deep navy background, electric teal accent, soft glow, ivory text").
+- Choose ONE modern, professional aesthetic style and ONE colour-and-light mood for the whole carousel that fit the theme you decided, and commit to both across every slide. Make it contemporary and premium - clean refined typography, generous spacing, tasteful modern iconography, and current design trends - never dated, cluttered, or clip-art. Name the style once in "style" (concrete, for example "clean light flat-vector infographic with an accent colour" or "sleek dark editorial infographic with soft glows"), chosen from the content so it varies from other carousels. Describe the colour mood once in "palette" as concrete colours (for example "deep navy background, electric teal accent, soft glow, ivory text").
 - Keep the same layout system, headline placement, margins, and type treatment on every slide; vary only the per-slide structure, imagery, and labels so the set feels like one series.
 - On each slide the designed graphic is the hero, filling the frame; the headline is prominent and the labels are clean and organized.
 
@@ -562,6 +568,7 @@ ${NO_EMOJI_RULES}
 
 Return a JSON object with this EXACT structure (the "slides" array holds EXACTLY ${count} objects, in carousel order):
 {
+  "theme": "string (one short line naming the carousel's overall theme and modern visual direction, from your analysis of the post)",
   "style": "string (the one shared aesthetic style, chosen from the content, reused by every slide)",
   "palette": "string (the one shared colour and light mood, reused by every slide)",
   "slides": [

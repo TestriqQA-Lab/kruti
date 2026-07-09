@@ -131,6 +131,7 @@ export async function POST(req: NextRequest) {
             type: "plan",
             status: "done",
             model: plan.plannerModel ?? null,
+            theme: plan.theme ?? null,
             style: plan.style,
             palette: plan.palette,
             slides: plan.slides.map((s, i) => ({

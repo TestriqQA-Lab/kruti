@@ -34,6 +34,7 @@ export interface CarouselSlide {
 }
 
 export interface CarouselPlan {
+  theme?: string; // overall theme + modern visual direction, derived from analysing the post
   style: string; // one shared art-direction style, reused by every slide
   palette: string; // one shared palette + light mood, reused by every slide
   slides: CarouselSlide[]; // exactly `count` entries, in carousel order (hook ... takeaway)
@@ -223,7 +224,13 @@ export async function getCarouselPlan(
             .slice(0, count)
         : [];
       if (parsed.style && parsed.palette && slides.length >= 2) {
-        return { style: clampStyle(parsed.style), palette: String(parsed.palette), slides, plannerModel };
+        return {
+          theme: clampHeadline(String(parsed.theme ?? ""), 120),
+          style: clampStyle(parsed.style),
+          palette: String(parsed.palette),
+          slides,
+          plannerModel,
+        };
       }
     } catch (err) {
       console.error(`[CarouselPlan] attempt ${attempt + 1} failed:`, (err as Error).message);
