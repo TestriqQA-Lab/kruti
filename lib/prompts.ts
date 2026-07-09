@@ -50,12 +50,8 @@ export interface UserVisualProfile {
  */
 export function deriveVisualStyle(profile: UserVisualProfile): string {
   const role = (profile.headline || "").trim();
-  const industry = (profile.industry || "").trim();
   if (role) {
-    return `Ground the imagery in the real tools, screens, artifacts, environments, and day-to-day moments of THIS person's actual role - "${role}" - not a generic stereotype of the ${industry || "field"} (for example, no circuit boards, chips, or wires just because the field is technology). Show what this specific role genuinely works with.`;
-  }
-  if (industry) {
-    return `Ground the imagery in the real objects, tools, environments, and day-to-day moments of a ${industry} professional's actual work, not a generic stereotype of the field.`;
+    return `Ground the imagery in the real tools, screens, artifacts, environments, and day-to-day moments of THIS person's actual role - "${role}" - not a generic stereotype of their field (for example, no circuit boards, chips, or wires just because the field is technology). Show what this specific role genuinely works with.`;
   }
   return "";
 }
@@ -326,6 +322,8 @@ FOCUS: "${weekFocus}"
 PER-POST STYLE PLAN (write each post genuinely in its assigned style - the ${postCount} posts must read as clearly DIFFERENT shapes, not the same template with different words):
 ${perPostPlan}
 
+UNIQUENESS (strict): every one of the ${postCount} posts must be completely UNIQUE - a different title and hook, a different core idea and angle, and a different structure. No two posts may share the same topic, opening line, or takeaway; each post's title and content must clearly stand on its own.
+
 Use the tone.voice, tone.style and tone.avoid fields from the strategy below as hard constraints on how this week's posts read - the avoid list names things you must NOT do.
 STRATEGY CONTEXT: ${JSON.stringify(strategy)}
 
@@ -436,9 +434,9 @@ Output ONLY the research brief under the headings above. Do not add commentary b
 }
 
 // ─── Single Image Brief Prompt ────────────────────────────────────────────────
-// Reads a post and briefs ONE visual-first, content-driven feed image the way an
-// editorial art director briefs a photographer/illustrator per article.
-// Returns JSON: { style, visual, headline, label, palette }.
+// Reads a post and briefs ONE premium, designed marketing INFOGRAPHIC that explains
+// the post at a glance (structure + icons + organized labels + a prominent headline).
+// Returns JSON: { style, structure, headline, subheadline, visual, nodes, cards, palette }.
 
 export function buildImageBriefPrompt(
   title: string,
@@ -450,40 +448,45 @@ export function buildImageBriefPrompt(
   const visualStyle = userProfile ? deriveVisualStyle(userProfile) : "";
   const profileBlock = visualStyle ? `\nROLE GROUNDING (keep the imagery true to this person's real work):\n${visualStyle}\n` : "";
 
-  return `You are the art director for a premium LinkedIn publication. For the post below, brief ONE striking square (1:1) feed image the way you would brief a photographer or illustrator for a magazine feature: the VISUAL is the hero and tells the post's story on its own, and a short headline only supports it. Find the single most important idea in the post, then imagine the one image that best represents and explains that idea at a glance.
+  return `You are a senior marketing designer at a top agency. For the post below, brief ONE premium, professionally designed square (1:1) LinkedIn feed INFOGRAPHIC that EXPLAINS the post at a glance - a rich, polished graphic with a clear information-design structure, clean modern icons, organized informative labels, and a prominent headline. This is NOT a plain photo and NOT a bare 3D object on an empty background - it is a designed graphic a viewer instantly understands.
 
-Outside of a genuine data visualization, chart, or diagram, translate that idea into ONE literal, physical scene you could actually photograph or illustrate - never depict an abstract concept directly. Do not draw ideas like growth, success, innovation, strategy, or connection as symbols; turn them into a concrete real-world moment with real objects and real people. For example, "business growth" becomes a barista counting a thick stack of cash beside a busy espresso machine - not a rising arrow. Avoid every visual cliche: no handshakes, no glowing lightbulbs, no puzzle pieces, no floating holograms, no cogs or gears, no generic upward arrows, no ladders to the sky, no floating or holographic UI panels, and no generic 'person lit only by a monitor' stock shot (real on-desk work screens are fine).
-
-Choose the medium and art style that genuinely fit THIS post's idea and mood, and commit to it - let it vary naturally from post to post. An analytical or numbers post may become a clean data visualization; a human story a warm documentary photograph; an abstract or technical idea a bold illustration or a single strong conceptual composition; a product or how-to an elegant device or diagram scene; a big-idea opinion a striking editorial image. There is no house style and no default look - the content decides, and a futuristic / neon / tech look is right only when the post is truly about technology or the future.
+Read the whole post, find its core idea and the few key points that support it, then design the one infographic that best represents and teaches that idea.
 
 POST TITLE (hook): ${title}
 POST BODY: ${body}
 POST TYPE: ${postType}
 ROLE (ground the imagery in what THIS person actually does): ${userProfile?.headline || "professional"}
-FIELD (broad context only - never draw the imagery from the field itself): ${industry || "business"}
 ${profileBlock}
+Base this image ONLY on the post content above and this person's profile (their role, positioning, and content-style preferences). Do NOT use their industry or field as a driver of the imagery.
+
 Return a brief as a JSON object with this EXACT structure:
 {
   "style": "string",
-  "visual": "string",
+  "structure": "string",
   "headline": "string",
-  "label": "string",
+  "subheadline": "string",
+  "visual": "string",
+  "nodes": ["string", "string", "string"],
+  "cards": ["string"],
   "palette": "string"
 }
 
 FIELD DEFINITIONS:
-- "style": Name ONE specific visual medium and art style for this image, chosen from the post's content - the single genre the image commits to. Be concrete and evocative, for example "warm editorial documentary photograph", "bold flat vector illustration with geometric shapes", "clean isometric data visualization", "moody cinematic still", "hand-drawn conceptual sketch", "minimal editorial 3D render", or "vintage screen-print poster". This must genuinely differ from post to post based on what best represents THIS post. 3 to 8 words. Do not default to a futuristic, sci-fi, or "tech" look unless the post is truly about technology or the future.
-- "visual": The hero image as ONE literal physical scene (or, for an analytical post, a clean data visualization), described like a rich art-director's brief covering these elements (let them flow naturally; order can flex to read well): SUBJECT AND ACTION first - a concrete, real subject (a specific object, person, place, or moment) doing something tangible, translated from the post's idea into the physical world; then the SETTING, the COMPOSITION and camera angle, the KEY OBJECTS with their real MATERIALS and TEXTURES, and the emotional tone. Make it specific and real, built from the post's actual topic and this person's role, never a generic stereotype of their field. Depict a concrete object, person, place, or scene - never an abstraction such as growth, innovation, or success drawn as glowing arrows, lightbulbs, or floating holograms, and never a cliche like handshakes or puzzle pieces. It fills the frame as the single hero with one clear focal point. Put NO text, words, letters, numbers, signage, or labels anywhere in the scene, and do NOT reserve blank space for text - describe only the image. 40 to 80 words, one single-line sentence, written in the chosen style.
-- "headline": A short SUPPORTING headline, in your own words, stating this post's core point - readable but secondary to the visual, never a giant banner. Between 3 and 5 words and at most 30 characters (shorter is better - long headlines render badly under compression and crowd out the visual). State a specific point or outcome (for example "Why Senior Hires Quit Early" or "Cut Onboarding To Five Days"), not a vague label, and never copy the title verbatim. Prefer short common words; avoid any word longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates (short numbers like "3 Mistakes" or "80/20 Rule" are fine). If the body is empty or very short, derive it from the title alone and invent nothing. If postType is "question", make it a short, punchy question ending in one question mark. Use Title Case. No quotation marks, no hashtags, no ending punctuation except that one question mark. This exact text is rendered on the image, so spell every word correctly.
-- "label": AT MOST ONE very short, real callout - a single key figure or label - and ONLY when the visual is genuinely a chart, diagram, or data scene that needs it. Draw it strictly from the post, never invented. At most 24 characters, Title Case or a short real figure, no ending punctuation, no quotation marks. For every other post, use an empty string "". Never a sentence, never a list.
-- "palette": A realistic colour and light direction drawn from the real-world subject of THIS post, expressed as the scene's lighting and atmosphere rather than flat background fills (for example "soft morning window light, warm oak and paper tones, deep espresso shadows"). Every post gets a clearly DIFFERENT, realistic palette - never the same colours twice, and never a default cool blue, teal, or neon "tech" palette unless the post is truly about technology. At most 30 words, one single-line sentence.
+- "style": The aesthetic register for this infographic, chosen from THIS post's topic and energy - and it must genuinely differ from post to post. Pick ONE and name it concretely, for example "neon tech-dark infographic with soft glows and gradients", "clean light flat-vector infographic with an accent colour and soft shadows", "bold editorial data-visualization", "modern isometric 3D infographic", or "warm illustrated marketing graphic". Rich and premium, never a bare stock photo or a lone floating object. 3 to 9 words.
+- "structure": The information-design LAYOUT that maps this post - the backbone of the graphic. Name a concrete structure that fits the content, for example "a left-to-right roadmap of connected step nodes", "a central hub with a ring of labeled icon spokes", "a side-by-side comparison split with a central balance scale", "an ascending staircase of labeled steps", "a labeled dashboard of panels", "a top-down pipeline of stages", or "a grid of labeled feature cards". Choose the one that best represents THIS post's shape. 4 to 14 words.
+- "headline": A PROMINENT, bold headline stating the post's core point in your own words - the confident title of the graphic, read first. 2 to 6 words and at most 34 characters. State a specific point or outcome (for example "Ads vs SEO" or "Where To Start With Python"), not a vague label, and never copy the title verbatim. Use Title Case. No quotation marks, no hashtags. This exact text is rendered on the image, so spell every word correctly.
+- "subheadline": ONE short supporting line under the headline (like the subheadings the best LinkedIn graphics use), drawn from the post - at most 70 characters, plain sentence case, no ending period needed. Use an empty string "" only if the post genuinely needs none.
+- "visual": A rich art-director's brief for the designed graphic itself - describe how the STRUCTURE is laid out, the clean modern icons and imagery on each part, the connectors or flow lines, the panels or cards, and the overall composition, so it reads as one cohesive premium infographic. Built strictly from THIS post's content and this person's role, genuinely unique to this post. Do not restate the headline or list the node text here - describe the design. 40 to 90 words, one single-line sentence.
+- "nodes": An array of 3 to 7 SHORT real labels - the key parts of the structure (the roadmap steps, the hub spokes, the two comparison sides, the staircase rungs, the dashboard panels) - drawn STRICTLY from the post and never invented. Each is its own string, 1 to 4 words, at most 24 characters, Title Case or a short real figure, spelled exactly. These render as the organized on-image labels that make the graphic informative. Never a sentence.
+- "cards": An OPTIONAL array of 0 to 4 very short feature or benefit labels for a bottom row of cards (like "Instant Traffic" or "Better ROI"), each 1 to 3 words and at most 20 characters, drawn strictly from the post. Use an empty array [] when the post does not call for a feature row. Never invented.
+- "palette": A rich, distinctive colour and light direction for THIS post - either a dark background with tasteful glows and gradients, or a light background with an accent colour and soft shadows - named as concrete colours (for example "deep navy background, electric teal accents, soft cyan glow, crisp ivory text"). Every post gets a clearly DIFFERENT palette. At most 30 words, one single-line sentence.
 
 GUARDRAILS:
-- The VISUAL is the hero and does the storytelling; the headline is short and supporting. Never build a text poster, a caption bar, or a wall of text.
-- Show a LITERAL physical scene (or, for a genuine data post, a clean chart/diagram), never an abstract concept drawn as a symbol, and never a cliche (handshakes, glowing lightbulbs, puzzle pieces, floating holograms, gears, generic arrows). The scene itself carries NO text or lettering - only the one short headline is added later.
-- Choose the style purely from THIS post's content so it genuinely varies from other posts.
-- Invent no facts, statistics, or claims - everything shown must come from the post.
-- Professional, human, premium quality. Use plain hyphens only, never em-dashes or en-dashes.
+- The image must be a DESIGNED, information-rich infographic that explains the post - never a plain photo, a lone object on an empty background, or a bare gradient.
+- Make it visually UNIQUE to THIS post - a different structure, icons, labels, and palette - so it never looks like a template or a repeat of another post's image.
+- All on-image text (headline, subheadline, nodes, cards) must be real, correctly spelled, and meaningful - and everything shown must come strictly from the post. Invent no facts, statistics, numbers, or claims.
+- Choose the structure and style from THIS post's content and this person's profile (role, positioning, preferences), NOT their industry.
+- Professional, premium, agency quality. Use plain hyphens only, never em-dashes or en-dashes.
 
 ${NO_EMOJI_RULES}
 
@@ -508,14 +511,15 @@ export function buildCarouselPlanPrompt(
   const visualStyle = userProfile ? deriveVisualStyle(userProfile) : "";
   const profileBlock = visualStyle ? `\nROLE GROUNDING (keep the imagery true to this person's real work):\n${visualStyle}\n` : "";
 
-  return `You are the art director for a premium LinkedIn carousel. Turn ONE LinkedIn post into a cohesive, visually stunning set of up to ${count} slides that walks the reader through THIS post's actual content. On every slide the VISUAL is the hero and tells that slide's point; a short headline only supports it.
+  return `You are a senior marketing designer at a top agency. Turn ONE LinkedIn post into a cohesive set of up to ${count} premium, designed square (1:1) INFOGRAPHIC slides that walk the reader through THIS post's actual content. Every slide is a rich, polished designed graphic that explains its point at a glance - clean modern icons, a clear layout, organized labels, and a prominent headline - never a plain photo or a bare object on emptiness.
 
 THE POST:
 Title (hook): ${title}
 Body: ${body}
 Post type: ${postType}
-Industry: ${industry || "business"}
 ${profileBlock}
+Base every slide ONLY on the post content and this person's profile (role, positioning, and content-style preferences) - NOT their industry or field.
+
 YOUR JOB:
 Read the post above and break ITS real content into slides. Do not invent a generic or unrelated metaphor - every slide must represent something the post actually says.
 
@@ -528,28 +532,30 @@ HOW MANY SLIDES:
 - Produce between 2 and ${count} slides. Use ${count} only if the post genuinely has that many distinct points. If it has fewer, emit fewer (always at least a hook slide and a takeaway slide) rather than padding or repeating. If the body is empty or very short, build a minimal hook and takeaway from the title alone and do not invent facts, stats, or claims that are not in the post.
 
 ONE SHARED LOOK (this is what makes it a cohesive set):
-- Choose ONE art-direction style and ONE realistic colour-and-light mood for the whole carousel that genuinely fit the post's topic, and commit to both across every slide. Name the style once in "style" (concrete and evocative, for example "warm editorial documentary photography" or "bold flat vector illustration"), chosen from the content so it varies from other carousels - not a default futuristic / neon / tech look unless the post is truly about technology. Describe the colour mood once in "palette" as the lighting and atmosphere of real scenes (for example "warm sunrise tones with deep shadow contrast"), not flat background fills.
-- Keep the same compositional grid, headline placement, margins, and visual rhythm on every slide; vary only the subject and imagery per slide so the set feels like one series.
-- On each slide the visual scene is the hero, filling the frame; the headline is a short, elegant supporting overlay, never the dominant element.
+- Choose ONE aesthetic style and ONE colour-and-light mood for the whole carousel that genuinely fit the post's topic, and commit to both across every slide. Name the style once in "style" (concrete, for example "clean light flat-vector infographic with an accent colour" or "neon tech-dark infographic with soft glows"), chosen from the content so it varies from other carousels. Describe the colour mood once in "palette" as concrete colours (for example "deep navy background, electric teal accent, soft glow, ivory text").
+- Keep the same layout system, headline placement, margins, and type treatment on every slide; vary only the per-slide structure, imagery, and labels so the set feels like one series.
+- On each slide the designed graphic is the hero, filling the frame; the headline is prominent and the labels are clean and organized.
 
 EACH SLIDE NEEDS:
-- "headline": a short SUPPORTING headline for that slide, always present and legible, communicating that slide's one point but secondary to the visual - never a faded caption and never a giant banner. Between 3 and 5 words and at most 30 characters (shorter renders more crisply). Punchy, spelled exactly, Title Case. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. No quotation marks, no hashtags, no emojis.
-- "visual": ONE single-line art-director's brief for THIS slide's hero image as a LITERAL physical scene - a concrete subject and what it is doing, the composition, key objects, materials/textures, and mood, built from the real subject of this person's role and the post's topic (never a generic stereotype of their field, never an abstraction like growth or success drawn as glowing arrows or lightbulbs, and never a cliche - no handshakes, lightbulbs, puzzle pieces, floating holograms, gears, or generic arrows; translate the idea into a concrete real-world moment, e.g. business growth as a barista counting a stack of cash by an espresso machine, not a rising arrow). Render it in the carousel's one chosen style, consistent across all slides. Put NO text or lettering in the scene; describe only the image and do not reserve blank space for text. At most 60 words.
-- "label": AT MOST ONE very short, real callout figure or label for this slide, and ONLY when its visual is genuinely a chart, diagram, or data scene (use figures from the post, never invented). At most 24 characters, no ending punctuation. Otherwise use an empty string "".
+- "structure": the information-design layout for THIS slide (for example "a single big labeled stat", "three labeled icon cards in a row", "a two-step before-and-after", or "a labeled diagram of connected parts"), chosen to represent that slide's point. 3 to 12 words.
+- "headline": a PROMINENT headline for that slide, always present and legible, communicating that slide's one point. Between 2 and 6 words and at most 34 characters. Punchy, spelled exactly, Title Case. Prefer short common words; avoid words longer than 12 letters and avoid long numbers, decimals, multi-digit percentages, currency, and dates. No quotation marks, no hashtags, no emojis.
+- "subheadline": ONE optional short supporting line for the slide (at most 60 characters, plain sentence case), or an empty string "".
+- "visual": ONE single-line brief for THIS slide's designed graphic - how the structure is laid out, the clean modern icons and imagery, the connectors and panels - built strictly from the post's content and this person's role. Describe only the design; do not restate the headline or list the node text. At most 60 words.
+- "nodes": an array of 0 to 5 SHORT real labels for the key parts of this slide's structure, drawn strictly from the post (never invented). Each 1 to 4 words, at most 24 characters, spelled exactly. Use an empty array [] if the slide needs none.
 
 GUARDRAILS:
-- The visual is the hero on every slide; the headline is short and supporting. Never build a text poster or a wall of text.
-- Invent no facts, statistics, or claims - everything shown must come from the post.
+- Every slide is a DESIGNED, information-rich infographic - never a plain photo, a bare object on emptiness, or a wall of text.
+- Invent no facts, statistics, or claims - everything shown must come from the post, correctly spelled.
 - Use plain hyphens only, never em-dashes or en-dashes.
 
 ${NO_EMOJI_RULES}
 
 Return a JSON object with this EXACT structure (the "slides" array holds between 2 and ${count} objects):
 {
-  "style": "string (the one shared art-direction medium and style, chosen from the content, reused by every slide)",
-  "palette": "string (the one shared colour mood described as scene lighting and atmosphere, reused by every slide)",
+  "style": "string (the one shared aesthetic style, chosen from the content, reused by every slide)",
+  "palette": "string (the one shared colour and light mood, reused by every slide)",
   "slides": [
-    { "headline": "string (3-5 words, max 30 chars, short supporting headline)", "visual": "string (one art-director brief for this slide's hero image, in the carousel's chosen style)", "label": "string (one short real callout, or empty string)" }
+    { "structure": "string (this slide's layout)", "headline": "string (2-6 words, max 34 chars, prominent)", "subheadline": "string (one supporting line, or empty)", "visual": "string (one brief for this slide's designed graphic, in the carousel's chosen style)", "nodes": ["string (short real label)"] }
   ]
 }
 

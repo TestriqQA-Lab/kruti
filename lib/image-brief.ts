@@ -4,25 +4,31 @@ import { buildImageBriefPrompt, buildCarouselPlanPrompt, UserVisualProfile } fro
 /**
  * Content-aware image briefs.
  *
- * The text model reads a post's real title + body and, acting as an editorial art
- * director, returns a brief for ONE striking, content-driven image. The VISUAL is
- * the hero (a genuinely different medium/style per post - photo, illustration, data
- * viz, conceptual...) and a short headline only supports it. No house style, no
- * default look, no forced text stack.
+ * The text model reads a post's real title + body and, acting as a senior marketing
+ * designer, returns a brief for ONE rich, designed INFOGRAPHIC-style image that
+ * explains the post at a glance: a named information-design STRUCTURE (roadmap,
+ * hub-and-spoke, comparison, staircase, dashboard, pipeline, card grid) built from the
+ * post, meaningful icons, organized informative labels (nodes + optional feature
+ * cards), a prominent headline + subheadline, and a polished, content-matched look.
  */
 
 export interface ImageBrief {
-  style: string; // ONE named art-direction medium/style, chosen from the post's content (varies per post)
-  visual: string; // the hero image itself - a rich, concrete art-director scene that represents the post
-  headline: string; // short SUPPORTING headline (3-6 words, <=36 chars) stating the post's core point
-  label: string; // AT MOST one short callout figure/label, "" unless the visual is a chart/diagram/data scene
-  palette: string; // one single-line colour + light direction drawn from the real subject
+  style: string; // aesthetic register, content-matched (neon tech-dark w/ glows, OR clean light w/ accent)
+  structure: string; // the named information-design layout that maps the post
+  headline: string; // prominent bold headline (2-6 words, <=34 chars)
+  subheadline: string; // one supporting subheadline line (<=70 chars), "" if none
+  visual: string; // art-director brief for the designed graphic (layout + icons + connectors + cards)
+  nodes: string[]; // 3-7 short real labels from the post (roadmap steps / spokes / comparison sides)
+  cards: string[]; // 0-4 optional short feature/benefit cards from the post
+  palette: string; // rich colour + accent + light direction, differs per post
 }
 
 export interface CarouselSlide {
+  structure: string;
   headline: string;
+  subheadline?: string;
   visual: string;
-  label?: string;
+  nodes?: string[];
 }
 
 export interface CarouselPlan {
@@ -34,11 +40,7 @@ export interface CarouselPlan {
 const DEFAULT_PALETTE =
   "warm directional light on rich neutral tones, deep charcoal shadows, one confident accent colour drawn from the subject.";
 
-/**
- * Normalise a model-produced headline so it always fits on the image as a clean,
- * supporting line: collapse whitespace, strip wrapping quotes, and hard-cap the
- * length. Instructions alone do not guarantee the cap, so we enforce it in code.
- */
+/** Collapse whitespace, strip wrapping quotes, hard-cap length. */
 export function clampHeadline(raw: string, max = 40): string {
   return (raw || "")
     .replace(/\s+/g, " ")
@@ -48,79 +50,109 @@ export function clampHeadline(raw: string, max = 40): string {
     .trim();
 }
 
-/**
- * Normalise the model-produced style name into one short, clean art-direction
- * phrase. Falls back to a neutral, non-tech editorial style if empty/garbage so
- * the image prompt always leads with a committed medium.
- */
+/** Subheadline: one clean line, capped so it stays a supporting line. */
+export function clampSubhead(raw: unknown): string {
+  return clampHeadline(String(raw ?? ""), 70);
+}
+
+/** The named aesthetic register. Falls back to a safe marketing-infographic look. */
 export function clampStyle(raw: unknown): string {
   const s = String(raw ?? "")
     .replace(/\s+/g, " ")
     .replace(/^["'“”]+|["'“”]+$/g, "")
     .trim()
-    .slice(0, 80)
+    .slice(0, 90)
     .trim();
-  return s || "clean modern editorial illustration";
+  return s || "clean modern marketing infographic";
 }
 
-/**
- * Normalise the single optional callout label: collapse whitespace, strip wrapping
- * quotes, hard-cap at 24 chars. Any missing/garbage value safely becomes "" so no
- * stray text is forced onto the image.
- */
-export function clampLabel(raw: unknown): string {
-  return String(raw ?? "")
+/** The information-design layout. Falls back to a safe, common structure. */
+export function clampStructure(raw: unknown): string {
+  const s = String(raw ?? "")
     .replace(/\s+/g, " ")
     .replace(/^["'“”]+|["'“”]+$/g, "")
     .trim()
-    .slice(0, 24)
+    .slice(0, 90)
     .trim();
+  return s || "a clean labeled diagram of connected nodes";
 }
 
-/** A 3-5 word headline derived from the post title, used when the model fails. */
+/**
+ * Normalise the on-image label list (nodes or cards): trim, strip quotes, dedupe,
+ * hard-cap each label's length and the list length so the graphic stays readable and
+ * never a wall of text. Any missing/garbage value safely becomes [].
+ */
+export function clampLabels(raw: unknown, maxItems: number, maxLen: number): string[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of raw) {
+    const s = String(item ?? "")
+      .replace(/\s+/g, " ")
+      .replace(/^["'“”]+|["'“”]+$/g, "")
+      .trim()
+      .slice(0, maxLen)
+      .trim();
+    const key = s.toLowerCase();
+    if (s && !seen.has(key)) {
+      seen.add(key);
+      out.push(s);
+      if (out.length === maxItems) break;
+    }
+  }
+  return out;
+}
+
+/** A 2-6 word headline derived from the post title, used when the model fails. */
 function headlineFromTitle(title: string): string {
-  const words = (title || "Key insight").trim().split(/\s+/).slice(0, 5).join(" ");
-  return clampHeadline(words, 40) || "Key insight";
+  const words = (title || "Key insight").trim().split(/\s+/).slice(0, 6).join(" ");
+  return clampHeadline(words, 34) || "Key insight";
 }
 
-/** Deterministic, still-content-related brief for when the text model is down. */
+/** Deterministic, still-content-related infographic brief for when the model is down. */
 function fallbackBrief(
   post: { title: string; postType: string },
-  industry: string,
   headline?: string
 ): ImageBrief {
   const role = (headline || "").trim() || "professional";
-  // Deterministic per-postType fallbacks (used only when the text model is down, so
-  // they can't be content-matched). Each pairs a genuinely different visual-first
-  // style with a warm/grounded, non-tech palette so the fallback never collapses to
-  // one look or to the cool blue/teal/neon "tech" cliche.
   const fallbackStyles: Record<string, string> = {
-    "thought-leadership": "bold editorial concept illustration",
-    "tips": "clean modern editorial illustration",
-    "story": "warm cinematic documentary photograph",
-    "question": "striking minimal conceptual composition",
-    "listicle": "clean editorial data visualization",
+    "thought-leadership": "bold editorial concept infographic",
+    "tips": "clean modern flat-vector infographic",
+    "story": "warm editorial illustrated infographic",
+    "question": "striking minimal concept infographic",
+    "listicle": "clean data-driven marketing infographic",
+  };
+  const fallbackStructures: Record<string, string> = {
+    "thought-leadership": "a central idea with three labeled supporting pillars",
+    "tips": "a numbered vertical list of labeled step cards",
+    "story": "a left-to-right journey of connected milestone nodes",
+    "question": "a central question with two contrasting labeled sides",
+    "listicle": "a clean grid of labeled point cards",
   };
   const fallbackPalettes: Record<string, string> = {
-    "thought-leadership": "deep navy dusk light, warm amber highlights, crisp ivory accents.",
-    "tips": "soft daylight on warm paper tones, muted clay accents, charcoal detail.",
-    "story": "warm golden-hour terracotta light, creamy ivory base, soft brown shadow.",
-    "question": "moody plum twilight, soft ivory key light, warm sand highlights.",
-    "listicle": "bright clean daylight, fresh sage greens, deep slate contrast.",
+    "thought-leadership": "deep navy background, warm amber accent, crisp ivory text, soft glows.",
+    "tips": "clean light background, one orange accent, soft shadows, charcoal text.",
+    "story": "warm cream background, terracotta accent, soft brown shadow, ivory cards.",
+    "question": "moody plum background, soft ivory text, warm sand accent, gentle glow.",
+    "listicle": "bright white background, fresh teal accent, soft shadows, deep slate text.",
   };
+  const structure = fallbackStructures[post.postType] || "a clean labeled diagram of connected nodes";
   return {
-    style: fallbackStyles[post.postType] || "clean modern editorial illustration",
-    visual: `A single striking image that represents "${post.title}" through the real, tangible world of a ${role} (broad field: ${industry} - context only, never a generic stereotype of the field), one clear focal subject filling the frame with natural depth, real textures, and deliberate lighting, telling the post's story on its own.`,
+    style: fallbackStyles[post.postType] || "clean modern marketing infographic",
+    structure,
     headline: headlineFromTitle(post.title),
-    label: "",
+    subheadline: "",
+    visual: `A designed, premium infographic that explains "${post.title}" at a glance for the world of a ${role}: ${structure} with clean modern icons, connectors, and organized labels, filling the frame as one cohesive marketing graphic.`,
+    nodes: [],
+    cards: [],
     palette: fallbackPalettes[post.postType] || DEFAULT_PALETTE,
   };
 }
 
 /**
- * Build a content-aware brief for a single image. Tries the text model twice,
- * then falls back to a title-derived brief (so the image stays content-related
- * even if the model call fails). Never returns null.
+ * Build a content-aware brief for a single image. Tries the text model twice, then
+ * falls back to a title-derived brief (so the image stays content-related even if the
+ * model call fails). Never returns null.
  */
 export async function getImageBrief(
   post: { title: string; body: string; postType: string },
@@ -133,13 +165,16 @@ export async function getImageBrief(
         buildImageBriefPrompt(post.title, post.body, post.postType, industry, userProfile)
       );
       const parsed = parseJSON<Partial<ImageBrief>>(raw);
-      const headline = clampHeadline(parsed.headline || "", 40);
+      const headline = clampHeadline(parsed.headline || "", 34);
       if (headline && parsed.visual && parsed.palette) {
         return {
           style: clampStyle(parsed.style),
-          visual: String(parsed.visual),
+          structure: clampStructure(parsed.structure),
           headline,
-          label: clampLabel(parsed.label),
+          subheadline: clampSubhead(parsed.subheadline),
+          visual: String(parsed.visual),
+          nodes: clampLabels(parsed.nodes, 7, 28),
+          cards: clampLabels(parsed.cards, 4, 22),
           palette: String(parsed.palette),
         };
       }
@@ -147,12 +182,12 @@ export async function getImageBrief(
       console.error(`[ImageBrief] attempt ${attempt + 1} failed:`, (err as Error).message);
     }
   }
-  return fallbackBrief(post, industry, userProfile?.headline ?? undefined);
+  return fallbackBrief(post, userProfile?.headline ?? undefined);
 }
 
 /**
- * Build a cohesive multi-slide carousel plan from a post. Returns null on
- * failure so the caller can fall back to the legacy generic carousel path.
+ * Build a cohesive multi-slide carousel plan from a post. Returns null on failure so
+ * the caller can fall back to the legacy generic carousel path.
  */
 export async function getCarouselPlan(
   post: { title: string; body: string; postType: string },
@@ -170,9 +205,11 @@ export async function getCarouselPlan(
         ? parsed.slides
             .filter((s): s is CarouselSlide => !!s && !!s.headline && !!s.visual)
             .map((s) => ({
-              headline: clampHeadline(s.headline),
+              structure: clampStructure((s as { structure?: unknown }).structure),
+              headline: clampHeadline(s.headline, 34),
+              subheadline: clampSubhead((s as { subheadline?: unknown }).subheadline),
               visual: String(s.visual),
-              label: clampLabel((s as { label?: unknown }).label),
+              nodes: clampLabels((s as { nodes?: unknown }).nodes, 6, 28),
             }))
             .filter((s) => !!s.headline)
             .slice(0, count)

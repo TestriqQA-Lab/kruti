@@ -41,41 +41,57 @@ function friendlyImageError(rawMessage: string): string {
   return "Image generation failed. Please try again in a moment.";
 }
 
-// ─── Branded Image Prompt (visual-first, renders a short supporting headline) ──
+// ─── Branded Image Prompt (designed infographic that explains the post) ────────
 
 /**
- * Build the final image-model prompt as a confident, positive art-director brief.
- * The VISUAL is the hero (a genuinely different medium/style per post, named in
- * `style`); a short headline sits in the composition as a clean, SUPPORTING overlay.
- * The prompt leads AND ends with the hero visual (not with constraints) and carries
- * only a couple of essential guardrails. Pass `position` per carousel slide.
+ * Build the final image-model prompt as a confident brief for ONE premium, designed
+ * marketing INFOGRAPHIC that explains the post at a glance - built on a named
+ * `structure`, with organized informative labels (nodes + optional feature cards), a
+ * prominent headline + subheadline, and a polished, content-matched look. NOT a plain
+ * photo and NOT a bare 3D object. Pass `position` per carousel slide.
  */
 export function buildBrandedImagePrompt(brief: {
   style: string;
+  structure: string;
   headline: string;
-  label?: string;
+  subheadline?: string;
   visual: string;
+  nodes?: string[];
+  cards?: string[];
   palette: string;
   position?: string;
 }): string {
-  const { style, headline, visual, palette, position } = brief;
-  const label = (brief.label || "").replace(/\s+/g, " ").trim();
-  const labelLine = label
-    ? `If - and only if - the visual is a chart, diagram, or data scene, you may place one small callout "${label}" as a single clean figure or label; otherwise add no other text.\n`
+  const { style, structure, headline, visual, palette, position } = brief;
+  const clean = (s: string) => (s || "").replace(/\s+/g, " ").trim();
+  const subheadline = clean(brief.subheadline || "");
+  const nodes = (brief.nodes ?? []).map(clean).filter(Boolean).slice(0, 7);
+  const cards = (brief.cards ?? []).map(clean).filter(Boolean).slice(0, 4);
+
+  const subLine = subheadline
+    ? `Below the headline, set one supporting subheadline in smaller, clean type: "${subheadline}".\n`
+    : "";
+  const nodesLine = nodes.length
+    ? `Label the key parts of the structure with these exact words, each as a clean, readable label on its own node, step, or section (spell every word exactly; add no other invented labels): ${nodes.map((n) => `"${n}"`).join(", ")}.\n`
+    : "";
+  const cardsLine = cards.length
+    ? `Add a tidy row of ${cards.length} small feature cards, each with a clean modern icon and one of these exact short labels: ${cards.map((c) => `"${c}"`).join(", ")}.\n`
     : "";
   const carouselLine = position
-    ? `This is ${position} in a set: keep the same ${style}, palette, and headline treatment on every slide so the carousel reads as one cohesive series.\n`
+    ? `This is ${position} in a set: keep the same ${style}, palette, layout system, and type treatment on every slide so the carousel reads as one cohesive series.\n`
     : "";
 
-  return `Create a ${style} for a premium LinkedIn feed, art-directed with the care of a magazine editorial. The VISUAL is the hero: it fills the frame, holds one clear focal point, and tells the post's story on its own -
+  return `Design ONE premium, professionally designed square (1:1) marketing INFOGRAPHIC for a LinkedIn feed - a rich, polished graphic that EXPLAINS the post at a glance, the way a top design agency would make it. This is a DESIGNED infographic, NOT a plain photo, and NOT a bare 3D object floating on an empty background.
 
-${visual}
+STYLE: ${style}.
+STRUCTURE (the backbone - build the whole graphic on this): ${structure}. Lay the content out on this structure with clean modern icons, connectors or flow lines, and neat panels or cards, so the viewer understands the post just by looking.
 
-Compose it with confident visual hierarchy, rich real textures, and deliberate, intentional lighting. ${palette} Render it in high resolution with sharp focus, fine detail, and true, purposeful colour - the polished finish of a top magazine or design studio, never a generic AI look, a flat gradient wash, or a cheap stock photo. Avoid: any incidental text, words, letters, numbers, signage, watermark, or signature inside the scene (beyond the one headline, and any single permitted data callout, added below); visual cliches (handshakes, glowing lightbulbs, puzzle pieces, floating holograms, gears, generic arrows); anything ugly, deformed, or distorted; and any blurry, noisy, or low-contrast rendering.
+WHAT TO SHOW: ${visual}
 
-Set one short headline into the composition's natural negative space as a single compact line that occupies only a small part of the frame: clean bold sans-serif, high-contrast and easy to read on a phone, working with the image rather than covering it, and clearly secondary to the visual - "${headline}". ${labelLine}Show only these exact words and spell every one of them correctly, with no other captions, paragraphs, taglines, or watermarks. Keep the lower 20% and the outer edges clear of text.
+HEADLINE (prominent): set "${headline}" as a bold, confident headline that anchors the composition. ${subLine}${nodesLine}${cardsLine}All on-image text must be real, correctly spelled, and meaningful - never scrambled, fake, or nonsense lettering, and add no text beyond the headline, subheadline, node labels, and card labels named above.
 
-${carouselLine}Full-bleed square (1:1): the artwork runs edge to edge with no border, frame, padding, or margin on any side, key elements kept just clear of the very edge. Above all, make the hero visual itself striking and genuinely on-concept - that image is what represents the post.`;
+COLOUR AND FINISH: ${palette} Render it rich and premium with intentional depth - tasteful glows and soft gradients on a dark background, or clean surfaces with an accent colour and soft shadows on a light background. Crisp, high-resolution, modern, and genuinely UNIQUE to this post - never a generic stock photo, a bare object on emptiness, or a flat gradient wash.
+
+${carouselLine}Full-bleed square (1:1): the design runs edge to edge with no outer border, frame, or margin, key elements kept clear of the very edge. Above all, make it a cohesive, information-rich, on-concept infographic that clearly represents THIS post.`;
 }
 
 // ─── Image Generation ────────────────────────────────────────────────────────
@@ -204,7 +220,11 @@ export async function generateCarouselImages(
  * slide renders its own short headline. Returns the successful Blob URLs.
  */
 export async function generateCarouselFromPlan(
-  plan: { style: string; palette: string; slides: { headline: string; visual: string; label?: string }[] },
+  plan: {
+    style: string;
+    palette: string;
+    slides: { structure: string; headline: string; subheadline?: string; visual: string; nodes?: string[] }[];
+  },
   postId: string,
   industry?: string
 ): Promise<string[]> {
@@ -215,9 +235,11 @@ export async function generateCarouselFromPlan(
       const position = `slide ${i + 1} of ${total} - ${role}`;
       const prompt = buildBrandedImagePrompt({
         style: plan.style,
+        structure: slide.structure,
         headline: slide.headline,
-        label: slide.label,
+        subheadline: slide.subheadline,
         visual: slide.visual,
+        nodes: slide.nodes,
         palette: plan.palette,
         position,
       });
