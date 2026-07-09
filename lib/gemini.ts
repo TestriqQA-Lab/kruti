@@ -34,10 +34,12 @@ export async function generateTextWithConfig(
   return result.response.text();
 }
 
-// Pro-tier text models for higher-quality structured planning (e.g. the carousel
-// packet plan). We try Gemini 3 Pro, then Gemini 2.5 Pro, then fall back to flash,
-// so a model that is not enabled on the key degrades gracefully instead of failing.
-const PRO_TEXT_MODELS = ["gemini-3-pro-preview", "gemini-3-pro", "gemini-2.5-pro"];
+// Pro-tier text model for higher-quality structured planning (e.g. the carousel
+// packet plan). We use Gemini 2.5 Pro - a genuinely capable, reliably-available pro
+// model - and fall back to flash. We deliberately avoid gemini-3-pro-* here: it may
+// not be enabled on the key, and each miss adds a wasted round-trip that slows the
+// carousel down. Add it back to the front of this list once confirmed available.
+const PRO_TEXT_MODELS = ["gemini-2.5-pro"];
 const PRO_TEXT_FALLBACK = "gemini-2.5-flash";
 
 let _genai: GoogleGenAI | null = null;

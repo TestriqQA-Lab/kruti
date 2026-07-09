@@ -108,7 +108,8 @@ export async function generatePostImage(
   imagePrompt: string,
   postId: string,
   industry?: string,
-  allowText = false
+  allowText = false,
+  imageSize: "1K" | "2K" = "2K"
 ): Promise<string | null> {
   lastImageGenError = null;
 
@@ -150,8 +151,9 @@ Square format (1:1), filling the entire frame edge to edge with no blank border,
         contents: prompt,
         config: {
           responseModalities: ["IMAGE", "TEXT"],
-          // Square LinkedIn format at high resolution so text and detail stay crisp.
-          imageConfig: { aspectRatio: "1:1", imageSize: "2K" },
+          // Square LinkedIn format. Single images default to 2K; carousels pass 1K
+          // (still crisp at LinkedIn's ~1080px display) so 4 slides render fast.
+          imageConfig: { aspectRatio: "1:1", imageSize },
         },
       });
 
@@ -217,7 +219,7 @@ export async function generateCarouselImages(
       const prompt = `${base} - ${CAROUSEL_VARIATIONS[i % CAROUSEL_VARIATIONS.length]}`;
       onSlideEvent?.({ index: i, status: "start" });
       // allowText so the designed labels in the prompt survive (no no-text wrapper).
-      const url = await generatePostImage(prompt, `${postId}-c${i}`, industry, true);
+      const url = await generatePostImage(prompt, `${postId}-c${i}`, industry, true, "1K");
       if (url) {
         onSlideEvent?.({ index: i, status: "done", url });
       } else {
@@ -277,7 +279,7 @@ export async function generateCarouselFromPlan(
         connectsTo: slide.connectsTo,
       });
       onSlideEvent?.({ index: i, status: "start" });
-      const url = await generatePostImage(prompt, `${postId}-c${i}`, industry, true);
+      const url = await generatePostImage(prompt, `${postId}-c${i}`, industry, true, "1K");
       if (url) {
         onSlideEvent?.({ index: i, status: "done", url });
       } else {
