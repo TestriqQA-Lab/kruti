@@ -91,6 +91,7 @@ interface CarouselStreamEvent {
   status?: string;
   message?: string;
   model?: string | null;
+  theme?: string | null;
   style?: string;
   palette?: string;
   slides?: CarouselStreamSlide[];
@@ -435,7 +436,13 @@ export default function PostEditorClient({
             }));
             update({
               ...prog,
-              plan: { status: "done", model: ev.model, style: ev.style, palette: ev.palette },
+              plan: {
+                status: "done",
+                model: ev.model,
+                theme: ev.theme ?? undefined,
+                style: ev.style,
+                palette: ev.palette,
+              },
               slides,
             });
           } else if (ev.status === "fallback") {

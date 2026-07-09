@@ -33,6 +33,7 @@ export interface CarouselProgress {
   plan: {
     status: StepStatus | "fallback";
     model?: string | null;
+    theme?: string;
     style?: string;
     palette?: string;
     message?: string;
@@ -134,6 +135,12 @@ export default function CarouselProgressModal({
                 {plan.status === "error" && (plan.message || "Planning failed")}
               </span>
             </div>
+            {plan.theme && (
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                <span className="font-medium text-slate-500 dark:text-slate-400">Theme: </span>
+                {plan.theme}
+              </p>
+            )}
             {(plan.style || plan.palette) && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {plan.style && (
@@ -283,10 +290,9 @@ export default function CarouselProgressModal({
         <div className="px-6 py-4 border-t border-slate-100 dark:border-white/10 flex justify-end">
           <button
             onClick={onClose}
-            disabled={running}
-            className="text-sm px-4 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="text-sm px-4 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 transition-opacity"
           >
-            {running ? "Working..." : "Close"}
+            {running ? "Run in background" : "Close"}
           </button>
         </div>
       </div>
