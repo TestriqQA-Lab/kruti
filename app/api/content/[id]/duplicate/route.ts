@@ -23,6 +23,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       title: `${original.title} (copy)`,
       body: original.body,
       postType: original.postType,
+      style: original.style,
+      imageStyle: original.imageStyle,
       hashtags: original.hashtags,
       status: "draft",
       weekNumber: original.weekNumber,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isImageCategoryId } from "@/lib/image-categories";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -35,6 +36,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
 
+  // Validate imageStyle (image category id) if provided
+  if ("imageStyle" in body && body.imageStyle !== null && !isImageCategoryId(body.imageStyle)) {
+    return NextResponse.json({ error: "Invalid image style" }, { status: 400 });
+  }
+
   const existing = await prisma.post.findFirst({
     where: { id: params.id, plan: { userId: session.user.id } },
   });
@@ -63,6 +69,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...("humanModeOverride" in body && { humanModeOverride: body.humanModeOverride }),
       ...("customSignature" in body && { customSignature: body.customSignature }),
       ...("imagePrompt" in body && { imagePrompt: body.imagePrompt }),
+      ...("imageStyle" in body && { imageStyle: body.imageStyle ?? null }),
     },
   });
 

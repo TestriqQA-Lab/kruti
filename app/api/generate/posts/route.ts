@@ -9,6 +9,7 @@ import { getNextScheduledSlots } from "@/lib/timezone";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { formatPostBody, cleanInline } from "@/lib/format";
+import { IMAGE_CATEGORIES, imageStyleTaxonomyBlock, clampImageStyle } from "@/lib/image-categories";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -126,7 +127,9 @@ export async function POST(req: NextRequest) {
     postCount,
     allowedTypes,
     researchBrief,
-    selectedStyles
+    selectedStyles,
+    imageStyleTaxonomyBlock(),
+    IMAGE_CATEGORIES.map((c) => c.id).join("|")
   );
 
   try {
@@ -137,6 +140,7 @@ export async function POST(req: NextRequest) {
         body: string;
         hashtags: string[];
         postType: string;
+        imageStyle: string;
         imagePrompt: string;
         bestTimeToPost: string;
         callToAction: string;
@@ -169,6 +173,7 @@ export async function POST(req: NextRequest) {
             // The actual user-selected style this post was written in (drives the UI
             // badge); falls back to null for safety so the badge shows the post type.
             style: styleAssignment[idx] ?? null,
+            imageStyle: clampImageStyle(post.imageStyle),
             imagePrompt: post.imagePrompt,
             weekNumber: 1,
             scheduledAt,

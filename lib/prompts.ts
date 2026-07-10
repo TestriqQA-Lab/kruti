@@ -1,3 +1,5 @@
+import type { ImageCategory } from "@/lib/image-categories";
+
 // ─── Writing Rules ────────────────────────────────────────────────────────────
 
 const NO_EMOJI_RULES = `
@@ -278,7 +280,9 @@ export function buildPostsPrompt(
   postCount: number = 5,
   allowedTypes: string[] = ["thought-leadership", "tips", "story", "question", "listicle"],
   researchBrief: string = "",
-  selectedStyles: string[] = []
+  selectedStyles: string[] = [],
+  imageStyleGuide: string = "",
+  imageStyleIds: string = "infographic"
 ): string {
   const rules = getRules(humanMode);
 
@@ -341,6 +345,10 @@ WHAT MAKES THESE POSTS EXPERT-LEVEL (this is the whole point - do not skip):
 
 ${rules}
 
+IMAGE CATEGORY (pick the best-fit visual FORMAT for each post from its OWN content):
+${imageStyleGuide}
+Choose the "imageStyle" id that best matches THIS post's content and tone - a meme for a relatable or funny take, a quote-card for one punchy line, before-after for a teardown, framework-diagram or timeline-roadmap for a model or sequence, big-stat-hero ONLY when the post has a real stat, and realistic-scene / behind-the-scenes / desk-setup / storytelling-scene for human or story posts (these render a tasteful REPRESENTATIVE scene, never a fabricated portrait). If unsure, use "infographic". VARY the imageStyle across the ${postCount} posts wherever the content genuinely differs - do not label them all "infographic".
+
 Generate exactly ${postCount} posts as a JSON array. Each post must follow this exact structure:
 [
   {
@@ -348,6 +356,7 @@ Generate exactly ${postCount} posts as a JSON array. Each post must follow this 
     "body": "string (full post body, max 1300 characters, one clear idea, grounded in real specifics)",
     "hashtags": ["string", "string", "string", "string", "string"],
     "postType": "${allowedTypes.join("|")}",
+    "imageStyle": "${imageStyleIds}",
     "imagePrompt": "string (a short 1-2 sentence visual concept - describe the SCENE or METAPHOR, not text to display. Example: 'A lighthouse beam cutting through fog at dawn, symbolizing guidance' NOT 'An image showing the words Leadership Matters')",
     "bestTimeToPost": "string (e.g. Tuesday 9am)",
     "callToAction": "string (the specific, natural CTA embedded in this post)"
@@ -363,6 +372,7 @@ Rules for each post:
 - Do not use bullet points starting with dashes - use numbered lists or plain paragraphs.
 - Hashtags must be relevant, lowercase, no spaces (e.g. productmanagement, leadership).
 - Image prompts must describe a scene or visual metaphor only - NEVER describe text or words that should appear in the image.
+- Choose "imageStyle" by matching THIS post's content and tone to the image category list above; vary it across the batch where content genuinely differs.
 
 All string values must be single-line plain text with no double-quote characters inside them. In the "body" field, emit any line breaks as escaped \\n, not as raw newlines. Do not include trailing commas. The output must parse with JSON.parse.
 
@@ -443,19 +453,69 @@ export function buildImageBriefPrompt(
   body: string,
   postType: string,
   industry: string,
+  category: ImageCategory,
   userProfile?: UserVisualProfile
 ): string {
   const visualStyle = userProfile ? deriveVisualStyle(userProfile) : "";
   const profileBlock = visualStyle ? `\nROLE GROUNDING (keep the imagery true to this person's real work):\n${visualStyle}\n` : "";
+  const role = userProfile?.headline || "professional";
+  const scene = category.genApproach === "realistic-scene" || category.genApproach === "meme";
 
-  return `You are a senior marketing designer at a top agency. For the post below, brief ONE premium, professionally designed square (1:1) LinkedIn feed INFOGRAPHIC that EXPLAINS the post at a glance - a rich, polished graphic with a clear information-design structure, clean modern icons, organized informative labels, and a prominent headline. This is NOT a plain photo and NOT a bare 3D object on an empty background - it is a designed graphic a viewer instantly understands.
-
-Read the whole post, find its core idea and the few key points that support it, then design the one infographic that best represents and teaches that idea.
+  if (scene) {
+    const personalRule = category.personal
+      ? `This is a human/relatable format, but do NOT fabricate a portrait of a specific real person. Show a tasteful REPRESENTATIVE professional (over-the-shoulder, hands-only, a side or back angle, or no face at all) or just the real objects and workspace.`
+      : `Carry the idea through one clear focal subject or metaphor, with atmosphere and depth; no implied specific person.`;
+    return `You are a senior art director at a top agency. For the post below, brief ONE premium, believable, photoreal square (1:1) LinkedIn image in this exact FORMAT: ${category.label} - ${category.briefGuidance}.
 
 POST TITLE (hook): ${title}
 POST BODY: ${body}
 POST TYPE: ${postType}
-ROLE (ground the imagery in what THIS person actually does): ${userProfile?.headline || "professional"}
+ROLE (whose world this scene lives in): ${role}
+${profileBlock}
+${personalRule}
+Base the scene ONLY on what the post is actually about. Invent no facts. Do not add any brand or logo the post does not name; if it names a real one, show it in its genuine form and true official colours.
+
+Return a brief as a JSON object with this EXACT structure:
+{
+  "style": "string (the photoreal or editorial look, e.g. natural-light documentary photo, clean editorial product shot)",
+  "visual": "string (a rich art-director brief for the ONE scene - subject, setting, real objects, camera angle, lighting and mood - 40 to 80 words, single line, strictly from THIS post)",
+  "headline": "string (a short on-image line ONLY if the format needs one, otherwise empty; at most 34 characters)",
+  "caption": "string (for a MEME, one short punchy caption line; otherwise empty)",
+  "palette": "string (the real colour and light mood of the scene, concrete colours, one line)",
+  "theme": "string (one short line naming the overall mood and direction, from your read of the post)"
+}
+
+GUARDRAILS:
+- A believable, physically real scene: correct proportions, genuine materials and textures, natural light. Never a fabricated portrait of a named person, never a garbled logo, never an obvious plastic AI surface.
+- Keep any on-image text minimal, real, and correctly spelled. Invent no facts, statistics, or claims.
+- Use plain hyphens only, never em-dashes or en-dashes.
+
+${NO_EMOJI_RULES}
+
+All string values must be single-line plain text with no line breaks and no double-quote characters inside them. Do not include trailing commas. The response must be a single JSON object parseable by JSON.parse with no preprocessing.
+
+Return ONLY valid JSON. No markdown fences. No explanation. No emojis. Use plain hyphens, never em-dashes.`;
+  }
+
+  const formatNoun =
+    category.genApproach === "text-card"
+      ? "text-forward card"
+      : category.genApproach === "banner"
+      ? "promo banner"
+      : category.genApproach === "comparison"
+      ? "two-panel comparison graphic"
+      : category.genApproach === "diagram"
+      ? "diagram"
+      : "infographic";
+
+  return `You are a senior marketing designer at a top agency. For the post below, brief ONE premium, professionally designed square (1:1) LinkedIn ${formatNoun} in this exact FORMAT: ${category.label} - ${category.briefGuidance}. It is a designed graphic a viewer instantly understands - NOT a plain photo and NOT a bare 3D object on an empty background.
+
+Read the whole post, find its core idea and the few key points that support it, then design the one graphic that best represents it in the format above.
+
+POST TITLE (hook): ${title}
+POST BODY: ${body}
+POST TYPE: ${postType}
+ROLE (ground the imagery in what THIS person actually does): ${role}
 ${profileBlock}
 Base this image ONLY on the post content above and this person's profile (their role, positioning, and content-style preferences). Do NOT use their industry or field as a driver of the imagery.
 
@@ -465,10 +525,12 @@ Return a brief as a JSON object with this EXACT structure:
   "structure": "string",
   "headline": "string",
   "subheadline": "string",
+  "bodyText": "string",
   "visual": "string",
   "nodes": ["string", "string", "string"],
   "cards": ["string"],
-  "palette": "string"
+  "palette": "string",
+  "theme": "string"
 }
 
 FIELD DEFINITIONS:
@@ -476,13 +538,15 @@ FIELD DEFINITIONS:
 - "structure": The information-design LAYOUT that maps this post - the backbone of the graphic. Name a concrete structure that fits the content, for example "a left-to-right roadmap of connected step nodes", "a central hub with a ring of labeled icon spokes", "a side-by-side comparison split with a central balance scale", "an ascending staircase of labeled steps", "a labeled dashboard of panels", "a top-down pipeline of stages", or "a grid of labeled feature cards". Choose the one that best represents THIS post's shape. 4 to 14 words.
 - "headline": A PROMINENT, bold headline stating the post's core point in your own words - the confident title of the graphic, read first. 2 to 6 words and at most 34 characters. State a specific point or outcome (for example "Ads vs SEO" or "Where To Start With Python"), not a vague label, and never copy the title verbatim. Use Title Case. No quotation marks, no hashtags. This exact text is rendered on the image, so spell every word correctly.
 - "subheadline": ONE short supporting line under the headline (like the subheadings the best LinkedIn graphics use), drawn from the post - at most 70 characters, plain sentence case, no ending period needed. Use an empty string "" only if the post genuinely needs none.
+- "bodyText": For a QUOTE CARD, BIG-STAT, or SCREENSHOT format, the hero words shown LARGE (the quote line, the single number, or the key sentence), drawn strictly from the post, at most 160 characters. Use an empty string "" for formats that do not need it (most infographics and diagrams).
 - "visual": A rich art-director's brief for the designed graphic itself - describe how the STRUCTURE is laid out, the clean modern icons and imagery on each part, the connectors or flow lines, the panels or cards, and the overall composition, so it reads as one cohesive premium infographic. Built strictly from THIS post's content and this person's role, genuinely unique to this post. Do not restate the headline or list the node text here - describe the design. 40 to 90 words, one single-line sentence. If the graphic shows a real brand, product, tool, or logo that the post actually names, say so here and require its genuine, recognizable real-world form in that brand's true official colours - never invented, never recoloured to fit the palette; if the post names no brand, add none.
-- "nodes": An array of 3 to 7 SHORT real labels - the key parts of the structure (the roadmap steps, the hub spokes, the two comparison sides, the staircase rungs, the dashboard panels) - drawn STRICTLY from the post and never invented. Each is its own string, 1 to 4 words, at most 24 characters, Title Case or a short real figure, spelled exactly. These render as the organized on-image labels that make the graphic informative. Never a sentence.
+- "nodes": An array of 3 to 5 SHORT real labels - the key parts of the structure (the roadmap steps, the hub spokes, the two comparison sides, the staircase rungs, the dashboard panels) - drawn STRICTLY from the post and never invented. Each is its own string, 1 to 4 words, at most 24 characters, Title Case or a short real figure, spelled exactly. Use an empty array [] for quote-card, big-stat, banner, or screenshot formats that do not need labels. Never a sentence.
 - "cards": An OPTIONAL array of 0 to 4 very short feature or benefit labels for a bottom row of cards (like "Instant Traffic" or "Better ROI"), each 1 to 3 words and at most 20 characters, drawn strictly from the post. Use an empty array [] when the post does not call for a feature row. Never invented.
 - "palette": A rich, distinctive colour and light direction chosen for THIS post from anywhere across that spectrum, named as concrete colours with a light direction (for example a dark ink ground with one bright accent and light text, or two bold flat colour blocks, or an earthy sage-and-clay scheme). Do NOT default to warm off-white or sand - pick the colours THIS subject and tone call for, with strong text-to-background contrast so headlines stay readable. Every post gets a clearly DIFFERENT palette. NO neon, NO glow, no glowing all-blue tech palette. At most 30 words, one single-line sentence.
+- "theme": one short line naming the overall theme and modern visual direction, from your read of the post.
 
 GUARDRAILS:
-- The image must be a DESIGNED, information-rich infographic that explains the post - never a plain photo, a lone object on an empty background, or a bare gradient.
+- The image must be a DESIGNED graphic in the chosen format that represents the post - never a plain photo, a lone object on an empty background, or a bare gradient.
 - Make it visually UNIQUE to THIS post - a different structure, icons, labels, and palette - so it never looks like a template or a repeat of another post's image.
 - All on-image text (headline, subheadline, nodes, cards) must be real, correctly spelled, and meaningful - and everything shown must come strictly from the post. Invent no facts, statistics, numbers, or claims.
 - Real brands only when the post names them: render any real brand, product, tool, or logo the post references in its genuine form and true official colours - never invented, recoloured, or added when unmentioned.
