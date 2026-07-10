@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { put } from "@vercel/blob";
+import type { ImageCategory } from "@/lib/image-categories";
 
 let _ai: GoogleGenAI | null = null;
 function getAI(): GoogleGenAI {
@@ -63,6 +64,10 @@ export function buildBrandedImagePrompt(brief: {
   position?: string;
   connectsFrom?: string;
   connectsTo?: string;
+  format?: string; // genApproach for a non-infographic designed format (text-card, banner, comparison, diagram)
+  formatLabel?: string;
+  formatGuidance?: string;
+  bodyText?: string; // hero words for a quote card / big stat / screenshot
 }): string {
   const { style, structure, headline, visual, palette, position } = brief;
   const clean = (s: string) => (s || "").replace(/\s+/g, " ").trim();
@@ -91,15 +96,33 @@ export function buildBrandedImagePrompt(brief: {
   const themeLine = brief.theme
     ? `ART DIRECTION (derived from THIS specific post - commit to it, never a generic house look): ${clean(brief.theme)}.\n`
     : "";
+  const fmt = brief.format || "designed-infographic";
+  const formatNoun =
+    fmt === "text-card"
+      ? "text-forward card"
+      : fmt === "banner"
+      ? "promo banner"
+      : fmt === "comparison"
+      ? "two-panel comparison graphic"
+      : fmt === "diagram"
+      ? "diagram"
+      : "infographic";
+  const formatLine = brief.formatLabel
+    ? `FORMAT: ${brief.formatLabel}${brief.formatGuidance ? ` - ${clean(brief.formatGuidance)}` : ""}.\n`
+    : "";
+  const bodyText = clean(brief.bodyText || "");
+  const bodyLine = bodyText
+    ? `HERO TEXT: set "${bodyText}" as the large, dominant words that ARE the design - big, bold, beautifully set typography filling most of the safe area, perfectly legible on a phone.\n`
+    : "";
 
-  return `Design ONE premium, professionally designed square (1:1) marketing INFOGRAPHIC for a LinkedIn feed - a rich, polished graphic that EXPLAINS the post at a glance, the way a top design agency would make it. This is a DESIGNED infographic, NOT a plain photo, and NOT a bare 3D object floating on an empty background.
+  return `Design ONE premium, professionally designed square (1:1) marketing ${formatNoun} for a LinkedIn feed - a rich, polished graphic that represents the post at a glance, the way a top design agency would make it. This is a DESIGNED graphic, NOT a plain photo, and NOT a bare 3D object floating on an empty background.
 
-STYLE: ${style}.
+${formatLine}STYLE: ${style}.
 ${themeLine}STRUCTURE (the backbone - build the whole graphic on this): ${structure}. Lay the content out on this structure with clean modern icons, connectors or flow lines, and neat panels or cards, so the viewer understands the post just by looking.
 
 WHAT TO SHOW: ${visual}
 
-HEADLINE (the largest text on the slide): set "${headline}" as a big, bold headline that dominates and anchors the composition - it should span most of the safe width (roughly 70 percent of the image) and stand about 12 to 18 percent of the image height tall, so it reads instantly on a small phone screen without being oversized. If it is long, wrap it onto at most two lines rather than shrinking it; never render the headline small. ${subLine}${nodesLine}${cardsLine}All on-image text must be real, correctly spelled, and meaningful - never scrambled, fake, or nonsense lettering, and add no text beyond the headline, subheadline, node labels, and card labels named above.
+HEADLINE (the largest text on the slide): set "${headline}" as a big, bold headline that dominates and anchors the composition - it should span most of the safe width (roughly 70 percent of the image) and stand about 12 to 18 percent of the image height tall, so it reads instantly on a small phone screen without being oversized. If it is long, wrap it onto at most two lines rather than shrinking it; never render the headline small. ${bodyLine}${subLine}${nodesLine}${cardsLine}All on-image text must be real, correctly spelled, and meaningful - never scrambled, fake, or nonsense lettering, and add no text beyond the headline, subheadline, hero text, node labels, and card labels named above.
 
 TYPE SIZE AND LEGIBILITY (critical - every on-image word must be easily readable on a phone at a glance): use three clear, distinct sizes - a dominant headline, a medium subheadline about half its height, and small-but-legible labels in a solid weight. Keep every word large enough to read without zooming; favour fewer, larger words over many small ones, and never let text become thin, faint, cramped, or squeezed to fit. When space is tight, DROP or shorten a label rather than shrinking the type. Prioritise legible text over filling the frame with fine detail.
 
@@ -110,6 +133,91 @@ REALISM OF REAL THINGS: any real-world object, product, device, screen, or mater
 REAL BRANDS AND LOGOS: only ever depict a brand, company, product, tool, or logo that the post text itself names - never add or invent one. When a named brand does appear, render it as its genuine, instantly recognizable real-world form using that brand's TRUE official colours - the real logo or wordmark in its actual brand colours, correctly proportioned and spelled, NOT recoloured to match the slide palette and NOT a made-up mark (the brand's real colours take priority over the palette for that logo only). If a mark cannot be rendered cleanly and accurately, show the product itself or a plain, correctly spelled wordmark in the real brand colour rather than a garbled, distorted, or fake logo.
 
 ${carouselLine}${continuityLine}Square 1:1, FULL-BLEED: the background artwork extends all the way to every edge and corner, so the edge of the artwork is the edge of the image. Draw NO border, frame, outline, keyline, rounded-rectangle, box, or inset panel around the whole slide or its outer edge - the slide itself has no drawn edge of any kind (interior cards or panels the layout calls for are fine; just nothing that frames the whole composition). Keep all text (headline, subheadline, and every label) and the key graphics set in a little from each edge, about a tenth of the width, so nothing important is clipped at any edge or corner - but treat that margin as EMPTY background breathing room, never a drawn line, rule, frame, or panel. If a line of text is long, wrap it onto at most two lines rather than shrinking it, and never crop a word. Above all, make it a cohesive, information-rich, on-concept infographic that clearly represents THIS post.`;
+}
+
+/**
+ * Build a photoreal / editorial SCENE prompt for the realistic-scene and meme
+ * categories (a believable real photograph, not a designed infographic). Personal
+ * categories render a tasteful REPRESENTATIVE person, never a fabricated portrait.
+ */
+export function buildRealisticImagePrompt(
+  brief: { style?: string; visual: string; headline?: string; caption?: string; palette: string; theme?: string },
+  category: ImageCategory
+): string {
+  const clean = (s?: string) => (s || "").replace(/\s+/g, " ").trim();
+  const caption = clean(brief.caption);
+  const headline = clean(brief.headline);
+  const theme = clean(brief.theme);
+  const captionLine =
+    category.genApproach === "meme" && caption
+      ? `Add ONE short meme caption in clean, bold, perfectly-spelled type, large enough to read on a phone: "${caption}".\n`
+      : headline
+      ? `If a short label genuinely helps, set it small, clean, and perfectly spelled: "${headline}".\n`
+      : "";
+  const personalLine = category.personal
+    ? `Show a tasteful REPRESENTATIVE person (over-the-shoulder, hands-only, a side or back angle, or no face) or just the real objects and workspace - NEVER a fabricated portrait of a specific real individual.\n`
+    : "";
+  const themeLine = theme ? `ART DIRECTION: ${theme}.\n` : "";
+
+  return `Create ONE premium, believable, photoREAL square (1:1) image for a LinkedIn feed in this format: ${category.label} - ${category.briefGuidance}. It should look like a real, professionally shot photograph or editorial scene - NOT a designed infographic and NOT an obvious AI render.
+
+${themeLine}WHAT TO SHOW: ${brief.visual}
+${personalLine}${captionLine}REALISM: correct proportions, genuine materials and surface texture, natural believable light and real depth, true-to-life colour, so every object looks authentically real. NO neon glow, NO plastic AI sheen, NO garbled text, NO warped hands or extra limbs.
+REAL BRANDS: only ever show a brand, product, or logo the post actually names, in its genuine form and true official colours; never invent or recolour one.
+COLOUR AND LIGHT: ${brief.palette}
+
+Keep any on-image words minimal, real, and correctly spelled, and add no text beyond the caption or label named above. Square 1:1, FULL-BLEED: the photo fills the whole frame to every edge with NO drawn border, frame, or panel; keep the key subject and any text a comfortable margin in from the edges so nothing important is clipped. Crisp, high-resolution, genuinely premium, and unique to THIS post.`;
+}
+
+/**
+ * Dispatch to the right prompt builder for a post's chosen image category:
+ * designed formats (infographic, diagram, comparison, text-card, banner) use the
+ * branded builder; realistic-scene and meme use the photoreal builder.
+ */
+export function buildCategoryImagePrompt(
+  category: ImageCategory,
+  brief: {
+    style: string;
+    structure: string;
+    headline: string;
+    subheadline?: string;
+    visual: string;
+    nodes?: string[];
+    cards?: string[];
+    palette: string;
+    theme?: string;
+    bodyText?: string;
+    caption?: string;
+  }
+): string {
+  if (category.genApproach === "realistic-scene" || category.genApproach === "meme") {
+    return buildRealisticImagePrompt(
+      {
+        style: brief.style,
+        visual: brief.visual,
+        headline: brief.headline,
+        caption: brief.caption,
+        palette: brief.palette,
+        theme: brief.theme,
+      },
+      category
+    );
+  }
+  return buildBrandedImagePrompt({
+    style: brief.style,
+    theme: brief.theme,
+    structure: brief.structure,
+    headline: brief.headline,
+    subheadline: brief.subheadline,
+    visual: brief.visual,
+    nodes: brief.nodes,
+    cards: brief.cards,
+    palette: brief.palette,
+    bodyText: brief.bodyText,
+    format: category.genApproach,
+    formatLabel: category.label,
+    formatGuidance: category.briefGuidance,
+  });
 }
 
 // ─── Image Generation ────────────────────────────────────────────────────────

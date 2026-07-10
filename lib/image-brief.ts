@@ -1,5 +1,6 @@
-import { generateText, generateProText, parseJSON } from "@/lib/gemini";
+import { generateProText, parseJSON } from "@/lib/gemini";
 import { buildImageBriefPrompt, buildCarouselPlanPrompt, UserVisualProfile } from "@/lib/prompts";
+import type { ImageCategory } from "@/lib/image-categories";
 
 /**
  * Content-aware image briefs.
@@ -21,6 +22,9 @@ export interface ImageBrief {
   nodes: string[]; // 3-7 short real labels from the post (roadmap steps / spokes / comparison sides)
   cards: string[]; // 0-4 optional short feature/benefit cards from the post
   palette: string; // rich colour + accent + light direction, differs per post
+  theme?: string; // per-post art-direction line (parity with the carousel path)
+  bodyText?: string; // hero words for text-card formats (quote / stat / screenshot line)
+  caption?: string; // one short caption line for a meme
 }
 
 export interface CarouselSlide {
@@ -61,6 +65,11 @@ export function clampHeadline(raw: string, max = 40): string {
 /** Subheadline: one clean line, capped so it stays a supporting line. */
 export function clampSubhead(raw: unknown): string {
   return clampHeadline(String(raw ?? ""), 70);
+}
+
+/** Hero body text for text-card formats (a quote, a big stat, a screenshot line). */
+export function clampBodyText(raw: unknown): string {
+  return clampHeadline(String(raw ?? ""), 200);
 }
 
 /** The named aesthetic register. Falls back to a safe marketing-infographic look. */
@@ -120,9 +129,24 @@ function headlineFromTitle(title: string): string {
 /** Deterministic, still-content-related infographic brief for when the model is down. */
 function fallbackBrief(
   post: { title: string; postType: string },
+  category: ImageCategory,
   headline?: string
 ): ImageBrief {
   const role = (headline || "").trim() || "professional";
+  if (category.genApproach === "realistic-scene" || category.genApproach === "meme") {
+    const isMeme = category.genApproach === "meme";
+    return {
+      style: "editorial photoreal, natural light",
+      structure: "",
+      headline: isMeme ? headlineFromTitle(post.title) : "",
+      subheadline: "",
+      visual: `A tasteful, realistic editorial scene representing "${post.title}" for the world of a ${role} - believable real objects and natural light; ${category.briefGuidance}`,
+      nodes: [],
+      cards: [],
+      palette: "natural daylight, real materials, soft true-to-life colour.",
+      caption: isMeme ? headlineFromTitle(post.title) : "",
+    };
+  }
   const fallbackStyles: Record<string, string> = {
     "thought-leadership": "deep editorial concept infographic",
     "tips": "bold flat colour-block infographic",
@@ -165,32 +189,42 @@ function fallbackBrief(
 export async function getImageBrief(
   post: { title: string; body: string; postType: string },
   industry: string,
+  category: ImageCategory,
   userProfile?: UserVisualProfile
 ): Promise<ImageBrief> {
+  const scene = category.genApproach === "realistic-scene" || category.genApproach === "meme";
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const raw = await generateText(
-        buildImageBriefPrompt(post.title, post.body, post.postType, industry, userProfile)
+      // Pro-tier planner + a modest temperature so single images get the carousel path's
+      // per-post look variety and richer, category-appropriate briefs.
+      const { text: raw } = await generateProText(
+        buildImageBriefPrompt(post.title, post.body, post.postType, industry, category, userProfile),
+        { temperature: 1.1, topP: 0.95 }
       );
       const parsed = parseJSON<Partial<ImageBrief>>(raw);
       const headline = clampHeadline(parsed.headline || "", 34);
-      if (headline && parsed.visual && parsed.palette) {
+      // Designed formats need headline + visual + palette; scene/meme just need a scene visual.
+      const valid = scene ? !!parsed.visual : !!(headline && parsed.visual && parsed.palette);
+      if (valid) {
         return {
           style: clampStyle(parsed.style),
           structure: clampStructure(parsed.structure),
           headline,
           subheadline: clampSubhead(parsed.subheadline),
           visual: String(parsed.visual),
-          nodes: clampLabels(parsed.nodes, 7, 28),
+          nodes: clampLabels(parsed.nodes, 5, 28),
           cards: clampLabels(parsed.cards, 4, 22),
-          palette: String(parsed.palette),
+          palette: parsed.palette ? String(parsed.palette) : DEFAULT_PALETTE,
+          theme: clampHeadline(String(parsed.theme ?? ""), 120),
+          bodyText: clampBodyText(parsed.bodyText),
+          caption: clampHeadline(String(parsed.caption ?? ""), 120),
         };
       }
     } catch (err) {
       console.error(`[ImageBrief] attempt ${attempt + 1} failed:`, (err as Error).message);
     }
   }
-  return fallbackBrief(post, userProfile?.headline ?? undefined);
+  return fallbackBrief(post, category, userProfile?.headline ?? undefined);
 }
 
 /**

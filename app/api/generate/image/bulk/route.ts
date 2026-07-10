@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generatePostImage, buildBrandedImagePrompt } from "@/lib/imagen";
+import { generatePostImage, buildCategoryImagePrompt } from "@/lib/imagen";
 import { getImageBrief } from "@/lib/image-brief";
+import { resolveImageCategory } from "@/lib/image-categories";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 
 const IMAGE_GEN_LIMIT_PER_POST = 2;
@@ -66,21 +67,14 @@ export async function POST(req: NextRequest) {
         name: post.plan.user.name,
         headline: post.plan.user.headline, // the actual ROLE that drives the imagery
       };
+      const category = resolveImageCategory(post.imageStyle);
       const brief = await getImageBrief(
         { title: post.title, body: post.body, postType: post.postType },
         industry,
+        category,
         userVisualProfile
       );
-      const prompt = buildBrandedImagePrompt({
-        style: brief.style,
-        structure: brief.structure,
-        headline: brief.headline,
-        subheadline: brief.subheadline,
-        visual: brief.visual,
-        nodes: brief.nodes,
-        cards: brief.cards,
-        palette: brief.palette,
-      });
+      const prompt = buildCategoryImagePrompt(category, brief);
       const imageUrl = await generatePostImage(prompt, post.id, industry, true);
 
       if (imageUrl) {
@@ -88,7 +82,7 @@ export async function POST(req: NextRequest) {
           where: { id: post.id },
           data: {
             imageUrl,
-            imagePrompt: `${brief.headline} - ${brief.visual}`,
+            imagePrompt: `${brief.headline || brief.bodyText || category.label} - ${brief.visual}`,
             imageGenCount: post.imageGenCount + 1,
           },
         });
