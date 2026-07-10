@@ -42,6 +42,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { fromZonedTime } from "date-fns-tz";
 import { WATERMARK_TEXT } from "@/lib/subscription-check";
 import { parseImageHistory } from "@/lib/image-history";
+import { IMAGE_CATEGORY_GROUPS, DEFAULT_IMAGE_CATEGORY, getImageCategory } from "@/lib/image-categories";
 
 interface Post {
   id: string;
@@ -50,6 +51,7 @@ interface Post {
   hashtags: string | null;
   postType: string;
   style?: string | null;
+  imageStyle?: string | null;
   status: string;
   scheduledAt: Date | string | null;
   imageUrl: string | null;
@@ -161,6 +163,7 @@ export default function PostEditorClient({
   const [generatingCarousel, setGeneratingCarousel] = useState(false);
   const [carouselProgress, setCarouselProgress] = useState<CarouselProgress | null>(null);
   const [cropping, setCropping] = useState(false);
+  const [imageStyle, setImageStyle] = useState<string>(post.imageStyle ?? DEFAULT_IMAGE_CATEGORY);
   const [documentUrl, setDocumentUrl] = useState<string | null>(post.documentUrl);
   const [documentName, setDocumentName] = useState<string | null>(post.documentName);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -347,6 +350,19 @@ export default function PostEditorClient({
       router.refresh();
     } catch {
       toast("Couldn't save that selection", "error");
+    }
+  }
+
+  async function handleImageStyleChange(next: string) {
+    setImageStyle(next);
+    try {
+      await fetch(`/api/content/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageStyle: next }),
+      });
+    } catch {
+      toast("Couldn't save the image style", "error");
     }
   }
 
@@ -1272,6 +1288,33 @@ export default function PostEditorClient({
                 </div>
               )}
             </div>
+            {!isPublished && (
+              <div className="px-4 pt-4 pb-3 border-b border-slate-100 dark:border-white/10">
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+                  Image style
+                </label>
+                <select
+                  value={imageStyle}
+                  onChange={(e) => handleImageStyleChange(e.target.value)}
+                  className="w-full text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] text-slate-700 dark:text-slate-200 px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                >
+                  {IMAGE_CATEGORY_GROUPS.map((g) => (
+                    <optgroup key={g.group} label={g.group}>
+                      {g.items.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                {getImageCategory(imageStyle).hint && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                    Best made as a carousel - use the Carousel button below.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="p-4">
               {documentUrl ? (
                 <div className="rounded-xl border border-slate-200 dark:border-white/10 p-4 flex items-center gap-3 bg-slate-50 dark:bg-white/[0.04]">

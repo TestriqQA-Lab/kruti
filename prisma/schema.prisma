@@ -121,6 +121,7 @@ model Post {
   hashtags          String?     @db.Text // JSON array string
   postType          String      // thought-leadership | tips | story | poll | carousel
   style             String?     // the user-selected content style this post was written in (e.g. "Contrarian Take"); null for legacy posts -> badge falls back to postType
+  imageStyle        String?     // chosen IMAGE CATEGORY id from lib/image-categories.ts; null (legacy) -> single-image render resolves to "infographic"
   scheduledAt       DateTime?
   status            String      @default("draft") // draft | ready | published
   weekNumber        Int         @default(1)
