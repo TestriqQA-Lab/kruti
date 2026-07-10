@@ -52,6 +52,7 @@ function friendlyImageError(rawMessage: string): string {
  */
 export function buildBrandedImagePrompt(brief: {
   style: string;
+  theme?: string;
   structure: string;
   headline: string;
   subheadline?: string;
@@ -66,14 +67,14 @@ export function buildBrandedImagePrompt(brief: {
   const { style, structure, headline, visual, palette, position } = brief;
   const clean = (s: string) => (s || "").replace(/\s+/g, " ").trim();
   const subheadline = clean(brief.subheadline || "");
-  const nodes = (brief.nodes ?? []).map(clean).filter(Boolean).slice(0, 7);
+  const nodes = (brief.nodes ?? []).map(clean).filter(Boolean).slice(0, 5);
   const cards = (brief.cards ?? []).map(clean).filter(Boolean).slice(0, 4);
 
   const subLine = subheadline
-    ? `Below the headline, set one supporting subheadline in smaller, clean type: "${subheadline}".\n`
+    ? `Below the headline, set one supporting subheadline at a medium size - clearly smaller than the headline but still comfortably readable on a phone, about half the headline's text height: "${subheadline}".\n`
     : "";
   const nodesLine = nodes.length
-    ? `Label the key parts of the structure with these exact words, each as a clean, readable label on its own node, step, or section (spell every word exactly; add no other invented labels): ${nodes.map((n) => `"${n}"`).join(", ")}.\n`
+    ? `Label the key parts of the structure with these exact words, each as its own clean label on its node, step, or section - set them in a solid weight at a size that stays crisply legible on a phone (never tiny, thin, or faint) with strong contrast against their background (spell every word exactly; add no other invented labels): ${nodes.map((n) => `"${n}"`).join(", ")}.\n`
     : "";
   const cardsLine = cards.length
     ? `Add a tidy row of ${cards.length} small feature cards, each with a clean modern icon and one of these exact short labels: ${cards.map((c) => `"${c}"`).join(", ")}.\n`
@@ -87,19 +88,28 @@ export function buildBrandedImagePrompt(brief: {
     connectsFrom || connectsTo
       ? `CONTINUITY WITH THE SET: ${connectsFrom ? `this slide follows from the previous one - ${connectsFrom}. ` : ""}${connectsTo ? `it then leads into the next slide - ${connectsTo}. ` : ""}Carry a clear visual through-line (a recurring motif, consistent characters or objects, or a progressing element) so this slide obviously belongs to the same series as its neighbours.\n`
       : "";
+  const themeLine = brief.theme
+    ? `ART DIRECTION (derived from THIS specific post - commit to it, never a generic house look): ${clean(brief.theme)}.\n`
+    : "";
 
   return `Design ONE premium, professionally designed square (1:1) marketing INFOGRAPHIC for a LinkedIn feed - a rich, polished graphic that EXPLAINS the post at a glance, the way a top design agency would make it. This is a DESIGNED infographic, NOT a plain photo, and NOT a bare 3D object floating on an empty background.
 
 STYLE: ${style}.
-STRUCTURE (the backbone - build the whole graphic on this): ${structure}. Lay the content out on this structure with clean modern icons, connectors or flow lines, and neat panels or cards, so the viewer understands the post just by looking.
+${themeLine}STRUCTURE (the backbone - build the whole graphic on this): ${structure}. Lay the content out on this structure with clean modern icons, connectors or flow lines, and neat panels or cards, so the viewer understands the post just by looking.
 
 WHAT TO SHOW: ${visual}
 
-HEADLINE (prominent): set "${headline}" as a bold, confident headline that anchors the composition. ${subLine}${nodesLine}${cardsLine}All on-image text must be real, correctly spelled, and meaningful - never scrambled, fake, or nonsense lettering, and add no text beyond the headline, subheadline, node labels, and card labels named above.
+HEADLINE (the largest text on the slide): set "${headline}" as a big, bold headline that dominates and anchors the composition - it should span most of the safe width (roughly 70 percent of the image) and stand about 12 to 18 percent of the image height tall, so it reads instantly on a small phone screen without being oversized. If it is long, wrap it onto at most two lines rather than shrinking it; never render the headline small. ${subLine}${nodesLine}${cardsLine}All on-image text must be real, correctly spelled, and meaningful - never scrambled, fake, or nonsense lettering, and add no text beyond the headline, subheadline, node labels, and card labels named above.
 
-COLOUR AND FINISH: ${palette} Render it the way a top human design studio would - premium, modern, and editorial, with believable depth, real materials and textures, and soft natural shadows. NO neon glow, NO glowing outlines or light halos, NO heavy sci-fi blue, NO circuit-board or digital-grid cliche, and NO obvious "AI infographic" look. Use tasteful, confident colour (colourful is fine when the topic suits it) on clean, realistic surfaces, so a LinkedIn viewer thinks "what a great graphic" rather than "this was made by AI". Crisp, high-resolution, and genuinely UNIQUE to this post - never a generic stock photo or a flat gradient wash.
+TYPE SIZE AND LEGIBILITY (critical - every on-image word must be easily readable on a phone at a glance): use three clear, distinct sizes - a dominant headline, a medium subheadline about half its height, and small-but-legible labels in a solid weight. Keep every word large enough to read without zooming; favour fewer, larger words over many small ones, and never let text become thin, faint, cramped, or squeezed to fit. When space is tight, DROP or shorten a label rather than shrinking the type. Prioritise legible text over filling the frame with fine detail.
 
-${carouselLine}${continuityLine}Square 1:1 with a comfortable safe margin: the background may fill the whole frame, but keep ALL text (headline, subheadline, and every label) and every important graphic fully INSIDE a safe inner area with clear padding on all four sides - nothing may touch, run off, or be cut at any edge or corner. If a line of text is long, shorten or wrap it so it fits completely; never crop a word. Above all, make it a cohesive, information-rich, on-concept infographic that clearly represents THIS post.`;
+COLOUR AND FINISH: ${palette} Render it the way a top human design studio would - premium, modern, and editorial, with believable depth, true-to-life materials and surface texture, and soft natural shadows, so any real object in it looks genuinely real. NO neon glow, NO glowing outlines or light halos, NO drawn border, frame, box, keyline or inset panel around the whole slide, NO heavy sci-fi blue, NO circuit-board or digital-grid cliche, and NO obvious "AI infographic" look. Use tasteful, confident colour (colourful is fine when the topic suits it) on clean, realistic surfaces, so a LinkedIn viewer thinks "what a great graphic" rather than "this was made by AI". Crisp, high-resolution, and genuinely UNIQUE to this post - never a generic stock photo or a flat gradient wash.
+
+REALISM OF REAL THINGS: any real-world object, product, device, screen, or material that appears must read as an authentic, physically accurate version of the real thing - correct proportions, genuine materials and surface texture, natural light - rendered cleanly WITHIN the chosen STYLE above (if that style is flat or illustrated, keep it a faithful, recognizable rendition of the real object, not a literal photo, and never a vague blob or generic AI shape). This stays a designed infographic, not a photograph of a whole scene, but every depicted object should look believably real.
+
+REAL BRANDS AND LOGOS: only ever depict a brand, company, product, tool, or logo that the post text itself names - never add or invent one. When a named brand does appear, render it as its genuine, instantly recognizable real-world form using that brand's TRUE official colours - the real logo or wordmark in its actual brand colours, correctly proportioned and spelled, NOT recoloured to match the slide palette and NOT a made-up mark (the brand's real colours take priority over the palette for that logo only). If a mark cannot be rendered cleanly and accurately, show the product itself or a plain, correctly spelled wordmark in the real brand colour rather than a garbled, distorted, or fake logo.
+
+${carouselLine}${continuityLine}Square 1:1, FULL-BLEED: the background artwork extends all the way to every edge and corner, so the edge of the artwork is the edge of the image. Draw NO border, frame, outline, keyline, rounded-rectangle, box, or inset panel around the whole slide or its outer edge - the slide itself has no drawn edge of any kind (interior cards or panels the layout calls for are fine; just nothing that frames the whole composition). Keep all text (headline, subheadline, and every label) and the key graphics set in a little from each edge, about a tenth of the width, so nothing important is clipped at any edge or corner - but treat that margin as EMPTY background breathing room, never a drawn line, rule, frame, or panel. If a line of text is long, wrap it onto at most two lines rather than shrinking it, and never crop a word. Above all, make it a cohesive, information-rich, on-concept infographic that clearly represents THIS post.`;
 }
 
 // ─── Image Generation ────────────────────────────────────────────────────────
@@ -151,8 +161,11 @@ Square format (1:1), filling the entire frame edge to edge with no blank border,
         contents: prompt,
         config: {
           responseModalities: ["IMAGE", "TEXT"],
-          // Square LinkedIn format. Single images default to 2K; carousels pass 1K
-          // (still crisp at LinkedIn's ~1080px display) so 4 slides render fast.
+          // Square LinkedIn format. Single images default to 2K; carousels pass 1K (still
+          // crisp at LinkedIn's ~1080px display). 1K stays legible because the prompt sizes
+          // the headline at ~12-18% of image height and caps labels per slide - do NOT raise
+          // carousels to 2K to "fix" small text (2K timed out the 60s limit); text size is
+          // prompt-controlled, not pixel-controlled.
           imageConfig: { aspectRatio: "1:1", imageSize },
         },
       });
@@ -247,6 +260,7 @@ export async function generateCarouselFromPlan(
   plan: {
     style: string;
     palette: string;
+    theme?: string;
     slides: {
       structure: string;
       headline: string;
@@ -268,6 +282,7 @@ export async function generateCarouselFromPlan(
       const position = `slide ${i + 1} of ${total} - ${role}`;
       const prompt = buildBrandedImagePrompt({
         style: plan.style,
+        theme: plan.theme,
         structure: slide.structure,
         headline: slide.headline,
         subheadline: slide.subheadline,

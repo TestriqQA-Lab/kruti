@@ -124,11 +124,11 @@ function fallbackBrief(
 ): ImageBrief {
   const role = (headline || "").trim() || "professional";
   const fallbackStyles: Record<string, string> = {
-    "thought-leadership": "bold editorial concept infographic",
-    "tips": "clean modern flat-vector infographic",
-    "story": "warm editorial illustrated infographic",
-    "question": "striking minimal concept infographic",
-    "listicle": "clean data-driven marketing infographic",
+    "thought-leadership": "deep editorial concept infographic",
+    "tips": "bold flat colour-block infographic",
+    "story": "warm illustrated editorial infographic",
+    "question": "high-contrast mono plus one accent infographic",
+    "listicle": "clean cool-crisp data infographic",
   };
   const fallbackStructures: Record<string, string> = {
     "thought-leadership": "a central idea with three labeled supporting pillars",
@@ -138,11 +138,11 @@ function fallbackBrief(
     "listicle": "a clean grid of labeled point cards",
   };
   const fallbackPalettes: Record<string, string> = {
-    "thought-leadership": "warm off-white background, deep ink text, one confident amber accent, soft natural shadows.",
-    "tips": "clean light background, one orange accent, soft shadows, charcoal text.",
+    "thought-leadership": "near-black ink background, one bright amber accent, light text, soft real shadows.",
+    "tips": "two bold flat colour blocks, deep teal and warm coral, high contrast, charcoal text.",
     "story": "warm cream background, terracotta accent, soft brown shadow, ivory cards.",
-    "question": "muted warm-grey background, deep aubergine accent, soft ivory panels, gentle natural shadow.",
-    "listicle": "bright white background, fresh teal accent, soft shadows, deep slate text.",
+    "question": "cool slate-grey background, one decisive magenta accent, light panels, gentle shadow.",
+    "listicle": "crisp off-white background, deep forest-green accent, soft shadows, slate text.",
   };
   const structure = fallbackStructures[post.postType] || "a clean labeled diagram of connected nodes";
   return {
@@ -209,7 +209,10 @@ export async function getCarouselPlan(
       // post and returns one "packet" per slide: the slide's text content plus a
       // visual prompt built from that text, with prev/next continuity refs.
       const { text: raw, model: plannerModel } = await generateProText(
-        buildCarouselPlanPrompt(post.title, post.body, post.postType, industry, count, userProfile)
+        buildCarouselPlanPrompt(post.title, post.body, post.postType, industry, count, userProfile),
+        // A deliberate temperature so two similar-tone posts diverge (per-post variety);
+        // getCarouselPlan retries twice + clamps, so an occasional off sample is absorbed.
+        { temperature: 1.1, topP: 0.95 }
       );
       const parsed = parseJSON<Partial<CarouselPlan>>(raw);
       const slides = Array.isArray(parsed.slides)
@@ -220,7 +223,7 @@ export async function getCarouselPlan(
               headline: clampHeadline(s.headline, 34),
               subheadline: clampSubhead((s as { subheadline?: unknown }).subheadline),
               visual: String(s.visual),
-              nodes: clampLabels((s as { nodes?: unknown }).nodes, 6, 28),
+              nodes: clampLabels((s as { nodes?: unknown }).nodes, 4, 28),
               connectsFrom: clampHeadline(String((s as { connectsFrom?: unknown }).connectsFrom ?? ""), 100),
               connectsTo: clampHeadline(String((s as { connectsTo?: unknown }).connectsTo ?? ""), 100),
             }))
