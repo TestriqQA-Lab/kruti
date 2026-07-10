@@ -57,13 +57,14 @@ function getGenAIClient(): GoogleGenAI {
  * fails.
  */
 export async function generateProText(
-  prompt: string
+  prompt: string,
+  generationConfig?: { temperature?: number; topP?: number }
 ): Promise<{ text: string; model: string }> {
   const client = getGenAIClient();
   let lastErr: Error | null = null;
   for (const model of [...PRO_TEXT_MODELS, PRO_TEXT_FALLBACK]) {
     try {
-      const response = await client.models.generateContent({ model, contents: prompt });
+      const response = await client.models.generateContent({ model, contents: prompt, config: generationConfig });
       const text = response.text ?? "";
       if (text.trim()) return { text, model };
       console.warn(`[ProText] ${model} returned empty text, trying next model`);
