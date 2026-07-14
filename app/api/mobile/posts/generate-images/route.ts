@@ -15,7 +15,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generatePostImage, buildImagePrompt } from "@/lib/imagen";
+import { generatePostImage, buildBrandedImagePrompt } from "@/lib/imagen";
+import { getImageBrief } from "@/lib/image-brief";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { getMobileUserId } from "@/lib/mobileAuth";
 
@@ -56,7 +57,19 @@ export async function POST(req: NextRequest) {
       imageGenCount: { lt: IMAGE_GEN_LIMIT_PER_POST },
     },
     include: {
-      plan: { include: { user: { select: { industry: true } } } },
+      plan: {
+        include: {
+          user: {
+            select: {
+              industry: true,
+              positioning: true,
+              contentStyles: true,
+              name: true,
+              headline: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -77,25 +90,37 @@ export async function POST(req: NextRequest) {
 
   for (const post of posts) {
     try {
-      const imagePrompt =
-        post.imagePrompt ||
-        buildImagePrompt(
-          post.title,
-          post.postType,
-          post.plan.user.industry || "business",
-        );
-      const imageUrl = await generatePostImage(
-        imagePrompt,
-        post.id,
-        post.plan.user.industry || "business",
+      const industry = post.plan.user.industry || "business";
+      const userVisualProfile = {
+        positioning: post.plan.user.positioning,
+        contentStyles: post.plan.user.contentStyles,
+        industry,
+        name: post.plan.user.name,
+        headline: post.plan.user.headline, // the actual ROLE that drives the imagery
+      };
+      // Content-aware: derive a brief from THIS post, then render a branded graphic
+      // that explains the post and shows a short readable headline of its key point —
+      // the same high-quality path the website uses.
+      const brief = await getImageBrief(
+        { title: post.title, body: post.body, postType: post.postType },
+        industry,
+        userVisualProfile,
       );
+      const prompt = buildBrandedImagePrompt({
+        headline: brief.headline,
+        subpoints: brief.subpoints,
+        visual: brief.visual,
+        palette: brief.palette,
+        textPosition: brief.textPosition,
+      });
+      const imageUrl = await generatePostImage(prompt, post.id, industry, true);
       if (imageUrl) {
         const newCount = post.imageGenCount + 1;
         await prisma.post.update({
           where: { id: post.id },
           data: {
             imageUrl,
-            imagePrompt,
+            imagePrompt: `${brief.headline} - ${brief.visual}`,
             imageGenCount: newCount,
           },
         });

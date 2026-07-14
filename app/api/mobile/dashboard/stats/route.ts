@@ -59,13 +59,7 @@ export async function GET(req: NextRequest) {
   let latestStrategy: string | null = null;
   const latestPlan = plans[0];
   if (latestPlan?.strategy) {
-    try {
-      const s = JSON.parse(latestPlan.strategy);
-      latestStrategy =
-        s.weekTheme || s.weekFocus || s.title || "Strategy ready";
-    } catch {
-      latestStrategy = null;
-    }
+    latestStrategy = latestPlan.strategy;
   }
 
   return NextResponse.json({

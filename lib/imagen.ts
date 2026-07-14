@@ -9,46 +9,130 @@ function getAI(): GoogleGenAI {
   return _ai;
 }
 
-// Track last generation error for better debugging
+// Track last generation error (user-facing message). The raw technical error is
+// always logged separately via console.error for debugging.
 export let lastImageGenError: string | null = null;
+
+/** Map a raw image-model error into a short, clear, user-facing message. */
+function friendlyImageError(rawMessage: string): string {
+  const m = (rawMessage || "").toLowerCase();
+  if (
+    m.includes("spending cap") ||
+    m.includes("resource_exhausted") ||
+    m.includes("quota") ||
+    m.includes("exceeded") ||
+    m.includes("429")
+  ) {
+    return "AI image generation is temporarily unavailable - the monthly image quota has been reached. Please try again later.";
+  }
+  if (m.includes("safety") || m.includes("blocked") || m.includes("prohibited")) {
+    return "The image couldn't be generated for this content. Try editing the post text and generating again.";
+  }
+  if (
+    m.includes("api key") ||
+    m.includes("api_key") ||
+    m.includes("permission") ||
+    m.includes("unauthenticated") ||
+    m.includes("401") ||
+    m.includes("403")
+  ) {
+    return "The AI image service is temporarily unavailable. Please try again later or contact support.";
+  }
+  return "Image generation failed. Please try again in a moment.";
+}
+
+// ─── Branded Image Prompt (content-aware, renders a headline) ─────────────────
+
+/**
+ * Build the final image-model prompt for a content-aware, branded graphic.
+ * Produces a cohesive DESIGNED graphic (infographic / product visual) with the
+ * headline integrated as a real title and any data or labels rendered as real,
+ * correctly-spelled text - leveraging the Pro image model's strong text and
+ * composition. Pass `position` per carousel slide.
+ */
+export function buildBrandedImagePrompt(brief: {
+  headline: string;
+  subpoints?: string[];
+  visual: string;
+  palette: string;
+  textPosition?: string;
+  position?: string;
+}): string {
+  const { headline, visual, palette, position } = brief;
+  const subpoints = (brief.subpoints ?? [])
+    .map((s) => (s || "").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  const subpointsBlock = subpoints.length
+    ? `SUPPORTING POINTS - render these ${subpoints.length} short points as bold, legible on-image labels (a tidy stack, row, chips, or chart/diagram labels) near the headline, clearly smaller than the headline but fully readable, so the viewer grasps the post's context at a glance - never crowded, never a paragraph:\n${subpoints
+        .map((s) => `- "${s}"`)
+        .join("\n")}\n\n`
+    : "";
+
+  return `Design a single, clean, professionally designed square (1:1) graphic for a LinkedIn feed that EXPLAINS the post - the visual and its on-image text together must make the post's core message clear at a glance and stop the scroll. CHOOSE THE STYLE THAT FITS THIS CONTENT and vary it by post: a realistic / photographic scene, a bold flat illustration or friendly animated look, a clean infographic / chart / diagram, an editorial concept, or a futuristic look only if the post is genuinely about the future or technology. There is NO default style - do not force every image to be realistic, and do not force every image to be futuristic; follow the style named in the main visual below. This is a DESIGNED, information-rich graphic, NOT a stock photo with a caption bar pasted on top, and NOT a text-heavy poster.
+
+MAIN VISUAL - the hero, it must carry the meaning on its own: ${visual}
+- Whenever the topic involves data, numbers, growth, results, steps, stages, a comparison, a process, a product, a UI, or a workflow, make a clean infographic, chart, graph, or diagram the main subject - with realistic labels and numbers, tidy icons, a clear flow, or a believable device or dashboard mockup. Render it cleanly and realistically, not as a glowing futuristic dashboard. Let the visual do the talking.
+
+CONTENT-DRIVEN, ON-TOPIC LOOK (important):
+- Match the style, theme, and colours to what THIS post is actually about, and vary them from post to post - the main visual above names the intended style, so commit to it. A futuristic, sci-fi, neon, or hi-tech aesthetic is allowed ONLY when the post is genuinely about the future or technology; otherwise do not default to it, and do not default to a cool blue or teal "tech" palette. Equally, do NOT flatten every post into the same realistic photo - if the concept calls for a bold illustration, infographic, or editorial treatment, render that. The image must communicate the topic, professionally and on-brand.
+
+HEADLINE (the dominant message): "${headline}"
+Render this as the clear focal text of the graphic - bold, large, well-set, high-contrast, and instantly readable. It is the single line that dominates the type and states the post's core point. It works WITH the visual (not pasted over it as an afterthought), is always present and readable, never hidden, tiny, or faded out, and stays within the center 80% of the canvas so it is never cropped.
+
+${subpointsBlock}TEXT MUST BE CLEARLY VISIBLE AND INFORMATIVE (not minimal, not a wall):
+- Build a clear reading path: the bold headline first and dominant, then any supporting points listed above as smaller but fully legible text, plus only the few real labels, numbers, or axis values a chart, diagram, or mockup genuinely needs. This is the RIGHT amount of text - enough to grasp the post's context at a glance, never a tiny faded caption and never paragraphs, sub-headlines, body copy, taglines, descriptions, watermarks, or a cluttered poster.
+- Use size, weight, and contrast to separate the headline from the supporting points so the hierarchy is obvious and everything is easy to read on a phone.
+- Every word that appears must be real, correctly spelled, and meaningful to this topic. Never produce scrambled, fake, or nonsense lettering.
+
+DESIGN IT LIKE A SENIOR DESIGNER WOULD:
+- One cohesive, intentional composition with clear visual hierarchy, balanced layout, and purposeful spacing that fills the whole frame.
+- FULL-BLEED: the background and the whole design must extend completely to all four edges of the square - NO white, blank, or empty border, frame, padding, or outer margin. Keep key elements just clear of the very edge so nothing is cut off, but the design must fill the entire canvas edge to edge.
+
+COLOR: ${palette} Use cohesive, rich, intentional colours drawn from the subject - not washed-out, monotone, flooded with one flat colour, or a default cool blue, teal, or neon tech palette unless the topic is genuinely about technology.
+
+QUALITY BAR: it must look like a senior designer made it - crisp, clean, professional, and well-composed in whatever style this post called for. Avoid cheap stock-photo-with-a-text-banner looks, walls of text, bare empty illustrations, gaudy gradients, glossy plastic 3D, lens flare, busy clutter, and distorted hands, faces, or text. Avoid sci-fi / neon glow and holographic futuristic-tech cliches UNLESS the post is genuinely about the future or technology.
+${position ? `CAROUSEL: this is ${position} - use the SAME design system, colour palette, type, and layout across every slide so the set is cohesive.\n` : ""}Square 1:1, filling the entire frame edge to edge with no blank border or margin on any side. High quality, suitable for a LinkedIn feed. Plain hyphens only, never em-dashes.`;
+}
 
 // ─── Image Generation ────────────────────────────────────────────────────────
 
 export async function generatePostImage(
   imagePrompt: string,
   postId: string,
-  industry?: string
+  industry?: string,
+  allowText = false
 ): Promise<string | null> {
   lastImageGenError = null;
 
-  // ONLY use the imagePrompt (scene/metaphor description) — never pass post
-  // title or body text, as image models will attempt to render any text they see.
-  const sceneDescription = imagePrompt || "Professional abstract business concept";
+  let prompt: string;
+  if (allowText) {
+    // The caller passed a complete, branded prompt (built by buildBrandedImagePrompt)
+    // that intentionally renders a short headline. Send it as-is - do NOT append the
+    // no-text wrapper or it would forbid the headline we want.
+    prompt = imagePrompt || "Professional abstract business concept";
+  } else {
+    // Legacy path: ONLY use the imagePrompt (scene/metaphor description) - never pass
+    // post title or body text, as image models will attempt to render any text they see.
+    const sceneDescription = imagePrompt || "Professional abstract business concept";
+    prompt = `${sceneDescription}
 
-  const prompt = `${sceneDescription}
-
-Art direction:
-- Modern, premium editorial photography or a clean 3D render — NOT generic stock-photo, clip-art, or infographic.
-- Cinematic composition with a clear focal point, shallow depth of field, and breathing space (negative space) for a polished LinkedIn feel.
-- Soft, natural lighting with professional color grading; a cohesive palette with subtle blue accents looks on-brand.
-- High detail, crisp and realistic; uncluttered, no busy or distracting backgrounds.
+Style: Professional, polished, visually compelling. Cinematic composition, natural lighting, professional color grading.
 Industry context: ${industry || "business"}.
-Hard constraints (do NOT violate):
-- ZERO text of any kind — no words, letters, numbers, labels, captions, watermarks, logos, or typography.
-- No distorted hands, faces or anatomy; no warped objects; no user-interface screenshots.
-Square format (1:1), high resolution, suitable for a LinkedIn post.`;
+The image must contain ZERO text - no words, letters, numbers, labels, captions, watermarks, or typography of any kind.
+Square format (1:1), filling the entire frame edge to edge with no blank border, frame, or margin on any side. High quality, suitable for LinkedIn.`;
+  }
 
-  console.log(`[Imagen] Scene: ${sceneDescription.slice(0, 80)}...`);
+  console.log(`[Imagen] Prompt: ${prompt.slice(0, 80)}...`);
 
-  // Available image generation models (confirmed working via API test):
-  // - gemini-3.1-flash-image-preview: confirmed working, returns JPEG images via generateContent
-  // - Imagen 4.0 models: only support "predict" (Vertex AI), NOT generateImages via Gemini API
-
-  // Tried in order — primary first, stable fallback second. If the preview
-  // model is ever deprecated/unavailable, generation falls back automatically.
+  // Nano Banana Pro - Google's premium image model (much stronger at text
+  // rendering, charts and complex composition than the older flash-image preview;
+  // this is the quality tier the Gemini app itself uses). Try the preview id first,
+  // then the GA id. No flash fallback on purpose, so a Pro access or billing
+  // problem surfaces clearly instead of silently returning low-quality images.
   const imageModels = [
-    "gemini-3.1-flash-image-preview", // primary — newest, best quality
-    "gemini-2.5-flash-image", // stable GA fallback
+    "gemini-3-pro-image-preview",
+    "gemini-3-pro-image",
   ];
 
   for (const model of imageModels) {
@@ -57,7 +141,11 @@ Square format (1:1), high resolution, suitable for a LinkedIn post.`;
       const response = await getAI().models.generateContent({
         model,
         contents: prompt,
-        config: { responseModalities: ["IMAGE", "TEXT"] },
+        config: {
+          responseModalities: ["IMAGE", "TEXT"],
+          // Square LinkedIn format at high resolution so text and detail stay crisp.
+          imageConfig: { aspectRatio: "1:1", imageSize: "2K" },
+        },
       });
 
       const parts = response.candidates?.[0]?.content?.parts ?? [];
@@ -77,15 +165,81 @@ Square format (1:1), high resolution, suitable for a LinkedIn post.`;
       }
       console.warn(`[Imagen] ${model} returned no image data, trying next model`);
     } catch (err) {
-      lastImageGenError = `${model}: ${(err as Error).message}`;
-      console.error(`[Imagen] ${model} failed:`, (err as Error).message);
+      const raw = (err as Error).message;
+      lastImageGenError = friendlyImageError(raw);
+      // Keep the full technical reason in the server logs for debugging.
+      console.error(`[Imagen] ${model} failed:`, raw);
     }
   }
 
   if (!lastImageGenError) {
-    lastImageGenError = "All image generation models returned no image data";
+    lastImageGenError = "Image generation didn't return an image. Please try again in a moment.";
   }
   return null;
+}
+
+// ─── Carousel (multiple images) ───────────────────────────────────────────────
+
+// Distinct DESIGNED layouts so each carousel slide looks visually different while
+// staying an infographic-style graphic (not a photo and not a blank illustration).
+const CAROUSEL_VARIATIONS = [
+  "laid out as a bold single big-number stat card",
+  "laid out as a clean bar or line chart with short real labels",
+  "laid out as a numbered step-by-step flow diagram",
+  "laid out as a side-by-side before-and-after comparison",
+  "laid out as an icon-driven concept grid",
+  "laid out as a simple labeled device or dashboard mockup, rendered realistically",
+];
+
+/**
+ * Generate `count` visually-distinct images for a carousel post, in parallel.
+ * Returns the successfully-generated Blob URLs (may be fewer than `count` if
+ * some generations fail).
+ */
+export async function generateCarouselImages(
+  basePrompt: string,
+  postId: string,
+  industry?: string,
+  count = 4
+): Promise<string[]> {
+  const base = basePrompt || "Professional abstract business concept";
+  const prompts = Array.from(
+    { length: count },
+    (_, i) => `${base} - ${CAROUSEL_VARIATIONS[i % CAROUSEL_VARIATIONS.length]}`
+  );
+  const results = await Promise.all(
+    // allowText so the designed labels in the prompt survive (no no-text wrapper).
+    prompts.map((p, i) => generatePostImage(p, `${postId}-c${i}`, industry, true))
+  );
+  return results.filter((u): u is string => !!u);
+}
+
+/**
+ * Render a cohesive carousel from a content-aware plan: one branded image per
+ * slide (hook -> key points -> takeaway), all sharing the plan's palette. Each
+ * slide renders its own short headline. Returns the successful Blob URLs.
+ */
+export async function generateCarouselFromPlan(
+  plan: { palette: string; slides: { headline: string; visual: string; textPosition?: string }[] },
+  postId: string,
+  industry?: string
+): Promise<string[]> {
+  const total = plan.slides.length;
+  const results = await Promise.all(
+    plan.slides.map((slide, i) => {
+      const role = i === 0 ? "the hook" : i === total - 1 ? "the takeaway" : "a key point";
+      const position = `slide ${i + 1} of ${total} - ${role}`;
+      const prompt = buildBrandedImagePrompt({
+        headline: slide.headline,
+        visual: slide.visual,
+        palette: plan.palette,
+        textPosition: slide.textPosition,
+        position,
+      });
+      return generatePostImage(prompt, `${postId}-c${i}`, industry, true);
+    })
+  );
+  return results.filter((u): u is string => !!u);
 }
 
 // ─── Image Prompt Builder ────────────────────────────────────────────────────
@@ -93,11 +247,16 @@ Square format (1:1), high resolution, suitable for a LinkedIn post.`;
 export function buildImagePrompt(
   postTitle: string,
   postType: string,
-  industry: string
+  industry: string,
+  headline?: string
 ): string {
-  // This is a fallback when no imagePrompt exists on the post.
-  // Describes a visual concept — no actual post text is included.
-  return `Professional abstract visual metaphor representing the concept of ${postType} content in the ${industry} industry.
-Clean, modern composition with symbolic imagery. No text, no words, no letters, no numbers anywhere in the image.
-Square format (1:1). High quality, suitable for LinkedIn.`;
+  // Carousel fallback (used only when the content-aware plan fails). Keeps the same
+  // intent as the main path: a DESIGNED graphic anchored to the person's ROLE, with
+  // minimal meaningful labels - never an industry-stereotype, never a blank text-free
+  // illustration.
+  const role = (headline || "").trim() || "professional";
+  return `A clean, professional, REALISTIC DESIGNED infographic-style graphic about "${postTitle}", anchored to the real work of a ${role} (broad field: ${industry || "business"} - context only, do NOT default to a generic stereotype of the field such as chips, wires, or circuit boards).
+Match the theme, style, and colours to what THIS post is actually about; do NOT default to a futuristic, sci-fi, neon, or cool blue/teal "tech" aesthetic unless the post is genuinely about the future or technology - otherwise keep it realistic and on-topic.
+Build it as a simple chart, diagram, labeled mockup, or icon-driven concept layout with only a few short, real, correctly-spelled labels - a designed graphic with minimal meaningful text, never a blank text-free illustration and never a text-heavy poster.
+Square format (1:1), full-bleed edge to edge with no blank border or margin on any side. High quality, suitable for LinkedIn.`;
 }

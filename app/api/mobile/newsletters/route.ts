@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
       title: parsed.title || n.title,
       subjectLine: parsed.subject || n.subject || "",
       status: n.status,
+      scheduledAt: n.scheduledAt ? n.scheduledAt.toISOString() : null,
       introHook: parsed.intro?.hook || "",
       preview: parsed.intro?.preview || "",
       sections: (parsed.sections || []).map((s) => ({
