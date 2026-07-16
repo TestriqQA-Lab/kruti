@@ -240,6 +240,52 @@ export async function postToLinkedIn(
   return { success: true, linkedinPostId: data.id };
 }
 
+/**
+ * Delete a member's own post from LinkedIn. Idempotent - a 204 (deleted) or 404
+ * (already gone) both count as success, so it works whether Kruti removes a still-
+ * live post or the user already deleted it manually on LinkedIn. Uses the legacy
+ * ugcPosts DELETE (w_member_social), which accepts share and ugcPost URNs.
+ */
+export async function deleteLinkedInPost(
+  userId: string,
+  linkedinPostId: string
+): Promise<LinkedInPostResult> {
+  const accessToken = await getValidAccessToken(userId);
+  if (!accessToken) {
+    return {
+      success: false,
+      error: "LinkedIn access token expired. Please sign out and sign in again to reconnect.",
+      requiresReauth: true,
+    };
+  }
+
+  const res = await fetch(
+    `https://api.linkedin.com/v2/ugcPosts/${encodeURIComponent(linkedinPostId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "X-Restli-Protocol-Version": "2.0.0",
+      },
+    }
+  );
+
+  // 204 = deleted (also returned for an already-deleted post); 404 = already gone.
+  if (res.status === 204 || res.status === 404) {
+    return { success: true };
+  }
+  if (res.status === 401) {
+    return {
+      success: false,
+      error: "LinkedIn token was revoked. Please sign out and sign in again.",
+      requiresReauth: true,
+    };
+  }
+  const errText = await res.text();
+  console.error("LinkedIn delete post error:", res.status, errText);
+  return { success: false, error: "Couldn't remove the post from LinkedIn. Please try again." };
+}
+
 async function uploadImageToLinkedIn(
   accessToken: string,
   linkedinId: string,
@@ -420,9 +466,11 @@ async function createDocumentPost(
     return { success: false, error: "Failed to post the document to LinkedIn." };
   }
 
-  // 201 Created - the post URN arrives in the x-restli-id response header.
-  const postId = res.headers.get("x-restli-id") || "";
-  return { success: true, linkedinPostId: postId };
+  // 201 Created - the post URN arrives in the x-restli-id response header. If it is
+  // somehow absent, report the id as undefined (never an empty string) so the post
+  // is not later treated as having a valid, deletable URN.
+  const postId = res.headers.get("x-restli-id");
+  return { success: true, linkedinPostId: postId ?? undefined };
 }
 
 /** Fetch a PDF from a Blob URL and upload it as a LinkedIn document. */
