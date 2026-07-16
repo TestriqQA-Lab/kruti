@@ -200,6 +200,8 @@ export default function PostEditorClient({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showPublishChecklist, setShowPublishChecklist] = useState(false);
+  const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
   const [hashtags, setHashtags] = useState<string[]>(
     post.hashtags ? JSON.parse(post.hashtags) : []
   );
@@ -670,6 +672,32 @@ export default function PostEditorClient({
     }
   }
 
+  // Remove the post from LinkedIn and unlock it for editing + re-posting. Kruti
+  // deletes the LinkedIn post itself (idempotent), so it works whether the post is
+  // still live or the user already deleted it manually on LinkedIn.
+  async function handleUnpublish() {
+    setShowUnpublishConfirm(false);
+    setUnpublishing(true);
+    try {
+      const res = await fetch(`/api/content/${post.id}/unpublish`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPostResult(null);
+        setStatus("draft");
+        toast("Removed from LinkedIn - you can edit and post it again now", "success");
+        router.refresh();
+      } else if (data.requiresReauth) {
+        toast(data.error || "Please sign out and sign in again to reconnect LinkedIn.", "error");
+      } else {
+        toast(data.error || "Couldn't remove the post from LinkedIn", "error");
+      }
+    } catch {
+      toast("Couldn't remove the post from LinkedIn. Please try again.", "error");
+    } finally {
+      setUnpublishing(false);
+    }
+  }
+
   async function handleToggleHumanMode() {
     if (isPublished || regenerating) return;
     const next = !humanMode;
@@ -893,9 +921,47 @@ export default function PostEditorClient({
       {isPublished && (
         <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3">
           <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-          <p className="text-sm text-green-800 dark:text-green-300">
+          <p className="text-sm text-green-800 dark:text-green-300 flex-1">
             This post has been published to LinkedIn. Editing is disabled.
           </p>
+          <button
+            onClick={() => setShowUnpublishConfirm(true)}
+            disabled={unpublishing}
+            className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-green-300 dark:border-green-700 text-green-800 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50 disabled:opacity-70 transition-colors whitespace-nowrap"
+            title="Remove this post from LinkedIn so you can edit and post it again"
+          >
+            {unpublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Repeat2 className="w-4 h-4" />}
+            {unpublishing ? "Removing..." : "Edit again"}
+          </button>
+        </div>
+      )}
+
+      {/* Unpublish confirmation */}
+      {showUnpublishConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white dark:bg-[#0D131F] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-display text-lg font-bold text-slate-900 dark:text-gray-100">
+              Remove from LinkedIn?
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              This deletes the post from LinkedIn and unlocks it so you can edit and post it again.
+              Re-posting creates a new LinkedIn post. This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowUnpublishConfirm(false)}
+                className="text-sm px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUnpublish}
+                className="text-sm px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+              >
+                Remove &amp; edit
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
