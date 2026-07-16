@@ -251,14 +251,13 @@ Square format (1:1), filling the entire frame edge to edge with no blank border,
 
   console.log(`[Imagen] Prompt: ${prompt.slice(0, 80)}...`);
 
-  // Nano Banana Pro - Google's premium image model (much stronger at text
-  // rendering, charts and complex composition than the older flash-image preview;
-  // this is the quality tier the Gemini app itself uses). Try the preview id first,
-  // then the GA id. No flash fallback on purpose, so a Pro access or billing
-  // problem surfaces clearly instead of silently returning low-quality images.
+  // Nano Banana 2 (Gemini 3.1 Flash Image) - Google's high-efficiency image model:
+  // strong at on-image text rendering, optimized for speed and high-volume use, at a
+  // much lower per-image cost than Nano Banana Pro. Single stable model id (no
+  // preview/GA split); if it is unavailable, generation returns no image rather than
+  // silently degrading to a different model.
   const imageModels = [
-    "gemini-3-pro-image-preview",
-    "gemini-3-pro-image",
+    "gemini-3.1-flash-image",
   ];
 
   for (const model of imageModels) {
