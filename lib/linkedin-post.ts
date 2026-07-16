@@ -4,6 +4,20 @@ import { shouldShowWatermark, WATERMARK_TEXT } from "@/lib/subscription-check";
 import { formatPostBody, cleanInline } from "@/lib/format";
 import { imagesToPdf } from "@/lib/images-to-pdf";
 
+// Versioned LinkedIn REST APIs (documents + posts) require this month header.
+const LINKEDIN_VERSION = "202601";
+
+/**
+ * Escape the Posts API "little text" reserved characters so literal post text can
+ * never parse as a mention/template (unescaped ( ) [ ] { } @ etc. can 400 or render
+ * wrong). '#' is deliberately NOT escaped so hashtags keep working. Only used for
+ * the versioned /rest/posts commentary - the legacy ugcPosts path does not use
+ * little text and stays unescaped.
+ */
+function escapeLittleText(text: string): string {
+  return text.replace(/[\\|{}@[\]()<>*_~]/g, (c) => `\\${c}`);
+}
+
 export interface LinkedInPostResult {
   success: boolean;
   linkedinPostId?: string;
@@ -135,42 +149,49 @@ export async function postToLinkedIn(
     }
   };
 
-  // Attach a DOCUMENT asset — LinkedIn renders a multi-page PDF as a swipeable carousel.
-  const attachDocument = (assetUrn: string, title: string) => {
-    ugcPost.specificContent = {
-      "com.linkedin.ugc.ShareContent": {
-        shareCommentary: { text: fullText },
-        shareMediaCategory: "DOCUMENT",
-        media: [{ status: "READY", media: assetUrn, title: { text: title } }],
-      },
-    };
-  };
-
   if (docUrl) {
-    // User-uploaded PDF document.
+    // User-uploaded PDF document → versioned Documents + Posts APIs. The legacy
+    // ugcPosts DOCUMENT recipe is not permitted for this app (the v2 assets
+    // registerUpload returns 403 for feedshare-document), which used to silently
+    // drop the PDF and fall back.
     try {
-      const assetUrn = await uploadDocumentToLinkedIn(accessToken, linkedinId, docUrl);
-      if (assetUrn) attachDocument(assetUrn, post.documentName || "Document");
+      const documentUrn = await uploadDocumentToLinkedIn(accessToken, linkedinId, docUrl);
+      if (documentUrn) {
+        const result = await createDocumentPost(
+          accessToken,
+          linkedinId,
+          fullText,
+          documentUrn,
+          post.documentName || "Document"
+        );
+        if (result.success || result.requiresReauth) return result;
+        // Non-auth post failure → fall through and publish the text-only post below.
+      }
     } catch (docErr) {
       console.error("Document upload to LinkedIn failed, posting without document:", docErr);
     }
   } else if (carousel.length > 1) {
-    // Multiple images → publish as a swipeable PDF carousel. The legacy UGC API does
-    // NOT support true multi-image posts, so render the images into one PDF document.
+    // Multiple images → publish as a swipeable PDF carousel document via the
+    // versioned Documents + Posts APIs (ugcPosts cannot reference document URNs).
     try {
       const pdfBytes = await imagesToPdf(carousel);
-      if (pdfBytes) {
-        const assetUrn = await uploadDocumentBufferToLinkedIn(accessToken, linkedinId, pdfBytes);
-        if (assetUrn) {
-          attachDocument(assetUrn, cleanInline(post.title) || "Carousel");
-        } else {
-          await attachSingleImage(carousel[0]); // upload failed → at least post the first image
-        }
-      } else {
-        await attachSingleImage(carousel[0]); // PDF build failed → first image
+      const documentUrn = pdfBytes
+        ? await uploadDocumentBufferToLinkedIn(accessToken, linkedinId, pdfBytes)
+        : null;
+      if (documentUrn) {
+        const result = await createDocumentPost(
+          accessToken,
+          linkedinId,
+          fullText,
+          documentUrn,
+          cleanInline(post.title) || "Carousel"
+        );
+        if (result.success || result.requiresReauth) return result;
       }
+      // PDF build, upload, or post failed → at least post the first image.
+      await attachSingleImage(carousel[0]);
     } catch (carErr) {
-      console.error("Carousel PDF post failed, falling back to a single image:", carErr);
+      console.error("Carousel document post failed, falling back to a single image:", carErr);
       try {
         await attachSingleImage(carousel[0]);
       } catch (fallbackErr) {
@@ -293,47 +314,43 @@ async function uploadImageToLinkedIn(
   return asset; // e.g. "urn:li:digitalmediaAsset:C5422AQG..."
 }
 
-/** Register a document upload and PUT the given PDF bytes. Returns the asset URN. */
+/**
+ * Upload PDF bytes via the versioned Documents API and return the document URN
+ * (urn:li:document:...). The legacy v2 assets feedshare-document recipe is NOT
+ * permitted for this app (403), so documents must use the versioned API.
+ */
 async function uploadDocumentBufferToLinkedIn(
   accessToken: string,
   linkedinId: string,
   pdfBytes: ArrayBuffer | Uint8Array
 ): Promise<string | null> {
-  // Step 1: Register a document upload with LinkedIn
+  // Step 1: Initialize a document upload (versioned REST API)
   const registerRes = await fetch(
-    "https://api.linkedin.com/v2/assets?action=registerUpload",
+    "https://api.linkedin.com/rest/documents?action=initializeUpload",
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
         "X-Restli-Protocol-Version": "2.0.0",
+        "LinkedIn-Version": LINKEDIN_VERSION,
       },
       body: JSON.stringify({
-        registerUploadRequest: {
-          recipes: ["urn:li:digitalmediaRecipe:feedshare-document"],
-          owner: `urn:li:person:${linkedinId}`,
-          serviceRelationships: [
-            { relationshipType: "OWNER", identifier: "urn:li:userGeneratedContent" },
-          ],
-        },
+        initializeUploadRequest: { owner: `urn:li:person:${linkedinId}` },
       }),
     }
   );
 
   if (!registerRes.ok) {
-    console.error("LinkedIn document register failed:", await registerRes.text());
+    console.error("LinkedIn document initializeUpload failed:", await registerRes.text());
     return null;
   }
 
   const registerData = await registerRes.json();
-  const uploadUrl =
-    registerData.value?.uploadMechanism?.[
-      "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
-    ]?.uploadUrl;
-  const asset = registerData.value?.asset;
-  if (!uploadUrl || !asset) {
-    console.error("LinkedIn document register: missing uploadUrl or asset");
+  const uploadUrl = registerData.value?.uploadUrl;
+  const documentUrn = registerData.value?.document;
+  if (!uploadUrl || !documentUrn) {
+    console.error("LinkedIn document initializeUpload: missing uploadUrl or document urn");
     return null;
   }
 
@@ -352,7 +369,60 @@ async function uploadDocumentBufferToLinkedIn(
     return null;
   }
 
-  return asset; // e.g. "urn:li:digitalmediaAsset:..."
+  return documentUrn; // e.g. "urn:li:document:D4D10AQ..."
+}
+
+/**
+ * Publish a post with a document attachment (LinkedIn renders a multi-page PDF as a
+ * swipeable carousel) via the versioned Posts API. The legacy ugcPosts API cannot
+ * reference urn:li:document assets, so document posts must go through /rest/posts.
+ */
+async function createDocumentPost(
+  accessToken: string,
+  linkedinId: string,
+  commentary: string,
+  documentUrn: string,
+  title: string
+): Promise<LinkedInPostResult> {
+  const res = await fetch("https://api.linkedin.com/rest/posts", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "X-Restli-Protocol-Version": "2.0.0",
+      "LinkedIn-Version": LINKEDIN_VERSION,
+    },
+    body: JSON.stringify({
+      author: `urn:li:person:${linkedinId}`,
+      commentary: escapeLittleText(commentary),
+      visibility: "PUBLIC",
+      distribution: {
+        feedDistribution: "MAIN_FEED",
+        targetEntities: [],
+        thirdPartyDistributionChannels: [],
+      },
+      content: { media: { title, id: documentUrn } },
+      lifecycleState: "PUBLISHED",
+      isReshareDisabledByAuthor: false,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("LinkedIn document post error:", res.status, errText);
+    if (res.status === 401) {
+      return {
+        success: false,
+        error: "LinkedIn token was revoked. Please sign out and sign in again.",
+        requiresReauth: true,
+      };
+    }
+    return { success: false, error: "Failed to post the document to LinkedIn." };
+  }
+
+  // 201 Created - the post URN arrives in the x-restli-id response header.
+  const postId = res.headers.get("x-restli-id") || "";
+  return { success: true, linkedinPostId: postId };
 }
 
 /** Fetch a PDF from a Blob URL and upload it as a LinkedIn document. */
