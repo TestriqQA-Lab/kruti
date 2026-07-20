@@ -19,7 +19,9 @@ import { renderSlide } from "@/lib/carousel";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { getMobileUserId } from "@/lib/mobileAuth";
 
-export const maxDuration = 60; // 4 image generations can take a while
+// Image generation dominates this route. Backgrounds now run in parallel, but
+// keep a wide ceiling so a slow model can't fail the whole carousel.
+export const maxDuration = 300;
 
 const SLIDE_COUNT = 4;
 
@@ -87,36 +89,54 @@ Return ONLY a JSON array of ${SLIDE_COUNT} objects: [{"heading","body","imagePro
     slides.push({ heading: post.title, body: "", imagePrompt: "" });
   }
 
-  // ── Steps 2-4: render + upload each slide ──
+  // ── Step 2: generate every slide background IN PARALLEL ──
+  // These are independent, and generating them one after another meant the
+  // slowest part of the route scaled with SLIDE_COUNT — four sequential
+  // high-quality generations overran the function timeout and failed the
+  // whole carousel. In parallel the step costs roughly one generation.
+  const backgrounds = await Promise.all(
+    slides.map(async (s, i) => {
+      try {
+        return await generatePostImage(
+          s.imagePrompt || `Abstract professional ${industry} background`,
+          `${post.id}-c${i}`,
+          industry,
+        );
+      } catch (err) {
+        console.warn(
+          `[generate-carousel] slide ${i} bg failed, using brand fill`,
+          err,
+        );
+        return null;
+      }
+    }),
+  );
+
+  // ── Steps 3-4: render + upload each slide ──
+  // Per-slide failures must not take the whole carousel down — a slide that
+  // can't render is skipped, and we only give up if none survived.
   const urls: string[] = [];
   for (let i = 0; i < slides.length; i++) {
     const s = slides[i];
-    let bgUrl: string | null = null;
     try {
-      bgUrl = await generatePostImage(
-        s.imagePrompt || `Abstract professional ${industry} background`,
-        `${post.id}-c${i}`,
-        industry,
+      // renderSlide (next/og) fetches the background URL itself and overlays the
+      // text reliably (no fontconfig dependency).
+      const png = await renderSlide(backgrounds[i], {
+        index: i + 1,
+        total: SLIDE_COUNT,
+        heading: s.heading || `Slide ${i + 1}`,
+        body: s.body || "",
+      });
+
+      const blob = await put(
+        `carousel/post-${post.id}-${i}-${Date.now()}.png`,
+        png,
+        { access: "public", contentType: "image/png" },
       );
+      urls.push(blob.url);
     } catch (err) {
-      console.warn(`[generate-carousel] slide ${i} bg failed, using brand fill`, err);
+      console.error(`[generate-carousel] slide ${i} render/upload failed:`, err);
     }
-
-    // renderSlide (next/og) fetches the background URL itself and overlays the
-    // text reliably (no fontconfig dependency).
-    const png = await renderSlide(bgUrl, {
-      index: i + 1,
-      total: SLIDE_COUNT,
-      heading: s.heading || `Slide ${i + 1}`,
-      body: s.body || "",
-    });
-
-    const blob = await put(
-      `carousel/post-${post.id}-${i}-${Date.now()}.png`,
-      png,
-      { access: "public", contentType: "image/png" },
-    );
-    urls.push(blob.url);
   }
 
   if (urls.length === 0) {

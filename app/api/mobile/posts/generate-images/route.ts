@@ -20,6 +20,11 @@ import { getImageBrief } from "@/lib/image-brief";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { getMobileUserId } from "@/lib/mobileAuth";
 
+// Each post here costs a Gemini brief call plus a high-quality image
+// generation, and the route accepts up to 10 posts — far beyond the default
+// function timeout, which would fail the request midway.
+export const maxDuration = 300;
+
 const IMAGE_GEN_LIMIT_PER_POST = 2;
 
 export async function POST(req: NextRequest) {
