@@ -54,19 +54,16 @@ export async function GET(req: NextRequest) {
         body: s.content,
         takeaway: s.keyTakeaway,
       })),
-      featuredInsight: parsed.featuredInsight
-        ? `${parsed.featuredInsight.quote || ""}${
-            parsed.featuredInsight.context
-              ? " — " + parsed.featuredInsight.context
-              : ""
-          }`
-        : "",
-      ctaText: parsed.cta
-        ? `${parsed.cta.heading ? parsed.cta.heading + ": " : ""}${
-            parsed.cta.text || parsed.cta.action || ""
-          }`
-        : "",
+      // Send the editable pieces UNCONCATENATED. Joining quote+context (or
+      // heading+text) made the round-trip lossy: the app could not split them
+      // apart again on save, so the nested shape was destroyed.
+      featuredInsight: parsed.featuredInsight?.quote || "",
+      ctaText: parsed.cta?.text || parsed.cta?.action || "",
       signoff: parsed.signoff || "",
+      // The full nested content exactly as stored. The app rebuilds this shape
+      // on save (overriding only what it edits) instead of writing its own flat
+      // shape over the top — which used to break the web editor and the email send.
+      raw: parsed,
       createdAt: n.createdAt,
     };
   });
