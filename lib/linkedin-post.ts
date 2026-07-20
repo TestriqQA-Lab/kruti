@@ -8,6 +8,19 @@ export interface LinkedInPostResult {
   requiresReauth?: boolean;
 }
 
+/**
+ * Version for LinkedIn's versioned REST API (Images / Documents / Posts).
+ *
+ * LinkedIn retires versions on a rolling ~12-month window. Once the pinned
+ * version falls out of that window every upload starts failing with
+ * 426 NONEXISTENT_VERSION ("Requested version … is not active") and publishing
+ * breaks — which is exactly what happened with the old hard-coded "202401".
+ *
+ * Kept env-overridable so it can be bumped without a code change the next time
+ * LinkedIn rotates. Format is YYYYMM.
+ */
+const LINKEDIN_VERSION = process.env.LINKEDIN_API_VERSION || "202606";
+
 export async function postToLinkedIn(
   userId: string,
   post: {
@@ -277,13 +290,12 @@ async function postDocumentToLinkedIn(
   documentUrl: string,
   documentTitle: string,
 ): Promise<LinkedInPostResult> {
-  const VERSION = "202401";
   const owner = `urn:li:person:${linkedinId}`;
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/json",
     "X-Restli-Protocol-Version": "2.0.0",
-    "LinkedIn-Version": VERSION,
+    "LinkedIn-Version": LINKEDIN_VERSION,
   };
 
   try {
@@ -379,18 +391,18 @@ async function postImagesToLinkedIn(
   text: string,
   imageUrls: string[],
 ): Promise<LinkedInPostResult> {
-  const VERSION = "202401";
   const owner = `urn:li:person:${linkedinId}`;
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/json",
     "X-Restli-Protocol-Version": "2.0.0",
-    "LinkedIn-Version": VERSION,
+    "LinkedIn-Version": LINKEDIN_VERSION,
   };
 
   try {
     // 1. Upload each image via the versioned Images API → collect image URNs.
     const imageUrns: string[] = [];
+    let lastInitError: string | null = null;
     for (const url of imageUrls) {
       const initRes = await fetch(
         "https://api.linkedin.com/rest/images?action=initializeUpload",
@@ -409,6 +421,12 @@ async function postImagesToLinkedIn(
             error: "LinkedIn token was revoked. Please sign out and sign in again.",
             requiresReauth: true,
           };
+        // Remember WHY, so a total failure below reports the real reason
+        // instead of a generic "failed to upload".
+        lastInitError =
+          initRes.status === 426
+            ? "LinkedIn's image API version has expired — the server needs LINKEDIN_API_VERSION updated."
+            : `LinkedIn rejected the image upload (${initRes.status}).`;
         continue;
       }
       const initData = await initRes.json();
@@ -432,7 +450,10 @@ async function postImagesToLinkedIn(
     }
 
     if (imageUrns.length === 0)
-      return { success: false, error: "Failed to upload images to LinkedIn." };
+      return {
+        success: false,
+        error: lastInitError || "Failed to upload images to LinkedIn.",
+      };
 
     // 2. Build the content — multiImage for 2+, single media for 1.
     const content =
