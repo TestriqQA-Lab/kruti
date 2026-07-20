@@ -472,10 +472,22 @@ async function createDocumentPost(
     return { success: false, error: "Failed to post the document to LinkedIn." };
   }
 
-  // 201 Created - the post URN arrives in the x-restli-id response header. If it is
-  // somehow absent, report the id as undefined (never an empty string) so the post
-  // is not later treated as having a valid, deletable URN.
-  const postId = res.headers.get("x-restli-id");
+  // 201 Created - the post URN normally arrives in the x-restli-id response
+  // header. Fall back to the alternate header and then the response body:
+  // without a URN we can't link to ("View on LinkedIn") or delete the post
+  // later, so it is worth checking every place LinkedIn puts it.
+  let postId: string | null =
+    res.headers.get("x-restli-id") || res.headers.get("x-linkedin-id");
+  if (!postId) {
+    const body = await res.json().catch(() => null);
+    postId = body?.id ?? null;
+  }
+  if (!postId) {
+    console.warn(
+      "LinkedIn document post succeeded but returned no post URN - 'View on LinkedIn' will be unavailable for it",
+    );
+  }
+  // Never an empty string, so the post is not later treated as having a valid URN.
   return { success: true, linkedinPostId: postId ?? undefined };
 }
 
