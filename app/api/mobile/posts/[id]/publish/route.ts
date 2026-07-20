@@ -67,7 +67,9 @@ export async function POST(
     body: post.body,
     hashtags: post.hashtags,
     imageUrl: post.imageUrl,
-    images,
+    // 2+ images are published as a swipeable PDF carousel document, not a
+    // multi-image grid — that is the only way LinkedIn renders a real carousel.
+    carouselImages: images,
     documentUrl: post.documentUrl,
     documentName: post.documentName,
     customSignature: post.customSignature,

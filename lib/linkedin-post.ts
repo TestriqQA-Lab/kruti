@@ -1,5 +1,28 @@
 import { prisma } from "@/lib/prisma";
 import { getValidAccessToken } from "@/lib/linkedin-token";
+import { shouldShowWatermark, WATERMARK_TEXT } from "@/lib/subscription-check";
+import { formatPostBody, cleanInline } from "@/lib/format";
+import { imagesToPdf } from "@/lib/images-to-pdf";
+
+/**
+ * Versioned LinkedIn REST APIs (documents + posts) require this month header.
+ *
+ * LinkedIn retires versions on a rolling ~12-month window; once this one falls
+ * out, every upload fails with 426 NONEXISTENT_VERSION and publishing breaks.
+ * Kept env-overridable so the next rotation is an env change, not a code change.
+ */
+const LINKEDIN_VERSION = process.env.LINKEDIN_API_VERSION || "202601";
+
+/**
+ * Escape the Posts API "little text" reserved characters so literal post text can
+ * never parse as a mention/template (unescaped ( ) [ ] { } @ etc. can 400 or render
+ * wrong). '#' is deliberately NOT escaped so hashtags keep working. Only used for
+ * the versioned /rest/posts commentary - the legacy ugcPosts path does not use
+ * little text and stays unescaped.
+ */
+function escapeLittleText(text: string): string {
+  return text.replace(/[\\|{}@[\]()<>*_~]/g, (c) => `\\${c}`);
+}
 
 export interface LinkedInPostResult {
   success: boolean;
@@ -8,28 +31,15 @@ export interface LinkedInPostResult {
   requiresReauth?: boolean;
 }
 
-/**
- * Version for LinkedIn's versioned REST API (Images / Documents / Posts).
- *
- * LinkedIn retires versions on a rolling ~12-month window. Once the pinned
- * version falls out of that window every upload starts failing with
- * 426 NONEXISTENT_VERSION ("Requested version … is not active") and publishing
- * breaks — which is exactly what happened with the old hard-coded "202401".
- *
- * Kept env-overridable so it can be bumped without a code change the next time
- * LinkedIn rotates. Format is YYYYMM.
- */
-const LINKEDIN_VERSION = process.env.LINKEDIN_API_VERSION || "202606";
-
 export async function postToLinkedIn(
   userId: string,
   post: {
-    title?: string | null;   // Hook / opening line — prepended with line breaks
+    title?: string | null;   // Hook / opening line - prepended with line breaks
     body: string;
     hashtags: string | null;
     imageUrl: string | null;
-    images?: string[] | null; // Carousel — multiple image URLs (multi-image post)
-    documentUrl?: string | null;  // PDF — published as a LinkedIn document post
+    carouselImages?: string[] | null; // multiple images → multi-image (carousel) post
+    documentUrl?: string | null; // PDF → LinkedIn document (swipeable PDF carousel) post
     documentName?: string | null;
     customSignature?: string | null;
   }
@@ -44,11 +54,14 @@ export async function postToLinkedIn(
     };
   }
 
-  // Get LinkedIn user ID — prefer user.linkedinId, fall back to account.providerAccountId
+  // Get LinkedIn user ID - prefer user.linkedinId, fall back to account.providerAccountId
   const account = await prisma.account.findFirst({
     where: { userId, provider: "linkedin" },
   });
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { subscription: true },
+  });
   const linkedinId = user?.linkedinId || account?.providerAccountId;
   if (!linkedinId) {
     return { success: false, error: "No LinkedIn ID found. Please sign out and sign in again." };
@@ -66,14 +79,15 @@ export async function postToLinkedIn(
   const hashtags = post.hashtags ? (JSON.parse(post.hashtags) as string[]) : [];
   const parts: string[] = [];
 
-  // Hook / opening line (1 blank line before body)
-  if (post.title?.trim()) {
-    parts.push(post.title.trim());
-    parts.push(""); // blank line after hook
+  // Hook / opening line - with one blank line below it, separating it from the body.
+  const hook = cleanInline(post.title);
+  if (hook) {
+    parts.push(hook);
+    parts.push("");
   }
 
-  // Main body
-  parts.push(post.body);
+  // Main body (markdown stripped, list items spaced)
+  parts.push(formatPostBody(post.body));
 
   // Hashtags
   if (hashtags.length > 0) {
@@ -91,19 +105,17 @@ export async function postToLinkedIn(
     parts.push(signature);
   }
 
-  const fullText = parts.join("\n");
-
-  // If a PDF document is attached, publish it as a LinkedIn document post
-  // (swipeable PDF / carousel), which uses a different API than image posts.
-  if (post.documentUrl && post.documentUrl.startsWith("https://")) {
-    return postDocumentToLinkedIn(
-      accessToken,
-      linkedinId,
-      fullText,
-      post.documentUrl,
-      post.documentName || "Document",
-    );
+  // Kruti.io watermark for trial and lifetime-free-domain users
+  if (shouldShowWatermark({
+    subscriptionStatus: user?.subscription?.status,
+    email: user?.email,
+    role: user?.role,
+  })) {
+    parts.push("");
+    parts.push(WATERMARK_TEXT);
   }
+
+  const fullText = parts.join("\n");
 
   // Build UGC post payload (text only initially)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,48 +133,82 @@ export async function postToLinkedIn(
     },
   };
 
-  // Collect the image URLs to publish: prefer the carousel `images` array,
-  // fall back to the single `imageUrl`. De-dupe and keep only HTTPS URLs.
-  const imageUrls = Array.from(
-    new Set(
-      [...(post.images ?? []), post.imageUrl].filter(
-        (u): u is string => !!u && u.startsWith("https://"),
-      ),
-    ),
-  ).slice(0, 20); // LinkedIn allows up to 20 images in a multi-image post
+  // Media precedence: user PDF > multi-image carousel (rendered as a PDF) > single image.
+  const docUrl =
+    post.documentUrl && post.documentUrl.startsWith("https://") ? post.documentUrl : null;
+  const carousel = (post.carouselImages ?? []).filter((u) => !!u && u.startsWith("https://"));
+  const singleImage =
+    post.imageUrl && post.imageUrl.startsWith("https://") ? post.imageUrl : carousel[0] ?? null;
 
-  console.log(
-    `[linkedin-post] images received: ${(post.images ?? []).length}, ` +
-      `usable URLs: ${imageUrls.length} → ${imageUrls.length >= 2 ? "MULTI-IMAGE (/rest/posts)" : imageUrls.length === 1 ? "single (ugcPosts)" : "text only"}`,
-  );
+  // Attach a single image (the only image format the legacy UGC API reliably
+  // renders). Used for single-image posts and as a carousel fallback.
+  const attachSingleImage = async (url: string) => {
+    const asset = await uploadImageToLinkedIn(accessToken, linkedinId, url);
+    if (asset) {
+      ugcPost.specificContent = {
+        "com.linkedin.ugc.ShareContent": {
+          shareCommentary: { text: fullText },
+          shareMediaCategory: "IMAGE",
+          media: [{ status: "READY", media: asset }],
+        },
+      };
+    }
+  };
 
-  // 2+ images → a REAL swipeable carousel via the versioned Posts API.
-  // (The legacy /v2/ugcPosts endpoint only ever renders ONE image, which is
-  // why carousels were posting a single slide.)
-  if (imageUrls.length >= 2) {
-    return postImagesToLinkedIn(accessToken, linkedinId, fullText, imageUrls);
-  }
-
-  // Single image → legacy single-image UGC post (simple, proven path).
-  if (imageUrls.length === 1) {
+  if (docUrl) {
+    // User-uploaded PDF document → versioned Documents + Posts APIs. The legacy
+    // ugcPosts DOCUMENT recipe is not permitted for this app (the v2 assets
+    // registerUpload returns 403 for feedshare-document), which used to silently
+    // drop the PDF and fall back.
     try {
-      const assetUrn = await uploadImageToLinkedIn(
-        accessToken,
-        linkedinId,
-        imageUrls[0],
-      );
-      if (assetUrn) {
-        ugcPost.specificContent = {
-          "com.linkedin.ugc.ShareContent": {
-            shareCommentary: { text: fullText },
-            shareMediaCategory: "IMAGE",
-            media: [{ status: "READY", media: assetUrn }],
-          },
-        };
+      const documentUrn = await uploadDocumentToLinkedIn(accessToken, linkedinId, docUrl);
+      if (documentUrn) {
+        const result = await createDocumentPost(
+          accessToken,
+          linkedinId,
+          fullText,
+          documentUrn,
+          post.documentName || "Document"
+        );
+        if (result.success || result.requiresReauth) return result;
+        // Non-auth post failure → fall through and publish the text-only post below.
       }
+    } catch (docErr) {
+      console.error("Document upload to LinkedIn failed, posting without document:", docErr);
+    }
+  } else if (carousel.length > 1) {
+    // Multiple images → publish as a swipeable PDF carousel document via the
+    // versioned Documents + Posts APIs (ugcPosts cannot reference document URNs).
+    try {
+      const pdfBytes = await imagesToPdf(carousel);
+      const documentUrn = pdfBytes
+        ? await uploadDocumentBufferToLinkedIn(accessToken, linkedinId, pdfBytes)
+        : null;
+      if (documentUrn) {
+        const result = await createDocumentPost(
+          accessToken,
+          linkedinId,
+          fullText,
+          documentUrn,
+          cleanInline(post.title) || "Carousel"
+        );
+        if (result.success || result.requiresReauth) return result;
+      }
+      // PDF build, upload, or post failed → at least post the first image.
+      await attachSingleImage(carousel[0]);
+    } catch (carErr) {
+      console.error("Carousel document post failed, falling back to a single image:", carErr);
+      try {
+        await attachSingleImage(carousel[0]);
+      } catch (fallbackErr) {
+        console.error("Single-image fallback also failed:", fallbackErr);
+      }
+    }
+  } else if (singleImage) {
+    try {
+      await attachSingleImage(singleImage);
     } catch (imgErr) {
       console.error("Image upload to LinkedIn failed, posting without image:", imgErr);
-      // Continue posting without image
     }
   }
 
@@ -198,6 +244,52 @@ export async function postToLinkedIn(
 
   const data = await res.json();
   return { success: true, linkedinPostId: data.id };
+}
+
+/**
+ * Delete a member's own post from LinkedIn. Idempotent - a 204 (deleted) or 404
+ * (already gone) both count as success, so it works whether Kruti removes a still-
+ * live post or the user already deleted it manually on LinkedIn. Uses the legacy
+ * ugcPosts DELETE (w_member_social), which accepts share and ugcPost URNs.
+ */
+export async function deleteLinkedInPost(
+  userId: string,
+  linkedinPostId: string
+): Promise<LinkedInPostResult> {
+  const accessToken = await getValidAccessToken(userId);
+  if (!accessToken) {
+    return {
+      success: false,
+      error: "LinkedIn access token expired. Please sign out and sign in again to reconnect.",
+      requiresReauth: true,
+    };
+  }
+
+  const res = await fetch(
+    `https://api.linkedin.com/v2/ugcPosts/${encodeURIComponent(linkedinPostId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "X-Restli-Protocol-Version": "2.0.0",
+      },
+    }
+  );
+
+  // 204 = deleted (also returned for an already-deleted post); 404 = already gone.
+  if (res.status === 204 || res.status === 404) {
+    return { success: true };
+  }
+  if (res.status === 401) {
+    return {
+      success: false,
+      error: "LinkedIn token was revoked. Please sign out and sign in again.",
+      requiresReauth: true,
+    };
+  }
+  const errText = await res.text();
+  console.error("LinkedIn delete post error:", res.status, errText);
+  return { success: false, error: "Couldn't remove the post from LinkedIn. Please try again." };
 }
 
 async function uploadImageToLinkedIn(
@@ -274,236 +366,130 @@ async function uploadImageToLinkedIn(
   return asset; // e.g. "urn:li:digitalmediaAsset:C5422AQG..."
 }
 
-// Escape reserved characters for LinkedIn's /rest/posts commentary ("Little
-// Text" format) so the post body isn't rejected.
-function escapeLinkedInText(s: string): string {
-  return s.replace(/[\\()[\]{}<>@|~_*#]/g, (c) => "\\" + c);
-}
-
-// Publish a PDF as a LinkedIn document post (swipeable PDF / carousel) using
-// the versioned Documents + Posts API. Returns the same result shape as the
-// image path so callers don't care which one ran.
-async function postDocumentToLinkedIn(
+/**
+ * Upload PDF bytes via the versioned Documents API and return the document URN
+ * (urn:li:document:...). The legacy v2 assets feedshare-document recipe is NOT
+ * permitted for this app (403), so documents must use the versioned API.
+ */
+async function uploadDocumentBufferToLinkedIn(
   accessToken: string,
   linkedinId: string,
-  text: string,
-  documentUrl: string,
-  documentTitle: string,
-): Promise<LinkedInPostResult> {
-  const owner = `urn:li:person:${linkedinId}`;
-  const headers = {
-    Authorization: `Bearer ${accessToken}`,
-    "Content-Type": "application/json",
-    "X-Restli-Protocol-Version": "2.0.0",
-    "LinkedIn-Version": LINKEDIN_VERSION,
-  };
-
-  try {
-    // 1. Initialize the document upload.
-    const initRes = await fetch(
-      "https://api.linkedin.com/rest/documents?action=initializeUpload",
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ initializeUploadRequest: { owner } }),
-      },
-    );
-    if (!initRes.ok) {
-      const t = await initRes.text();
-      console.error("LinkedIn document init failed:", initRes.status, t);
-      if (initRes.status === 401)
-        return {
-          success: false,
-          error: "LinkedIn token was revoked. Please sign out and sign in again.",
-          requiresReauth: true,
-        };
-      return { success: false, error: "Couldn't start the document upload on LinkedIn." };
-    }
-    const initData = await initRes.json();
-    const uploadUrl = initData.value?.uploadUrl;
-    const documentUrn = initData.value?.document;
-    if (!uploadUrl || !documentUrn)
-      return { success: false, error: "LinkedIn document init returned no upload URL." };
-
-    // 2. Fetch the PDF from Blob and upload its bytes.
-    const pdfRes = await fetch(documentUrl);
-    if (!pdfRes.ok)
-      return { success: false, error: "Couldn't fetch the PDF for upload." };
-    const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
-    const uploadRes = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${accessToken}` },
-      body: pdfBuffer,
-    });
-    if (!uploadRes.ok) {
-      console.error("LinkedIn document PUT failed:", await uploadRes.text());
-      return { success: false, error: "Failed to upload the PDF to LinkedIn." };
-    }
-
-    // 3. Create the document post.
-    const postRes = await fetch("https://api.linkedin.com/rest/posts", {
+  pdfBytes: ArrayBuffer | Uint8Array
+): Promise<string | null> {
+  // Step 1: Initialize a document upload (versioned REST API)
+  const registerRes = await fetch(
+    "https://api.linkedin.com/rest/documents?action=initializeUpload",
+    {
       method: "POST",
-      headers,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "X-Restli-Protocol-Version": "2.0.0",
+        "LinkedIn-Version": LINKEDIN_VERSION,
+      },
       body: JSON.stringify({
-        author: owner,
-        commentary: escapeLinkedInText(text),
-        visibility: "PUBLIC",
-        distribution: {
-          feedDistribution: "MAIN_FEED",
-          targetEntities: [],
-          thirdPartyDistributionChannels: [],
-        },
-        content: {
-          media: { id: documentUrn, title: documentTitle.slice(0, 100) },
-        },
-        lifecycleState: "PUBLISHED",
-        isReshareDisabledByAuthor: false,
+        initializeUploadRequest: { owner: `urn:li:person:${linkedinId}` },
       }),
-    });
-    if (!postRes.ok) {
-      const t = await postRes.text();
-      console.error("LinkedIn document post failed:", postRes.status, t);
-      if (postRes.status === 401)
-        return {
-          success: false,
-          error: "LinkedIn token was revoked. Please sign out and sign in again.",
-          requiresReauth: true,
-        };
-      return { success: false, error: "Failed to publish the document post to LinkedIn." };
     }
-    const postId =
-      postRes.headers.get("x-restli-id") ||
-      postRes.headers.get("x-linkedin-id") ||
-      undefined;
-    return { success: true, linkedinPostId: postId };
-  } catch (err) {
-    console.error("LinkedIn document post exception:", err);
-    return { success: false, error: "Document post failed unexpectedly." };
+  );
+
+  if (!registerRes.ok) {
+    console.error("LinkedIn document initializeUpload failed:", await registerRes.text());
+    return null;
   }
+
+  const registerData = await registerRes.json();
+  const uploadUrl = registerData.value?.uploadUrl;
+  const documentUrn = registerData.value?.document;
+  if (!uploadUrl || !documentUrn) {
+    console.error("LinkedIn document initializeUpload: missing uploadUrl or document urn");
+    return null;
+  }
+
+  // Step 2: Upload the PDF binary to LinkedIn
+  const uploadRes = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/pdf",
+    },
+    body: pdfBytes as BodyInit,
+  });
+
+  if (!uploadRes.ok) {
+    console.error("LinkedIn document upload PUT failed:", await uploadRes.text());
+    return null;
+  }
+
+  return documentUrn; // e.g. "urn:li:document:D4D10AQ..."
 }
 
-// Publish 2+ images as a real swipeable multi-image (carousel) post using the
-// versioned Images + Posts API. The legacy /v2/ugcPosts endpoint only renders
-// one image, so multi-image carousels MUST go through this path.
-async function postImagesToLinkedIn(
+/**
+ * Publish a post with a document attachment (LinkedIn renders a multi-page PDF as a
+ * swipeable carousel) via the versioned Posts API. The legacy ugcPosts API cannot
+ * reference urn:li:document assets, so document posts must go through /rest/posts.
+ */
+async function createDocumentPost(
   accessToken: string,
   linkedinId: string,
-  text: string,
-  imageUrls: string[],
+  commentary: string,
+  documentUrn: string,
+  title: string
 ): Promise<LinkedInPostResult> {
-  const owner = `urn:li:person:${linkedinId}`;
-  const headers = {
-    Authorization: `Bearer ${accessToken}`,
-    "Content-Type": "application/json",
-    "X-Restli-Protocol-Version": "2.0.0",
-    "LinkedIn-Version": LINKEDIN_VERSION,
-  };
+  const res = await fetch("https://api.linkedin.com/rest/posts", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "X-Restli-Protocol-Version": "2.0.0",
+      "LinkedIn-Version": LINKEDIN_VERSION,
+    },
+    body: JSON.stringify({
+      author: `urn:li:person:${linkedinId}`,
+      commentary: escapeLittleText(commentary),
+      visibility: "PUBLIC",
+      distribution: {
+        feedDistribution: "MAIN_FEED",
+        targetEntities: [],
+        thirdPartyDistributionChannels: [],
+      },
+      content: { media: { title, id: documentUrn } },
+      lifecycleState: "PUBLISHED",
+      isReshareDisabledByAuthor: false,
+    }),
+  });
 
-  try {
-    // 1. Upload each image via the versioned Images API → collect image URNs.
-    const imageUrns: string[] = [];
-    let lastInitError: string | null = null;
-    for (const url of imageUrls) {
-      const initRes = await fetch(
-        "https://api.linkedin.com/rest/images?action=initializeUpload",
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ initializeUploadRequest: { owner } }),
-        },
-      );
-      if (!initRes.ok) {
-        const t = await initRes.text();
-        console.error("LinkedIn image init failed:", initRes.status, t);
-        if (initRes.status === 401)
-          return {
-            success: false,
-            error: "LinkedIn token was revoked. Please sign out and sign in again.",
-            requiresReauth: true,
-          };
-        // Remember WHY, so a total failure below reports the real reason
-        // instead of a generic "failed to upload".
-        lastInitError =
-          initRes.status === 426
-            ? "LinkedIn's image API version has expired — the server needs LINKEDIN_API_VERSION updated."
-            : `LinkedIn rejected the image upload (${initRes.status}).`;
-        continue;
-      }
-      const initData = await initRes.json();
-      const uploadUrl = initData.value?.uploadUrl;
-      const imageUrn = initData.value?.image;
-      if (!uploadUrl || !imageUrn) continue;
-
-      const imgRes = await fetch(url);
-      if (!imgRes.ok) continue;
-      const buf = Buffer.from(await imgRes.arrayBuffer());
-      const putRes = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${accessToken}` },
-        body: buf,
-      });
-      if (!putRes.ok) {
-        console.error("LinkedIn image PUT failed:", await putRes.text());
-        continue;
-      }
-      imageUrns.push(imageUrn);
-    }
-
-    if (imageUrns.length === 0)
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("LinkedIn document post error:", res.status, errText);
+    if (res.status === 401) {
       return {
         success: false,
-        error: lastInitError || "Failed to upload images to LinkedIn.",
+        error: "LinkedIn token was revoked. Please sign out and sign in again.",
+        requiresReauth: true,
       };
-
-    // 2. Build the content — multiImage for 2+, single media for 1.
-    const content =
-      imageUrns.length === 1
-        ? { media: { id: imageUrns[0], altText: "Image" } }
-        : {
-            multiImage: {
-              images: imageUrns.map((id, i) => ({
-                id,
-                altText: `Slide ${i + 1}`,
-              })),
-            },
-          };
-
-    // 3. Create the post.
-    const postRes = await fetch("https://api.linkedin.com/rest/posts", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        author: owner,
-        commentary: escapeLinkedInText(text),
-        visibility: "PUBLIC",
-        distribution: {
-          feedDistribution: "MAIN_FEED",
-          targetEntities: [],
-          thirdPartyDistributionChannels: [],
-        },
-        content,
-        lifecycleState: "PUBLISHED",
-        isReshareDisabledByAuthor: false,
-      }),
-    });
-    if (!postRes.ok) {
-      const t = await postRes.text();
-      console.error("LinkedIn image post failed:", postRes.status, t);
-      if (postRes.status === 401)
-        return {
-          success: false,
-          error: "LinkedIn token was revoked. Please sign out and sign in again.",
-          requiresReauth: true,
-        };
-      return { success: false, error: "Failed to publish the carousel to LinkedIn." };
     }
-    const postId =
-      postRes.headers.get("x-restli-id") ||
-      postRes.headers.get("x-linkedin-id") ||
-      undefined;
-    return { success: true, linkedinPostId: postId };
-  } catch (err) {
-    console.error("LinkedIn image post exception:", err);
-    return { success: false, error: "Carousel post failed unexpectedly." };
+    return { success: false, error: "Failed to post the document to LinkedIn." };
   }
+
+  // 201 Created - the post URN arrives in the x-restli-id response header. If it is
+  // somehow absent, report the id as undefined (never an empty string) so the post
+  // is not later treated as having a valid, deletable URN.
+  const postId = res.headers.get("x-restli-id");
+  return { success: true, linkedinPostId: postId ?? undefined };
+}
+
+/** Fetch a PDF from a Blob URL and upload it as a LinkedIn document. */
+async function uploadDocumentToLinkedIn(
+  accessToken: string,
+  linkedinId: string,
+  documentUrl: string
+): Promise<string | null> {
+  const docRes = await fetch(documentUrl);
+  if (!docRes.ok) {
+    console.error("Failed to fetch PDF from Blob URL:", documentUrl);
+    return null;
+  }
+  const docBuffer = await docRes.arrayBuffer();
+  return uploadDocumentBufferToLinkedIn(accessToken, linkedinId, docBuffer);
 }

@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     body: post.body,
     hashtags: post.hashtags,
     imageUrl: post.imageUrl,
-    images,
+    carouselImages: images,
     documentUrl: post.documentUrl,
     documentName: post.documentName,
     customSignature: post.customSignature,
