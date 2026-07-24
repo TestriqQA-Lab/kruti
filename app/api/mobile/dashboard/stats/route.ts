@@ -46,7 +46,14 @@ export async function GET(req: NextRequest) {
   const drafts = allPosts.filter((p) => p.status === "draft").length;
 
   const sub = user.subscription;
-  const used = sub?.postsGeneratedThisCycle ?? 0;
+  // A cycle older than 30 days has already rolled over — the generate route
+  // zeroes the counter when it next runs (see api/mobile/generate/posts). If
+  // we report the stale count here the app shows "limit reached" and disables
+  // Generate for a batch the backend would happily allow.
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const cycleStale =
+    !sub?.cyclePostsResetAt || new Date(sub.cyclePostsResetAt) < thirtyDaysAgo;
+  const used = cycleStale ? 0 : (sub?.postsGeneratedThisCycle ?? 0);
   const postsRemaining = Math.max(0, POST_LIMIT_PER_CYCLE - used);
 
   // Posts per generation batch = number of posting days (mirrors web).
