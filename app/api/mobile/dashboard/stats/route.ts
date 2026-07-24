@@ -82,5 +82,11 @@ export async function GET(req: NextRequest) {
     cycleResetDate: sub?.cyclePostsResetAt ?? null,
     postsPerBatch,
     latestStrategy,
+    // Drives the "complete your profile" hint on the dashboard — generation
+    // quality depends on these being filled in.
+    profile: {
+      headline: user.headline ?? null,
+      industry: user.industry ?? null,
+    },
   });
 }
