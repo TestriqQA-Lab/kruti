@@ -1048,6 +1048,32 @@ export default function PostEditorClient({
             Repurpose
           </button>
 
+          {/* Status - mirrors the Post Details dropdown (same state, so both stay in sync) */}
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="toolbar-status"
+              className="text-xs text-slate-500 dark:text-slate-400"
+            >
+              Status
+            </label>
+            <select
+              id="toolbar-status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              disabled={post.postedToLinkedIn || isTrialExpired}
+              className="text-sm px-3 py-2 border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-white/[0.06] dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={
+                post.postedToLinkedIn
+                  ? "Published posts cannot change status"
+                  : "Post status - click Save to apply"
+              }
+            >
+              <option value="draft">Draft</option>
+              <option value="ready">Ready (auto-post)</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+
           <div className="flex-1" />
 
           {/* Post to LinkedIn */}
