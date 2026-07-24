@@ -38,7 +38,14 @@ export async function GET(req: NextRequest) {
       postingSchedule: true,
       timezone: true,
       subscription: {
-        select: { status: true, trialEnd: true, currentPeriodEnd: true },
+        select: {
+          status: true,
+          trialEnd: true,
+          currentPeriodEnd: true,
+          // Drives the price on the plan badge — without it USD subscribers
+          // were always shown the INR price.
+          currency: true,
+        },
       },
     },
   });
