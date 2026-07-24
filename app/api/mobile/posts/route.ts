@@ -65,6 +65,10 @@ export async function GET(req: NextRequest) {
         customSignature: (post as any).customSignature ?? null,
         // Past image sets, so the editor can offer them for reuse for free.
         imageHistory: (post as any).imageHistory ?? null,
+        // Why an auto-publish failed. Without this a scheduled post the cron
+        // couldn't publish looks unchanged in the app — the user never learns
+        // it never went out.
+        postError: (post as any).postError ?? null,
         weekStart: plan.weekStart,
       })),
     );
