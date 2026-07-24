@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generatePostImage, buildBrandedImagePrompt } from "@/lib/imagen";
 import { getImageBrief } from "@/lib/image-brief";
+import { appendImageHistory } from "@/lib/image-history";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { getMobileUserId } from "@/lib/mobileAuth";
 
@@ -127,6 +128,9 @@ export async function POST(req: NextRequest) {
             imageUrl,
             imagePrompt: `${brief.headline} - ${brief.visual}`,
             imageGenCount: newCount,
+            // Keep every result so the user can restore a past image for free
+            // once the per-post generation limit is used up.
+            imageHistory: appendImageHistory(post.imageHistory, [imageUrl]),
           },
         });
         if (!firstImageUrl) {

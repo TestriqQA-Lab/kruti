@@ -120,6 +120,12 @@ model Post {
   documentName        String?
   imagePrompt         String?
   imageGenCount       Int         @default(0)
+  imageHistory        String?     @db.Text // JSON string[][] — every generated/uploaded image set, so past results stay reusable
+  // These two already exist in the database (added by the website) but were
+  // missing from this branch's schema — without them a `prisma db push` from
+  // here would DROP them and destroy data the website depends on.
+  carouselImages      String?     @db.Text // JSON array of image URLs for a multi-image carousel post
+  style               String?     // the user-selected content style this post was written in; null for legacy posts
   hashtags            String?
   postType            String
   scheduledAt         DateTime?

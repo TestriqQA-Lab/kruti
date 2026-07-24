@@ -63,6 +63,8 @@ export async function GET(req: NextRequest) {
         linkedinPostId: post.linkedinPostId,
         // Per-post signature — lets the mobile editor show/edit it.
         customSignature: (post as any).customSignature ?? null,
+        // Past image sets, so the editor can offer them for reuse for free.
+        imageHistory: (post as any).imageHistory ?? null,
         weekStart: plan.weekStart,
       })),
     );

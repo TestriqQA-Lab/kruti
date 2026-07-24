@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma";
 import { generateText, parseJSON } from "@/lib/gemini";
 import { generatePostImage } from "@/lib/imagen";
 import { renderSlide } from "@/lib/carousel";
+import { appendImageHistory } from "@/lib/image-history";
 import { checkActiveSubscription } from "@/lib/subscription-check";
 import { getMobileUserId } from "@/lib/mobileAuth";
 
@@ -152,6 +153,8 @@ Return ONLY a JSON array of ${SLIDE_COUNT} objects: [{"heading","body","imagePro
     data: {
       images: JSON.stringify(urls),
       imageUrl: urls[0],
+      // Keep the whole slide set so it can be restored later for free.
+      imageHistory: appendImageHistory(post.imageHistory, urls),
     },
   });
 
