@@ -62,6 +62,23 @@ export async function GET(req: NextRequest) {
     : { days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], time: "09:00" };
   const postsPerBatch = Math.max(1, schedule.days.length);
 
+  // Where the next generated batch will start — the day after the last
+  // scheduled post (skipping weekends), else today. Mirrors the website so the
+  // dashboard can show "Jul 1 - Jul 5" before the user taps Generate.
+  const scheduledDates = allPosts
+    .filter((p) => p.scheduledAt)
+    .map((p) => new Date(p.scheduledAt as Date).getTime());
+  const nextStart = new Date();
+  nextStart.setHours(0, 0, 0, 0);
+  if (scheduledDates.length) {
+    nextStart.setTime(Math.max(...scheduledDates));
+    nextStart.setDate(nextStart.getDate() + 1);
+    nextStart.setHours(0, 0, 0, 0);
+    while (nextStart.getDay() === 0 || nextStart.getDay() === 6) {
+      nextStart.setDate(nextStart.getDate() + 1);
+    }
+  }
+
   // Latest strategy (most recent plan)
   let latestStrategy: string | null = null;
   const latestPlan = plans[0];
@@ -88,6 +105,9 @@ export async function GET(req: NextRequest) {
     cycleLimit: POST_LIMIT_PER_CYCLE,
     cycleResetDate: sub?.cyclePostsResetAt ?? null,
     postsPerBatch,
+    // For the "next batch covers Jul 1 - Jul 5" range on the dashboard.
+    nextStartDate: nextStart.toISOString(),
+    postingDays: schedule.days,
     latestStrategy,
     // Drives the "complete your profile" hint on the dashboard — generation
     // quality depends on these being filled in.
