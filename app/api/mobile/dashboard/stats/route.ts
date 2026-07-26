@@ -109,6 +109,7 @@ export async function GET(req: NextRequest) {
     nextStartDate: nextStart.toISOString(),
     postingDays: schedule.days,
     latestStrategy,
+    latestPlanWeekStart: latestPlan?.weekStart ?? null,
     // Drives the "complete your profile" hint on the dashboard — generation
     // quality depends on these being filled in.
     profile: {
