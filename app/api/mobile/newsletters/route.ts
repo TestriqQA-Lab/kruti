@@ -58,7 +58,11 @@ export async function GET(req: NextRequest) {
       // heading+text) made the round-trip lossy: the app could not split them
       // apart again on save, so the nested shape was destroyed.
       featuredInsight: parsed.featuredInsight?.quote || "",
-      ctaText: parsed.cta?.text || parsed.cta?.action || "",
+      // The three CTA pieces separately, so the app can show/edit each like
+      // the website (previously heading + action were folded away and lost).
+      ctaHeading: parsed.cta?.heading || "",
+      ctaText: parsed.cta?.text || "",
+      ctaAction: parsed.cta?.action || "",
       signoff: parsed.signoff || "",
       // The full nested content exactly as stored. The app rebuilds this shape
       // on save (overriding only what it edits) instead of writing its own flat
