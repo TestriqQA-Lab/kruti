@@ -9,6 +9,7 @@ import {
   Image as ImageIcon, Copy, ArrowUpDown, Download,
 } from "lucide-react";
 import { cn, formatDate, getPostTypeColor, getStatusColor } from "@/lib/utils";
+import PostImage from "@/components/PostImage";
 
 interface Post {
   id: string;
@@ -526,8 +527,11 @@ export default function PostsClient({ posts: initialPosts }: { posts: Post[] }) 
                     className="flex items-start gap-4 flex-1 min-w-0"
                   >
                     {post.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={post.imageUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                      <PostImage
+                        src={post.imageUrl}
+                        className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                        iconClassName="w-5 h-5"
+                      />
                     ) : (
                       <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0", getPostTypeColor(post.postType))}>
                         <FileText className="w-5 h-5" />
