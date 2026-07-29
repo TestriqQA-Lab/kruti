@@ -26,7 +26,7 @@ import {
   Crop,
 } from "lucide-react";
 import { cn, getPostTypeColor } from "@/lib/utils";
-import Image from "next/image";
+import PostImage from "@/components/PostImage";
 import { useToast } from "@/components/Toast";
 import VariantModal, { Variant } from "@/components/VariantModal";
 import RepurposeModal, { RepurposeResult } from "@/components/RepurposeModal";
@@ -1439,11 +1439,12 @@ export default function PostEditorClient({
               ) : carouselImages.length > 0 ? (
                 <div>
                   <div className="relative aspect-square rounded-xl overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <PostImage
                       src={carouselImages[carouselIndex]}
                       alt={`Carousel slide ${carouselIndex + 1}`}
                       className="absolute inset-0 w-full h-full object-cover"
+                      iconClassName="w-8 h-8"
+                      label="Image no longer available"
                     />
                     <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white">
                       <ImageIcon className="w-3 h-3" /> Carousel &middot; {carouselIndex + 1}/{carouselImages.length}
@@ -1486,7 +1487,13 @@ export default function PostEditorClient({
                   className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
                   onClick={() => setLightboxOpen(true)}
                 >
-                  <Image src={imageUrl} alt="Post image" fill className="object-cover" />
+                  <PostImage
+                    src={imageUrl}
+                    alt="Post image"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    iconClassName="w-8 h-8"
+                    label="Image no longer available"
+                  />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                     <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
                   </div>
@@ -1547,8 +1554,11 @@ export default function PostEditorClient({
                           )}
                           title={isCarousel ? `Carousel - ${group.length} images` : "Single image"}
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={group[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                          <PostImage
+                            src={group[0]}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            iconClassName="w-4 h-4"
+                          />
                           {isCarousel && (
                             <span className="absolute bottom-0.5 right-0.5 inline-flex items-center gap-0.5 rounded bg-black/65 px-1 py-0.5 text-[9px] font-bold leading-none text-white">
                               <ImageIcon className="w-2.5 h-2.5" />
@@ -1802,12 +1812,12 @@ export default function PostEditorClient({
             className="relative max-w-4xl max-h-[90vh] w-full h-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <Image
+            <PostImage
               src={imageUrl}
               alt="Post image full view"
-              fill
-              className="object-contain"
-              sizes="(max-width: 1024px) 100vw, 80vw"
+              className="absolute inset-0 w-full h-full object-contain"
+              iconClassName="w-12 h-12"
+              label="Image no longer available"
             />
           </div>
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3">

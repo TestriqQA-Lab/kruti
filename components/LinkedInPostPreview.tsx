@@ -14,8 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import Image from "next/image";
 import Avatar from "@/components/Avatar";
+import PostImage from "@/components/PostImage";
 import { formatPostBody, cleanInline } from "@/lib/format";
 
 interface LinkedInPostPreviewProps {
@@ -171,11 +171,12 @@ export default function LinkedInPostPreview({
           </div>
         ) : carouselImages.length > 0 ? (
           <div className="relative w-full aspect-square bg-slate-100 dark:bg-white/[0.06] select-none">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <PostImage
               src={carouselImages[Math.min(slide, carouselImages.length - 1)]}
               alt={`Slide ${Math.min(slide, carouselImages.length - 1) + 1}`}
               className="absolute inset-0 w-full h-full object-cover"
+              iconClassName="w-8 h-8"
+              label="Image no longer available"
             />
             <span className="absolute top-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
               {Math.min(slide, carouselImages.length - 1) + 1}/{carouselImages.length}
@@ -213,7 +214,13 @@ export default function LinkedInPostPreview({
           </div>
         ) : imageUrl ? (
           <div className="relative w-full aspect-square bg-slate-100 dark:bg-white/[0.06]">
-            <Image src={imageUrl} alt="Post image" fill className="object-cover" unoptimized />
+            <PostImage
+              src={imageUrl}
+              alt="Post image"
+              className="absolute inset-0 w-full h-full object-cover"
+              iconClassName="w-8 h-8"
+              label="Image no longer available"
+            />
           </div>
         ) : null}
 
