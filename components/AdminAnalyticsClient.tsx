@@ -17,6 +17,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import PostImage from "@/components/PostImage";
 import type { UsageReport, DailyRecord } from "@/lib/usage-analytics";
 
 /** Local INR formatter (kept client-side so no server-only module is bundled). */
@@ -477,8 +478,12 @@ export default function AdminAnalyticsClient({
                 <div key={p.postId} className="rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
                   <div className="relative aspect-video bg-gray-50 dark:bg-gray-800">
                     {p.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.imageUrl} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                      <PostImage
+                        src={p.imageUrl}
+                        loading="lazy"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        iconClassName="w-6 h-6"
+                      />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-gray-300 dark:text-gray-600">
                         <ImageIcon className="w-6 h-6" />
