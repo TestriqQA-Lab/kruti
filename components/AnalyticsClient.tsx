@@ -5,7 +5,6 @@ import {
   TrendingUp,
   Linkedin,
   BarChart3,
-  Info,
   Heart,
   MessageCircle,
   Share2,
@@ -310,8 +309,8 @@ export default function AnalyticsClient({
         </div>
       </div>
 
-      {/* Engagement Metrics */}
-      {engagement?.totals.hasSyncedData ? (
+      {/* Engagement Metrics - hidden entirely until LinkedIn actually syncs data */}
+      {engagement?.totals.hasSyncedData && (
         <>
           {/* Engagement Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -412,25 +411,6 @@ export default function AnalyticsClient({
             </div>
           )}
         </>
-      ) : (
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-200">
-                Engagement Metrics Coming Soon
-              </h3>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1 leading-relaxed">
-                Track likes, comments, shares, and impressions for your LinkedIn posts.
-                This feature requires additional LinkedIn API permissions (r_member_social scope)
-                which are being configured. Your engagement data fields are ready and will sync
-                automatically once enabled.
-              </p>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
