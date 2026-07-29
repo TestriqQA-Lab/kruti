@@ -63,17 +63,19 @@ export async function syncLinkedInProfile(
     // expire, so re-storing the fresh one keeps avatars from breaking over time.
     if (profile.picture) profileUpdate.image = profile.picture;
 
-    await prisma.user.upsert({
+    // ENRICHMENT ONLY - this must never create a User.
+    //
+    // On a first-time web sign-in NextAuth runs the signIn callback (which calls this)
+    // BEFORE the Prisma adapter creates the User row, and the id it passes is the
+    // LinkedIn `sub`, not the cuid the adapter will mint. An upsert therefore took the
+    // create branch and inserted a junk row with no name and no email - one per new
+    // signup - which also claimed the unique linkedinId and so permanently blocked the
+    // real user from ever having it set. updateMany is a no-op when nothing matches,
+    // so the first login simply skips the sync; the second login (and the backfill in
+    // lib/linkedin-post.ts) fill these fields in against the real row.
+    await prisma.user.updateMany({
       where: { id: userId },
-      update: profileUpdate,
-      create: {
-        id: userId,
-        linkedinId: profile.sub,
-        headline: headline || null,
-        industry: industry || null,
-        image: profile.picture || null,
-        profileUrl: `https://www.linkedin.com/in/${profile.sub}`,
-      },
+      data: profileUpdate,
     });
   } catch (err) {
     console.error("syncLinkedInProfile error:", err);
